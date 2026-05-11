@@ -37,7 +37,7 @@ public class RenderSystem {
     private void loadAssets() {
         String path = "resources/assets/images/";
         try {
-            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit.png")));
+            assetMap.put("rabbit", ImageIO.read(new File(path + "Wolf.png")));
             assetMap.put("bg_grass", ImageIO.read(new File(path + "Grass_Middle.png")));
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
@@ -131,11 +131,28 @@ public class RenderSystem {
         int frameIdx = (int) (animationTimer / FRAME_DURATION) % 4;
 
         int drawSize = (int) (r.getSize() * zoom);
-        g2d.drawImage(sheet,
-                (int)screenPos.x - drawSize/2, (int)screenPos.y - drawSize/2,
-                (int)screenPos.x + drawSize/2, (int)screenPos.y + drawSize/2,
-                (frameIdx % 2) * frameW, (frameIdx / 2) * frameH,
-                ((frameIdx % 2) + 1) * frameW, ((frameIdx / 2) + 1) * frameH, null);
+
+        // 1. Tính toán Tọa độ in ra màn hình (Destination)
+        int dstX1 = (int)screenPos.x - drawSize/2;
+        int dstY1 = (int)screenPos.y - drawSize/2;
+        int dstX2 = (int)screenPos.x + drawSize/2;
+        int dstY2 = (int)screenPos.y + drawSize/2;
+
+        // 2. LẬT ẢNH: Nếu thỏ quay sang trái, đảo ngược điểm đầu cuối của trục X
+        if (!r.isFacingRight()) {
+            int temp = dstX1;
+            dstX1 = dstX2;
+            dstX2 = temp;
+        }
+
+        // 3. Tính toán Tọa độ cắt ảnh từ Sprite Sheet (Source)
+        int srcX1 = (frameIdx % 2) * frameW;
+        int srcY1 = (frameIdx / 2) * frameH;
+        int srcX2 = ((frameIdx % 2) + 1) * frameW;
+        int srcY2 = ((frameIdx / 2) + 1) * frameH;
+
+        // 4. Vẽ ảnh (Java sẽ tự lật nếu dstX1 > dstX2)
+        g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
     }
 
     public void setDisplayMode(DisplayMode mode) { this.displayMode = mode; }

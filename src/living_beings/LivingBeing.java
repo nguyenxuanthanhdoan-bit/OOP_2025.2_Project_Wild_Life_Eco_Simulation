@@ -11,6 +11,7 @@ public abstract class LivingBeing extends Entity {
 
     protected float speed;
     protected float baseSpeed;
+    protected boolean facingRight = true;
 
     public LivingBeing(Vector2 position, float size, float baseSpeed) {
         super(position, size);
@@ -58,6 +59,15 @@ public abstract class LivingBeing extends Entity {
 
     public void setStrategy(strategies.IStrategy strategy) {
         this.currentStrategy = strategy;
+    }
+
+
+    // Thêm hàm Getter để RenderSystem đọc được
+    public boolean isFacingRight() {
+        return facingRight;
+    }
+    public void setFacingRight(boolean facingRight) {
+        this.facingRight = facingRight;
     }
     @Override
     public void update(float deltaTime) {

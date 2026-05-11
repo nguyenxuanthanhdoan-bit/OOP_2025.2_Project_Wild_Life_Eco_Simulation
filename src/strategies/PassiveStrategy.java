@@ -15,7 +15,7 @@ public class PassiveStrategy implements IStrategy {
     public void execute(LivingBeing owner, World world, float deltaTime) {
         stateTimer -= deltaTime;
         if (stateTimer <= 0) {
-            // 50% đứng nghỉ, 50% đi dạo [cite: 435]
+            // 50% đứng nghỉ, 50% đi dạo
             isIdling = random.nextBoolean();
             if (isIdling) {
                 stateTimer = 1.0f + random.nextFloat();
@@ -24,6 +24,14 @@ public class PassiveStrategy implements IStrategy {
                 float dy = (random.nextFloat() * 2) - 1;
                 wanderDirection.set(dx, dy).normalize();
                 stateTimer = 2.0f + random.nextFloat() * 2.0f;
+
+                // Cập nhật hướng mặt ngay khi có hướng đi mới
+                if (dx > 0) {
+                    owner.setFacingRight(true);  // Đi sang phải thì quay mặt sang phải
+                } else if (dx < 0) {
+                    owner.setFacingRight(false); // Đi sang trái thì lật mặt lại
+                }
+                // --- KẾT THÚC FIX ---
             }
         }
 
@@ -34,12 +42,16 @@ public class PassiveStrategy implements IStrategy {
 
     @Override
     public boolean shouldInterrupt(LivingBeing owner, World world) {
-        return false; // Trong Phase 1 chưa có mối đe dọa để ngắt [cite: 435]
+        return false; // Trong Phase 1 chưa có mối đe dọa để ngắt
     }
 
     @Override
-    public int getPriority() { return 0; } // Ưu tiên thấp nhất [cite: 41, 434]
+    public int getPriority() {
+        return 0; // Ưu tiên thấp nhất
+    }
 
     @Override
-    public String getName() { return "Passive"; }
+    public String getName() {
+        return "Passive";
+    }
 }
