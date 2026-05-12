@@ -37,7 +37,7 @@ public class RenderSystem {
     private void loadAssets() {
         String path = "resources/assets/images/";
         try {
-            assetMap.put("rabbit", ImageIO.read(new File(path + "Wolf.png")));
+            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_run.png")));
             assetMap.put("bg_grass", ImageIO.read(new File(path + "Grass_Middle.png")));
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
@@ -139,7 +139,7 @@ public class RenderSystem {
         int dstY2 = (int)screenPos.y + drawSize/2;
 
         // 2. LẬT ẢNH: Nếu thỏ quay sang trái, đảo ngược điểm đầu cuối của trục X
-        if (!r.isFacingRight()) {
+        if (r.isFacingRight()) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;

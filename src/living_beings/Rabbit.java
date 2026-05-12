@@ -9,7 +9,7 @@ public class Rabbit extends HerbivoreAnimal {
 
     public Rabbit(Vector2 position) {
         // Khởi tạo thỏ với kích thước 20.0f và tốc độ lấy từ GameConfig
-        super(position, 50.0f, GameConfig.getInstance().RABBIT_BASE_SPEED);
+        super(position, 20.0f, GameConfig.getInstance().RABBIT_BASE_SPEED);
 
         // Gắn "bộ não" mặc định cho Thỏ ở Phase 1 là đi dạo/đứng im (Passive)
         this.setStrategy(new PassiveStrategy());

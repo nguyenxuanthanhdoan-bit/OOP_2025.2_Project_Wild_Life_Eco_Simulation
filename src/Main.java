@@ -91,7 +91,7 @@ public class Main extends JPanel {
 
     private static JPanel createMenuPanel(ActionListener onStart) {
         JPanel panel = new JPanel();
-        panel.setBackground(new Color(45, 90, 45));
+        panel.setBackground(new Color(80, 10, 80));
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
         JLabel title = new JLabel("WILD-LIFE SIMULATION");
