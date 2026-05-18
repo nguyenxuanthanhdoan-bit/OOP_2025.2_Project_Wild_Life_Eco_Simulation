@@ -13,8 +13,8 @@ public class GameConfig {
     // CẤU HÌNH THẾ GIỚI (WORLD)
     // ==========================================
     // Giả sử bản đồ thực tế rộng 2000x2000 pixels (Camera của bạn có thể chỉ rộng 800x600)
-    public final float WORLD_WIDTH = 4000.0f;
-    public final float WORLD_HEIGHT = 4000.0f;
+    public final float WORLD_WIDTH = 8192.0f;
+    public final float WORLD_HEIGHT = 7232.0f;
 
     // ==========================================
     // CẤU HÌNH CAMERA

@@ -2,11 +2,13 @@ package view.systems;
 
 import core.Vector2;
 import core.DisplayMode;
+import core.TileType; // Chú ý import Enum TileType
 import model.entity.Entity;
 import model.world.World;
 import model.plants.Grass;
 import model.plants.FruitTree;
 import model.living_beings.Rabbit;
+import model.map.GameMap; // Chú ý import GameMap
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -25,6 +27,12 @@ public class RenderSystem {
     private final float FRAME_DURATION = 0.15f;
     private MinimalRenderer minimalRenderer;
 
+    // Thêm biến chứa GameMap
+    private GameMap gameMap;
+
+    // Kích thước chuẩn của 1 ô đất trong thế giới (Ví dụ: 32)
+    private final int TILE_SIZE = 32;
+
     public RenderSystem(Camera camera) {
         this.camera = camera;
         this.displayMode = DisplayMode.REALISTIC;
@@ -33,11 +41,16 @@ public class RenderSystem {
         loadAssets();
     }
 
+    // Hàm Setter để truyền Map từ Controller vào
+    public void setGameMap(GameMap map) {
+        this.gameMap = map;
+    }
+
     private void loadAssets() {
         String path = "resources/assets/images/";
         try {
             assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_walk.png")));
-            assetMap.put("bg_grass", ImageIO.read(new File(path + "Grass_Middle.png")));
+            // assetMap.put("bg_grass", ImageIO.read(new File(path + "Grass_Middle.png"))); // Không cần nữa
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
             assetMap.put("tree_small", ImageIO.read(new File(path + "Oak_Tree_Small.png")));
@@ -52,8 +65,8 @@ public class RenderSystem {
         if (displayMode == DisplayMode.MINIMAL) {
             minimalRenderer.renderBackground(g2d, world.getWidth(), world.getHeight());
         } else {
-            // SỬ DỤNG ẢNH GRASS_MIDDLE.PNG ĐỂ LÀM NỀN
-            drawTiledBackground(world, g2d);
+            // SỬ DỤNG GAMEMAP ĐỂ VẼ NỀN THAY VÌ ẢNH ĐƠN
+            renderMap(g2d);
         }
 
         for (Entity e : world.getEntities()) {
@@ -63,37 +76,56 @@ public class RenderSystem {
         }
     }
 
-    private void drawTiledBackground(World world, Graphics2D g2d) {
-        BufferedImage tile = assetMap.get("bg_grass");
-        if (tile == null) return;
+    // --- [MỚI] HÀM VẼ MAP TỪ DỮ LIỆU ĐỌC ĐƯỢC ---
+    private void renderMap(Graphics2D g2d) {
+        if (gameMap == null) return;
 
+        // 1. Lấy kích thước thực tế của màn hình/cửa sổ game hiện tại
+        Rectangle clip = g2d.getClipBounds();
+        float screenW = (clip != null) ? clip.width : 800;
+        float screenH = (clip != null) ? clip.height : 600;
+
+        // 2. [QUAN TRỌNG NHẤT] Báo cho Camera biết kích thước thật ĐỂ NÓ KHÓA BIÊN
+        camera.setViewportSize(screenW, screenH);
+
+        // 3. Lấy tọa độ và độ zoom MỚI NHẤT của camera SAU KHI đã khóa biên
         float zoom = camera.getZoomLevel();
         Vector2 camPos = camera.getPosition();
 
-        // Kích thước ô gạch thực tế (ví dụ: 128px)
-        float tileW = tile.getWidth();
-        float tileH = tile.getHeight();
+        // Kích thước vẽ ra màn hình (Làm tròn lên và cộng 1 để khít mạch, không bị hở viền trắng)
+        int drawSize = (int) Math.ceil(TILE_SIZE * zoom) + 1;
 
-        // Kích thước vẽ ra màn hình (Làm tròn lên và cộng 1 để khít mạch)
-        int drawW = (int) Math.ceil(tileW * zoom) + 1;
-        int drawH = (int) Math.ceil(tileH * zoom) + 1;
+        // TỐI ƯU HÓA (CULLING): Vẽ tràn ra thêm 1 chút để không bị viền đen
+        int startCol = (int) Math.floor(camPos.x / TILE_SIZE);
+        int endCol = (int) Math.ceil((camPos.x + screenW / zoom) / TILE_SIZE);
+        int startRow = (int) Math.floor(camPos.y / TILE_SIZE);
+        int endRow = (int) Math.ceil((camPos.y + screenH / zoom) / TILE_SIZE);
 
-        // Tính toán những ô gạch nào đang nằm trong khung hình để tối ưu
-        int startCol = (int) Math.floor(camPos.x / tileW);
-        int endCol = (int) Math.ceil((camPos.x + 800 / zoom) / tileW);
-        int startRow = (int) Math.floor(camPos.y / tileH);
-        int endRow = (int) Math.ceil((camPos.y + 600 / zoom) / tileH);
-
-        // Giới hạn vòng lặp trong phạm vi World
         startCol = Math.max(0, startCol);
-        endCol = Math.min((int)(world.getWidth() / tileW), endCol);
+        endCol = Math.min(gameMap.getCols() - 1, endCol);
         startRow = Math.max(0, startRow);
-        endRow = Math.min((int)(world.getHeight() / tileH), endRow);
+        endRow = Math.min(gameMap.getRows() - 1, endRow);
 
+        // Quét và vẽ từng ô
         for (int x = startCol; x <= endCol; x++) {
             for (int y = startRow; y <= endRow; y++) {
-                Vector2 screenPos = camera.worldToScreen(new Vector2(x * tileW, y * tileH));
-                g2d.drawImage(tile, (int)screenPos.x, (int)screenPos.y, drawW, drawH, null);
+                TileType type = gameMap.getTile(x, y);
+
+                // Tọa độ thực trên màn hình
+                Vector2 screenPos = camera.worldToScreen(new Vector2(x * TILE_SIZE, y * TILE_SIZE));
+
+                // Chọn màu "nhựa" tương ứng với loại đất
+                switch (type) {
+                    case OCEAN: g2d.setColor(new Color(50, 115, 215)); break;
+                    case GRASS: g2d.setColor(new Color(135, 195, 65)); break;
+                    case FOREST: g2d.setColor(new Color(25, 95, 15)); break;
+                    case MOUNTAIN: g2d.setColor(Color.DARK_GRAY); break;
+                    case SAND: g2d.setColor(new Color(205, 200, 100)); break;
+                    default: g2d.setColor(Color.BLACK); break;
+                }
+
+                // Đổ màu bệt
+                g2d.fillRect((int)screenPos.x, (int)screenPos.y, drawSize, drawSize);
             }
         }
     }
@@ -131,26 +163,22 @@ public class RenderSystem {
 
         int drawSize = (int) (r.getSize() * zoom);
 
-        // 1. Tính toán Tọa độ in ra màn hình (Destination)
         int dstX1 = (int)screenPos.x - drawSize/2;
         int dstY1 = (int)screenPos.y - drawSize/2;
         int dstX2 = (int)screenPos.x + drawSize/2;
         int dstY2 = (int)screenPos.y + drawSize/2;
 
-        // 2. LẬT ẢNH: Nếu thỏ quay sang trái, đảo ngược điểm đầu cuối của trục X
         if (r.isFacingRight()) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;
         }
 
-        // 3. Tính toán Tọa độ cắt ảnh từ Sprite Sheet (Source)
         int srcX1 = (frameIdx % 2) * frameW;
         int srcY1 = (frameIdx / 2) * frameH;
         int srcX2 = ((frameIdx % 2) + 1) * frameW;
         int srcY2 = ((frameIdx / 2) + 1) * frameH;
 
-        // 4. Vẽ ảnh (Java sẽ tự lật nếu dstX1 > dstX2)
         g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
     }
 
