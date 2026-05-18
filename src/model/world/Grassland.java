@@ -1,10 +1,10 @@
-package world;
+package model.world;
 
 import core.Vector2;
 import core.BiomeType;
 import core.DisplayMode;
-import plants.Grass;
-import plants.FruitTree;
+import model.plants.Grass;
+import model.plants.FruitTree;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package plants;
+package model.plants;
 
 import core.Vector2;
 import core.DisplayMode;

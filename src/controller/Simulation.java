@@ -1,8 +1,8 @@
 package controller;
 
-import world.World;
-import systems.RenderSystem;
-import systems.Camera;
+import model.world.World;
+import view.systems.RenderSystem;
+import view.systems.Camera;
 import core.DisplayMode;
 import java.awt.Graphics2D;
 

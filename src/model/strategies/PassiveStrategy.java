@@ -1,8 +1,8 @@
-package strategies;
+package model.strategies;
 
 import core.Vector2;
-import living_beings.LivingBeing;
-import world.World;
+import model.living_beings.LivingBeing;
+import model.world.World;
 import java.util.Random;
 
 public class PassiveStrategy implements IStrategy {

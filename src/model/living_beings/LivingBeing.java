@@ -1,7 +1,7 @@
-package living_beings;
+package model.living_beings;
 
 import core.Vector2;
-import entity.Entity;
+import model.entity.Entity;
 
 /**
  * Lớp cơ sở cho các sinh vật sống.
@@ -54,10 +54,10 @@ public abstract class LivingBeing extends Entity {
     public void setBaseSpeed(float baseSpeed) {
         this.baseSpeed = baseSpeed;
     }
-    // Trong src/living_beings/LivingBeing.java
-    protected strategies.IStrategy currentStrategy;
+    // Trong src/model.living_beings/LivingBeing.java
+    protected model.strategies.IStrategy currentStrategy;
 
-    public void setStrategy(strategies.IStrategy strategy) {
+    public void setStrategy(model.strategies.IStrategy strategy) {
         this.currentStrategy = strategy;
     }
 

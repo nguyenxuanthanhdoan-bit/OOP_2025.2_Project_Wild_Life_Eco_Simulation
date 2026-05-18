@@ -1,6 +1,6 @@
 package controller;
 
-import systems.Camera;
+import view.systems.Camera;
 import core.GameConfig;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;

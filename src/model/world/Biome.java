@@ -1,9 +1,8 @@
-package world;
+package model.world;
 
 import core.Vector2;
 import core.BiomeType;
-import core.DisplayMode;
-import entity.Entity;
+import model.entity.Entity;
 
 /**
  * Lớp cơ sở cho các loại địa hình trong thế giới.

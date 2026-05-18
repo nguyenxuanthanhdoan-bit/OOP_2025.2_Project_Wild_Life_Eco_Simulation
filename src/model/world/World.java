@@ -1,6 +1,6 @@
-package world;
+package model.world;
 
-import entity.Entity;
+import model.entity.Entity;
 import core.GameConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class World {
             Entity e = entities.get(i);
             if (e.isAlive()) {
                 e.update(deltaTime);
-                if (e instanceof living_beings.Rabbit) {
+                if (e instanceof model.living_beings.Rabbit) {
                     keepInBounds(e);
                 }
             }

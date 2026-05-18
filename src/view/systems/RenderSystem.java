@@ -1,13 +1,12 @@
-package systems;
+package view.systems;
 
 import core.Vector2;
 import core.DisplayMode;
-import core.GameConfig;
-import entity.Entity;
-import world.World;
-import plants.Grass;
-import plants.FruitTree;
-import living_beings.Rabbit;
+import model.entity.Entity;
+import model.world.World;
+import model.plants.Grass;
+import model.plants.FruitTree;
+import model.living_beings.Rabbit;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -37,7 +36,7 @@ public class RenderSystem {
     private void loadAssets() {
         String path = "resources/assets/images/";
         try {
-            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_run.png")));
+            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_walk.png")));
             assetMap.put("bg_grass", ImageIO.read(new File(path + "Grass_Middle.png")));
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));

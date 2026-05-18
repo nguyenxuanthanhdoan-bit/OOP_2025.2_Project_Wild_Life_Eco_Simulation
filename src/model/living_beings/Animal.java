@@ -1,4 +1,4 @@
-package living_beings;
+package model.living_beings;
 
 import core.Vector2;
 

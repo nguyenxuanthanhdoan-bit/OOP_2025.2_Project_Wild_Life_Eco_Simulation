@@ -1,7 +1,7 @@
-package plants;
+package model.plants;
 
 import core.Vector2;
-import entity.Entity;
+import model.entity.Entity;
 
 public abstract class Plant extends Entity {
     protected float nutritionValue;

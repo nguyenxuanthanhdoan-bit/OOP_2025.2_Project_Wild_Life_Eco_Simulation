@@ -1,10 +1,10 @@
-package systems;
+package view.systems;
 
 import core.Vector2;
-import entity.Entity;
-import living_beings.Rabbit;
-import plants.Grass;
-import plants.FruitTree;
+import model.entity.Entity;
+import model.living_beings.Rabbit;
+import model.plants.Grass;
+import model.plants.FruitTree;
 
 import java.awt.*;
 

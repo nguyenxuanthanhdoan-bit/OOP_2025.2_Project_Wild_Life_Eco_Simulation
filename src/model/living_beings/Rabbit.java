@@ -1,9 +1,9 @@
-package living_beings;
+package model.living_beings;
 
 import core.Vector2;
 import core.GameConfig;
 import core.DisplayMode;
-import strategies.PassiveStrategy;
+import model.strategies.PassiveStrategy;
 
 public class Rabbit extends HerbivoreAnimal {
 

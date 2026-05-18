@@ -1,4 +1,4 @@
-package systems;
+package view.systems;
 
 import core.Vector2;
 import core.GameConfig;
@@ -65,7 +65,7 @@ public class Camera {
         if (this.zoomLevel < config.MIN_ZOOM) this.zoomLevel = config.MIN_ZOOM;
 
         // Khi zoom, cần điều chỉnh lại worldX, worldY để zoom vào tâm màn hình
-        // (Đây là logic nâng cao, tạm thời ta clamp lại để tránh lệch map)
+        // (Đây là logic nâng cao, tạm thời ta clamp lại để tránh lệch model.map)
         clamp();
     }
 
@@ -91,7 +91,7 @@ public class Camera {
             worldY = config.WORLD_HEIGHT - viewHeightInWorld;
         }
 
-        // Trường hợp đặc biệt: Nếu map nhỏ hơn cả màn hình khi zoom out quá xa
+        // Trường hợp đặc biệt: Nếu model.map nhỏ hơn cả màn hình khi zoom out quá xa
         if (viewWidthInWorld > config.WORLD_WIDTH) worldX = (config.WORLD_WIDTH - viewWidthInWorld) / 2;
         if (viewHeightInWorld > config.WORLD_HEIGHT) worldY = (config.WORLD_HEIGHT - viewHeightInWorld) / 2;
     }

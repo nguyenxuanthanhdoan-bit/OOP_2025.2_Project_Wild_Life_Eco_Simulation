@@ -1,4 +1,4 @@
-package entity;
+package model.entity;
 
 import core.Vector2;
 import core.DisplayMode;

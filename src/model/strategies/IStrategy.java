@@ -1,7 +1,7 @@
-package strategies;
+package model.strategies;
 
-import living_beings.LivingBeing;
-import world.World;
+import model.living_beings.LivingBeing;
+import model.world.World;
 
 public interface IStrategy {
     // Thực thi hành động (di chuyển, đứng yên...)
