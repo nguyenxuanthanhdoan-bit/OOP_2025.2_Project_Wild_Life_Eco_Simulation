@@ -14,9 +14,12 @@ public class World {
     private List<Entity> entities; // Danh sách các thực thể (Thỏ, Cây, Cỏ...)
     private Biome currentBiome;    // Địa hình hiện tại (Trong Phase 1 là Grassland)
 
-    // Kích thước của thế giới lấy từ cấu hình
+    // Kích thước của thế giới
     private float width;
     private float height;
+
+    // [MỚI] Quản lý lưới không gian
+    private SpatialGrid spatialGrid;
 
     public World() {
         this.entities = new ArrayList<>();
@@ -25,20 +28,54 @@ public class World {
 
         // Khởi tạo nền cỏ xanh bao phủ toàn bộ thế giới
         this.currentBiome = new Grassland(new core.Vector2(width/2, height/2), Math.max(width, height));
+
+        // [MỚI] Khởi tạo lưới ngay từ đầu nếu đã có kích thước từ Config
+        checkAndInitGrid();
+    }
+
+    // [MỚI] Hàm khởi tạo Lưới (Dùng chung cho Constructor và Setters)
+    private void checkAndInitGrid() {
+        if (this.width > 0 && this.height > 0) {
+            // Khởi tạo lưới với ô cỡ 256px
+            this.spatialGrid = new SpatialGrid(this.width, this.height, 256f);
+
+            // Nếu có thực thể nào lỡ sinh ra trước khi có lưới, nạp bù nó vào
+            for (Entity e : this.entities) {
+                this.spatialGrid.add(e);
+            }
+        }
     }
 
     /**
      * Cập nhật toàn bộ logic của thế giới.
      */
     public void update(float deltaTime) {
-        // Duyệt qua và cập nhật từng thực thể (ví dụ: Thỏ sẽ chạy nhảy)
+        // [MỚI] Dùng vòng lặp ngược hoặc quản lý chỉ số cẩn thận khi có thể xóa phần tử
         for (int i = 0; i < entities.size(); i++) {
             Entity e = entities.get(i);
+
             if (e.isAlive()) {
+                // [MỚI] Lưu lại tọa độ CŨ trước khi thực thể di chuyển
+                Vector2 oldPos = null;
+                if (e.getPosition() != null) {
+                    oldPos = new Vector2(e.getPosition().x, e.getPosition().y);
+                }
+
+                // Cập nhật logic (Thỏ chạy nhảy, chuyển sang tọa độ MỚI)
                 e.update(deltaTime);
+
                 if (e instanceof model.living_beings.Rabbit) {
                     keepInBounds(e);
                 }
+
+                // [MỚI] Báo cho Lưới biết để kiểm tra xem thực thể có bước sang ô khác không
+                if (this.spatialGrid != null && oldPos != null) {
+                    this.spatialGrid.updateEntityPosition(e, oldPos);
+                }
+            } else {
+                // [MỚI] Nếu thực thể đã chết, xóa nó khỏi map và lưới
+                removeEntity(e);
+                i--; // Lùi index lại để không bị bỏ sót phần tử tiếp theo
             }
         }
 
@@ -52,13 +89,31 @@ public class World {
     public void addEntity(Entity e) {
         if (!entities.contains(e)) {
             entities.add(e);
+            // [MỚI] Đồng bộ: Thêm vào danh sách tổng xong thì ném luôn vào Lưới
+            if (this.spatialGrid != null) {
+                this.spatialGrid.add(e);
+            }
         }
     }
+
+    /**
+     * [MỚI] Hàm xóa thực thể khỏi thế giới
+     */
+    public void removeEntity(Entity e) {
+        if (entities.contains(e)) {
+            entities.remove(e);
+            // Đồng bộ: Rút thực thể ra khỏi Lưới
+            if (this.spatialGrid != null) {
+                this.spatialGrid.remove(e);
+            }
+        }
+    }
+
     /**
      * Đảm bảo thực thể không bao giờ vượt quá giới hạn thế giới
      */
     private void keepInBounds(Entity e) {
-        Vector2 pos = e.getPosition(); // Lấy vị trí hiện tại
+        Vector2 pos = e.getPosition();
         float currentX = pos.x;
         float currentY = pos.y;
         float margin = e.getSize() / 2;
@@ -73,18 +128,22 @@ public class World {
         if (currentY < margin) { currentY = margin; isOutOfBounds = true; }
         if (currentY > height - margin) { currentY = height - margin; isOutOfBounds = true; }
 
-        // Nếu phát hiện vượt rào, dùng hàm setPosition chuẩn của bạn để ép nó về
         if (isOutOfBounds) {
             e.setPosition(new core.Vector2(currentX, currentY));
         }
     }
 
     // =========================================================
-    // GETTERS
+    // GETTERS & SETTERS
     // =========================================================
 
     public List<Entity> getEntities() {
         return entities;
+    }
+
+    // [MỚI] Getter cho Lưới Không Gian (Để RenderSystem gọi tới)
+    public SpatialGrid getSpatialGrid() {
+        return spatialGrid;
     }
 
     public Biome getCurrentBiome() {
@@ -98,11 +157,14 @@ public class World {
     public float getHeight() {
         return height;
     }
+
     public void setWidth(float width) {
         this.width = width;
+        checkAndInitGrid(); // [MỚI] Cập nhật lại lưới nếu kích thước map bị đổi qua code đọc ảnh
     }
 
     public void setHeight(float height) {
         this.height = height;
+        checkAndInitGrid(); // [MỚI]
     }
 }

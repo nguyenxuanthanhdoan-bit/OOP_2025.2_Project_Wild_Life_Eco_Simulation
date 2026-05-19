@@ -42,27 +42,28 @@ public class GameMap {
         int g = color.getGreen();
         int b = color.getBlue();
 
-        // 1. Nhận diện NƯỚC BIỂN (Màu xanh dương chiếm ưu thế)
-        if (b > r && b > g) {
+        // 1. NƯỚC BIỂN
+        if (b > r + 20 && b > g + 20) {
             return TileType.OCEAN;
         }
 
-        // 2. Nhận diện CÁT (Màu vàng: Đỏ và Xanh lá đều cao, Xanh dương thấp)
+        // 2. CÁT VÀNG
         if (r > 150 && g > 150 && b < 120) {
             return TileType.SAND;
         }
 
-        // 3. Nhận diện RỪNG ĐẬM (Màu xanh lá tối màu)
-        if (r < 100 && g < 120 && b < 100) {
-            return TileType.FOREST;
-        }
-
-        // 4. Nhận diện NÚI ĐÁ (Màu xám: 3 dải màu gần bằng nhau)
-        if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r < 120) {
+        // 3. NÚI ĐÁ (Bắt chính xác tọa độ màu #46655d với dung sai 15)
+        // R=70, G=101, B=93
+        if (Math.abs(r - 70) <= 15 && Math.abs(g - 101) <= 15 && Math.abs(b - 93) <= 15) {
             return TileType.MOUNTAIN;
         }
 
-        // 5. MẶC ĐỊNH: Nếu không phải 4 loại trên, quy hết về CỎ
+        // 4. RỪNG ĐẬM
+        if (g > r && g > b && g < 120) {
+            return TileType.FOREST;
+        }
+
+        // 5. CỎ (Mặc định)
         return TileType.GRASS;
     }
 
