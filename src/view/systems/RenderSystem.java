@@ -4,9 +4,8 @@ import core.Vector2;
 import core.DisplayMode;
 import core.TileType;
 import model.entity.Entity;
+import model.entity.Structure; // [MỚI] Import class Structure cha
 import model.world.World;
-import model.plants.Grass;
-import model.plants.FruitTree;
 import model.living_beings.Rabbit;
 import model.map.GameMap;
 
@@ -16,7 +15,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List; // Thêm import List
+import java.util.List;
 import java.util.Map;
 
 public class RenderSystem {
@@ -49,7 +48,14 @@ public class RenderSystem {
             assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_walk.png")));
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
-            assetMap.put("tree_small", ImageIO.read(new File(path + "Oak_Tree_Small.png")));
+            // [ĐÃ XÓA] assetMap.put("tree_small", ImageIO.read(new File(path + "Oak_Tree_Small.png")));
+
+            // --- Lời nhắn cho người làm Task Render ---
+            // Nạp các ảnh PNG do PixelLab tạo ra vào đây:
+            // assetMap.put("house", ImageIO.read(new File(path + "House.png")));
+            // assetMap.put("fallen_fruit", ImageIO.read(new File(path + "Apple.png")));
+            // assetMap.put("well", ImageIO.read(new File(path + "Well.png")));
+            // ...
         } catch (IOException e) {
             System.err.println("Lỗi nạp ảnh: " + e.getMessage());
         }
@@ -64,9 +70,6 @@ public class RenderSystem {
             renderMap(g2d);
         }
 
-        // =========================================================
-        // [MỚI] TỐI ƯU HÓA VẼ THỰC THỂ BẰNG SPATIAL GRID
-        // =========================================================
         if (world.getSpatialGrid() != null) {
             Vector2 camPos = camera.getPosition();
             float zoom = camera.getZoomLevel();
@@ -75,26 +78,20 @@ public class RenderSystem {
             float screenW = (clip != null) ? clip.width : 800;
             float screenH = (clip != null) ? clip.height : 600;
 
-            // Tính toán tâm màn hình trong tọa độ thế giới
             Vector2 centerView = new Vector2(
                     camPos.x + (screenW / zoom) / 2f,
                     camPos.y + (screenH / zoom) / 2f
             );
 
-            // Bán kính quét bằng nửa chiều dài đường chéo màn hình cộng thêm một chút khoảng đệm (buffer)
             float scanRange = (Math.max(screenW, screenH) / zoom) / 2f + 100f;
-
-            // TRUY VẤN LƯỚI: Lấy danh sách thực thể nằm trong và xung quanh khung hình
             List<Entity> visibleEntities = world.getSpatialGrid().getNeighbors(centerView, scanRange);
 
-            // Chỉ duyệt vòng lặp trên danh sách nhỏ này
             for (Entity e : visibleEntities) {
                 if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
                     renderEntity(e, g2d);
                 }
             }
         } else {
-            // [PHÒNG HỜ] Nếu Lưới chưa kịp khởi tạo thì dùng cách quét thủ công toàn bộ danh sách cũ
             for (Entity e : world.getEntities()) {
                 if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
                     renderEntity(e, g2d);
@@ -105,16 +102,13 @@ public class RenderSystem {
 
     private void renderMap(Graphics2D g2d) {
         if (gameMap == null) return;
-
         Rectangle clip = g2d.getClipBounds();
         float screenW = (clip != null) ? clip.width : 800;
         float screenH = (clip != null) ? clip.height : 600;
 
         camera.setViewportSize(screenW, screenH);
-
         float zoom = camera.getZoomLevel();
         Vector2 camPos = camera.getPosition();
-
         int drawSize = (int) Math.ceil(TILE_SIZE * zoom) + 1;
 
         int startCol = (int) Math.floor(camPos.x / TILE_SIZE);
@@ -130,7 +124,6 @@ public class RenderSystem {
         for (int x = startCol; x <= endCol; x++) {
             for (int y = startRow; y <= endRow; y++) {
                 TileType type = gameMap.getTile(x, y);
-
                 Vector2 screenPos = camera.worldToScreen(new Vector2(x * TILE_SIZE, y * TILE_SIZE));
 
                 switch (type) {
@@ -141,23 +134,48 @@ public class RenderSystem {
                     case SAND: g2d.setColor(new Color(205, 200, 100)); break;
                     default: g2d.setColor(Color.BLACK); break;
                 }
-
                 g2d.fillRect((int)screenPos.x, (int)screenPos.y, drawSize, drawSize);
             }
         }
     }
 
+    // =========================================================
+    // [MỚI] TÁI CẤU TRÚC HÀM VẼ THỰC THỂ BẰNG SWITCH-CASE
+    // =========================================================
     private void renderEntity(Entity e, Graphics2D g2d) {
         if (displayMode == DisplayMode.REALISTIC) {
             Vector2 screenPos = camera.worldToScreen(e.getPosition());
             float zoom = camera.getZoomLevel();
 
-            BufferedImage img = null;
-            if (e instanceof Rabbit) drawAnimatedRabbit((Rabbit) e, g2d, screenPos, zoom);
-            else {
-                if (e instanceof Grass) img = assetMap.get("grass_plant");
-                else if (e instanceof FruitTree) img = ((FruitTree) e).isSmall() ? assetMap.get("tree_small") : assetMap.get("tree_big");
+            // Nếu là động vật (Thỏ, Sói...) -> Gọi hàm vẽ Animation
+            if (e instanceof Rabbit) {
+                drawAnimatedRabbit((Rabbit) e, g2d, screenPos, zoom);
+            }
+            // Nếu là vật tĩnh (Công trình, Cây cối, Đồ rơi vãi...) -> Gọi lấy ảnh bệt
+            else if (e instanceof Structure) {
+                Structure struct = (Structure) e;
+                BufferedImage img = null;
 
+                // Tốc độ cao: Quét Enum thay vì ép kiểu từng Class
+                switch (struct.getStructureType()) {
+                    case GRASS:
+                        img = assetMap.get("grass_plant");
+                        break;
+                    case FRUIT_TREE:
+                        img = assetMap.get("tree_big"); // Bỏ cái small tree đi, dùng 1 loại thôi
+                        break;
+                    case HOUSE:
+                        // img = assetMap.get("house");
+                        break;
+                    case FALLEN_FRUIT:
+                        // img = assetMap.get("fallen_fruit");
+                        break;
+                    // ... Người làm task UI tự thêm các Case còn lại ở đây
+                    default:
+                        break;
+                }
+
+                // Nếu có ảnh thì vẽ ra theo tỷ lệ khung hình
                 if (img != null) {
                     float aspect = (float) img.getHeight() / img.getWidth();
                     int w = (int) (e.getSize() * zoom);

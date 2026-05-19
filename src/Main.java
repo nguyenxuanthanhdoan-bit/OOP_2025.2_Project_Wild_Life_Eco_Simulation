@@ -1,3 +1,5 @@
+package controller; // Nhớ check lại package cho đúng với project của bạn nhé
+
 import controller.GameLoop;
 import controller.Simulation;
 import controller.InputProcessor;
@@ -40,7 +42,11 @@ public class Main extends JPanel {
         // Tạo quần thể ban đầu
         for (int i = 0; i < 50; i++) world.addEntity(new Rabbit(new Vector2(800 + rand.nextFloat() * 400, 800 + rand.nextFloat() * 400)));
         for (int i = 0; i < 100; i++) world.addEntity(new Grass(new Vector2(rand.nextFloat() * config.WORLD_WIDTH, rand.nextFloat() * config.WORLD_HEIGHT)));
-        for (int i = 0; i < 20; i++) world.addEntity(new FruitTree(new Vector2(rand.nextFloat() * config.WORLD_WIDTH, rand.nextFloat() * config.WORLD_HEIGHT), rand.nextBoolean()));
+
+        // [ĐÃ SỬA] Xóa rand.nextBoolean() đi vì FruitTree giờ chỉ nhận Vector2 position
+        for (int i = 0; i < 20; i++) {
+            world.addEntity(new FruitTree(new Vector2(rand.nextFloat() * config.WORLD_WIDTH, rand.nextFloat() * config.WORLD_HEIGHT)));
+        }
 
         RenderSystem renderSystem = new RenderSystem(camera);
         Simulation simulation = new Simulation(camera, world, renderSystem);
