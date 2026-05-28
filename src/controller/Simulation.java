@@ -33,7 +33,7 @@ public class Simulation {
 
     // Hàm chuyên lo việc nạp dữ liệu bản đồ
     private void initMap() {
-        this.gameMap = new GameMap("resources/assets/images/world_map.png");
+        this.gameMap = new GameMap("resources/map/map.tmx");
         this.renderSystem.setGameMap(this.gameMap);
 
         // 1. ĐỒNG BỘ KÍCH THƯỚC: Báo cho World biết thế giới này to bằng kích thước map

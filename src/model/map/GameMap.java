@@ -1,75 +1,118 @@
 package model.map;
 
-import core.TileType;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
 import javax.imageio.ImageIO;
-import java.awt.Color;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GameMap {
-    private TileType[][] grid;
+    private List<int[][]> layersGrid = new ArrayList<>();
     private int cols;
     private int rows;
 
-    public GameMap(String imagePath) {
-        loadMapFromImage(imagePath);
+    public static class Tileset {
+        public int firstgid;
+        public BufferedImage image;
+        public int tileWidth = 16;
+        public int tileHeight = 16;
+        public int columns;
+
+        public Tileset(int firstgid, String imagePath) {
+            this.firstgid = firstgid;
+            try {
+                this.image = ImageIO.read(new File(imagePath));
+                this.columns = this.image.getWidth() / this.tileWidth;
+            } catch (Exception e) {
+                System.err.println("Không thể nạp tileset: " + imagePath);
+                e.printStackTrace();
+            }
+        }
     }
 
-    private void loadMapFromImage(String path) {
-        try {
-            BufferedImage mapImage = ImageIO.read(new File(path));
-            this.cols = mapImage.getWidth();
-            this.rows = mapImage.getHeight();
-            this.grid = new TileType[cols][rows];
+    private List<Tileset> tilesets = new ArrayList<>();
 
-            for (int x = 0; x < cols; x++) {
-                for (int y = 0; y < rows; y++) {
-                    // Lấy màu của từng pixel
-                    Color pixelColor = new Color(mapImage.getRGB(x, y));
-                    grid[x][y] = determineTileType(pixelColor);
+    public GameMap(String tmxPath) {
+        loadMapFromTmx(tmxPath);
+    }
+
+    private void loadMapFromTmx(String path) {
+        try {
+            File fXmlFile = new File(path);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(fXmlFile);
+            doc.getDocumentElement().normalize();
+
+            // Đọc thông số map
+            Element mapElement = doc.getDocumentElement();
+            this.cols = Integer.parseInt(mapElement.getAttribute("width"));
+            this.rows = Integer.parseInt(mapElement.getAttribute("height"));
+            this.rows = Integer.parseInt(mapElement.getAttribute("height"));
+
+            // Đọc các tilesets
+            NodeList tilesetNodes = doc.getElementsByTagName("tileset");
+            for (int i = 0; i < tilesetNodes.getLength(); i++) {
+                Element tilesetElement = (Element) tilesetNodes.item(i);
+                int firstgid = Integer.parseInt(tilesetElement.getAttribute("firstgid"));
+                String source = tilesetElement.getAttribute("source");
+                
+                // Trích xuất tên file (VD: ../../../../Water_Middle.tsx -> Water_Middle.png)
+                String fileName = new File(source).getName().replace(".tsx", ".png");
+                String imagePath = "resources/map/" + fileName;
+                
+                tilesets.add(new Tileset(firstgid, imagePath));
+            }
+
+            // Sắp xếp tilesets theo firstgid giảm dần để dễ dàng tra cứu
+            tilesets.sort((t1, t2) -> Integer.compare(t2.firstgid, t1.firstgid));
+
+            // Đọc dữ liệu CSV của TẤT CẢ các layer
+            NodeList dataNodes = doc.getElementsByTagName("data");
+            for (int i = 0; i < dataNodes.getLength(); i++) {
+                Element dataElement = (Element) dataNodes.item(i);
+                String encoding = dataElement.getAttribute("encoding");
+                if ("csv".equals(encoding)) {
+                    int[][] layerGrid = new int[cols][rows];
+                    String csvData = dataElement.getTextContent().trim();
+                    String[] tokens = csvData.split(",");
+                    int index = 0;
+                    for (int y = 0; y < rows; y++) {
+                        for (int x = 0; x < cols; x++) {
+                            if (index < tokens.length) {
+                                long rawId = Long.parseLong(tokens[index].trim());
+                                layerGrid[x][y] = (int) rawId;
+                                index++;
+                            }
+                        }
+                    }
+                    layersGrid.add(layerGrid);
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Không thể tải map: " + path);
+        } catch (Exception e) {
+            System.err.println("Không thể tải map TMX: " + path);
             e.printStackTrace();
         }
     }
 
-    // Hàm chuyển đổi màu sắc thành loại đất
-    private TileType determineTileType(Color color) {
-        int r = color.getRed();
-        int g = color.getGreen();
-        int b = color.getBlue();
-
-        // 1. NƯỚC BIỂN
-        if (b > r + 20 && b > g + 20) {
-            return TileType.OCEAN;
-        }
-
-        // 2. CÁT VÀNG
-        if (r > 150 && g > 150 && b < 120) {
-            return TileType.SAND;
-        }
-
-        // 3. NÚI ĐÁ (Bắt chính xác tọa độ màu #46655d với dung sai 15)
-        // R=70, G=101, B=93
-        if (Math.abs(r - 70) <= 15 && Math.abs(g - 101) <= 15 && Math.abs(b - 93) <= 15) {
-            return TileType.MOUNTAIN;
-        }
-
-        // 4. RỪNG ĐẬM
-        if (g > r && g > b && g < 120) {
-            return TileType.FOREST;
-        }
-
-        // 5. CỎ (Mặc định)
-        return TileType.GRASS;
+    public int getLayersCount() {
+        return layersGrid.size();
     }
 
-    public TileType getTile(int x, int y) {
-        if (x < 0 || x >= cols || y < 0 || y >= rows) return TileType.OCEAN;
-        return grid[x][y];
+    public int getTileId(int layer, int x, int y) {
+        if (layer < 0 || layer >= layersGrid.size()) return 0;
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return 0;
+        return layersGrid.get(layer)[x][y];
+    }
+
+    public List<Tileset> getTilesets() {
+        return tilesets;
     }
 
     public int getCols() { return cols; }

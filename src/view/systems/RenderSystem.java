@@ -127,22 +127,63 @@ public class RenderSystem {
         startRow = Math.max(0, startRow);
         endRow = Math.min(gameMap.getRows() - 1, endRow);
 
-        for (int x = startCol; x <= endCol; x++) {
-            for (int y = startRow; y <= endRow; y++) {
-                TileType type = gameMap.getTile(x, y);
+        List<GameMap.Tileset> tilesets = gameMap.getTilesets();
+        int layersCount = gameMap.getLayersCount();
 
-                Vector2 screenPos = camera.worldToScreen(new Vector2(x * TILE_SIZE, y * TILE_SIZE));
+        for (int l = 0; l < layersCount; l++) {
+            for (int x = startCol; x <= endCol; x++) {
+                for (int y = startRow; y <= endRow; y++) {
+                    int rawTileId = gameMap.getTileId(l, x, y);
+                    if (rawTileId == 0) continue; // Ô trống
 
-                switch (type) {
-                    case OCEAN: g2d.setColor(new Color(50, 115, 215)); break;
-                    case GRASS: g2d.setColor(new Color(135, 195, 65)); break;
-                    case FOREST: g2d.setColor(new Color(25, 95, 15)); break;
-                    case MOUNTAIN: g2d.setColor(new Color(70, 101, 93)); break;
-                    case SAND: g2d.setColor(new Color(205, 200, 100)); break;
-                    default: g2d.setColor(Color.BLACK); break;
+                    int tileId = rawTileId & 0x0FFFFFFF;
+                    if (tileId == 0) continue;
+
+                    boolean flippedHorizontally = (rawTileId & 0x80000000) != 0;
+                    boolean flippedVertically = (rawTileId & 0x40000000) != 0;
+                    boolean flippedDiagonally = (rawTileId & 0x20000000) != 0;
+
+                    Vector2 screenPos = camera.worldToScreen(new Vector2(x * TILE_SIZE, y * TILE_SIZE));
+
+                    GameMap.Tileset currentTileset = null;
+                    for (GameMap.Tileset ts : tilesets) {
+                        if (tileId >= ts.firstgid) {
+                            currentTileset = ts;
+                            break;
+                        }
+                    }
+
+                    if (currentTileset != null && currentTileset.image != null) {
+                        int localId = tileId - currentTileset.firstgid;
+                        int col = localId % currentTileset.columns;
+                        int row = localId / currentTileset.columns;
+
+                        int srcX = col * currentTileset.tileWidth;
+                        int srcY = row * currentTileset.tileHeight;
+
+                        java.awt.geom.AffineTransform oldTransform = g2d.getTransform();
+                        g2d.translate(screenPos.x + drawSize / 2.0, screenPos.y + drawSize / 2.0);
+
+                        if (flippedDiagonally) {
+                            g2d.transform(new java.awt.geom.AffineTransform(0, 1, 1, 0, 0, 0));
+                        }
+                        if (flippedHorizontally) {
+                            g2d.scale(-1, 1);
+                        }
+                        if (flippedVertically) {
+                            g2d.scale(1, -1);
+                        }
+
+                        g2d.drawImage(currentTileset.image,
+                                -drawSize / 2, -drawSize / 2,
+                                drawSize / 2, drawSize / 2,
+                                srcX, srcY,
+                                srcX + currentTileset.tileWidth, srcY + currentTileset.tileHeight,
+                                null);
+
+                        g2d.setTransform(oldTransform);
+                    }
                 }
-
-                g2d.fillRect((int)screenPos.x, (int)screenPos.y, drawSize, drawSize);
             }
         }
     }
