@@ -8,7 +8,7 @@ public class FruitTree extends Plant {
 
     public FruitTree(Vector2 position, boolean isSmall) {
         // Cây không bị ăn nên dinh dưỡng = 0, size tùy thuộc vào loại cây
-        super(position, isSmall ? 30.0f : 60.0f, 0);
+        super(position, isSmall ? 60.0f : 60.0f, 0);
         this.isSmall = isSmall;
     }
 

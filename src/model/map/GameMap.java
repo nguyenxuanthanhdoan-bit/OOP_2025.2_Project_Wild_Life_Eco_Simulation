@@ -1,71 +1,83 @@
 package model.map;
 
 import core.TileType;
-import javax.imageio.ImageIO;
-import java.awt.Color;
-import java.awt.image.BufferedImage;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
-import java.io.IOException;
 
 public class GameMap {
     private TileType[][] grid;
     private int cols;
     private int rows;
 
-    public GameMap(String imagePath) {
-        loadMapFromImage(imagePath);
+    public GameMap(String tmxPath) {
+        loadMapFromTMX(tmxPath);
     }
 
-    private void loadMapFromImage(String path) {
+    private void loadMapFromTMX(String path) {
         try {
-            BufferedImage mapImage = ImageIO.read(new File(path));
-            this.cols = mapImage.getWidth();
-            this.rows = mapImage.getHeight();
+            File tmxFile = new File(path);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(tmxFile);
+            doc.getDocumentElement().normalize();
+
+            // 1. ĐỌC KÍCH THƯỚC BẢN ĐỒ
+            Element mapElement = (Element) doc.getElementsByTagName("map").item(0);
+            this.cols = Integer.parseInt(mapElement.getAttribute("width"));
+            this.rows = Integer.parseInt(mapElement.getAttribute("height"));
             this.grid = new TileType[cols][rows];
 
-            for (int x = 0; x < cols; x++) {
-                for (int y = 0; y < rows; y++) {
-                    // Lấy màu của từng pixel
-                    Color pixelColor = new Color(mapImage.getRGB(x, y));
-                    grid[x][y] = determineTileType(pixelColor);
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Không thể tải map: " + path);
+            // 2. CHỈ ĐỌC DỮ LIỆU ĐỊA HÌNH (LAYER "Ground") ĐỂ VẼ MAP
+            parseTileLayer(doc);
+
+            // Ghi chú: Phần parseObjectGroups (đọc Biome) đã được gỡ bỏ ở Phase này.
+            // Khi nào bạn code đến Phase làm AI và vùng sinh sản, chúng ta sẽ thêm lại sau.
+
+        } catch (Exception e) {
+            System.err.println("Không thể nạp map TMX: " + path);
             e.printStackTrace();
         }
     }
 
-    // Hàm chuyển đổi màu sắc thành loại đất
-    private TileType determineTileType(Color color) {
-        int r = color.getRed();
-        int g = color.getGreen();
-        int b = color.getBlue();
+    private void parseTileLayer(Document doc) {
+        NodeList layerNodes = doc.getElementsByTagName("layer");
+        Element groundLayer = (Element) layerNodes.item(0);
 
-        // 1. NƯỚC BIỂN
-        if (b > r + 20 && b > g + 20) {
-            return TileType.OCEAN;
+        Element dataElement = (Element) groundLayer.getElementsByTagName("data").item(0);
+        String csvData = dataElement.getTextContent().trim();
+
+        // Loại bỏ ký tự xuống dòng và cắt chuỗi CSV
+        String[] tileIDs = csvData.replace("\n", "").replace("\r", "").split(",");
+
+        int index = 0;
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                String idStr = tileIDs[index].trim();
+                int tileID = idStr.isEmpty() ? 0 : Integer.parseInt(idStr);
+
+                grid[x][y] = determineTileTypeFromID(tileID);
+                index++;
+            }
         }
+    }
 
-        // 2. CÁT VÀNG
-        if (r > 150 && g > 150 && b < 120) {
-            return TileType.SAND;
-        }
+    private TileType determineTileTypeFromID(int tileID) {
+        if (tileID == 0) return TileType.OCEAN;
 
-        // 3. NÚI ĐÁ (Bắt chính xác tọa độ màu #46655d với dung sai 15)
-        // R=70, G=101, B=93
-        if (Math.abs(r - 70) <= 15 && Math.abs(g - 101) <= 15 && Math.abs(b - 93) <= 15) {
-            return TileType.MOUNTAIN;
-        }
+        // Dựa vào file TMX của bạn để map ID
+        if (tileID >= 1 && tileID <= 52) return TileType.OCEAN;
+        if (tileID >= 53 && tileID <= 100) return TileType.GRASS;
+        if (tileID > 100 && tileID <= 293) return TileType.FOREST;
 
-        // 4. RỪNG ĐẬM
-        if (g > r && g > b && g < 120) {
-            return TileType.FOREST;
-        }
-
-        // 5. CỎ (Mặc định)
         return TileType.GRASS;
     }
+
+    // ================= GETTERS =================
 
     public TileType getTile(int x, int y) {
         if (x < 0 || x >= cols || y < 0 || y >= rows) return TileType.OCEAN;
