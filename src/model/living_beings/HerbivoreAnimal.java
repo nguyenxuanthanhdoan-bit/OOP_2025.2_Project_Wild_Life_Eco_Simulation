@@ -9,7 +9,7 @@ import core.Vector2;
 public abstract class HerbivoreAnimal extends Animal {
 
     public HerbivoreAnimal(Vector2 position, float size, float baseSpeed) {
-        super(position, size, baseSpeed);
+        super(position, size, baseSpeed, DietType.HERBIVORE);
     }
 
     // Các logic như:

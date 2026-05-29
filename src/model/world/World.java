@@ -131,6 +131,13 @@ public class World {
         }
     }
 
+    public boolean isPositionInWater(float x, float y) {
+        if (this.gameMap != null) {
+            return this.gameMap.isPositionInWater(x, y);
+        }
+        return false;
+    }
+
     public boolean isValidPositionFor(model.living_beings.LivingBeing entity, Vector2 pos) {
         float margin = entity.getSize() / 2;
 
