@@ -40,6 +40,10 @@ public class PassiveStrategy implements IStrategy {
         }
     }
 
+    public void forceStateChange() {
+        this.stateTimer = 1000f; // Gán một số rất lớn để ngay lập tức kích hoạt đổi trạng thái ở frame tiếp theo
+    }
+
     @Override
     public boolean shouldInterrupt(LivingBeing owner, World world) {
         return false; // Trong Phase 1 chưa có mối đe dọa để ngắt

@@ -21,6 +21,9 @@ public class World {
     // [MỚI] Quản lý lưới không gian
     private SpatialGrid spatialGrid;
 
+    // [MỚI] Tham chiếu đến GameMap
+    private model.map.GameMap gameMap;
+
     public World() {
         this.entities = new ArrayList<>();
         this.width = GameConfig.getInstance().WORLD_WIDTH;
@@ -83,11 +86,9 @@ public class World {
         currentBiome.update(deltaTime);
     }
 
-    /**
-     * Thêm một thực thể mới vào thế giới.
-     */
     public void addEntity(Entity e) {
         if (!entities.contains(e)) {
+            e.setWorld(this); // Liên kết World vào Entity
             entities.add(e);
             // [MỚI] Đồng bộ: Thêm vào danh sách tổng xong thì ném luôn vào Lưới
             if (this.spatialGrid != null) {
@@ -109,9 +110,6 @@ public class World {
         }
     }
 
-    /**
-     * Đảm bảo thực thể không bao giờ vượt quá giới hạn thế giới
-     */
     private void keepInBounds(Entity e) {
         Vector2 pos = e.getPosition();
         float currentX = pos.x;
@@ -131,6 +129,37 @@ public class World {
         if (isOutOfBounds) {
             e.setPosition(new core.Vector2(currentX, currentY));
         }
+    }
+
+    public boolean isValidPositionFor(model.living_beings.LivingBeing entity, Vector2 pos) {
+        float margin = entity.getSize() / 2;
+
+        // Kiểm tra ranh giới bản đồ
+        if (pos.x < margin || pos.x > width - margin ||
+            pos.y < margin || pos.y > height - margin) {
+            return false;
+        }
+
+        // Kiểm tra địa hình nước đối với động vật trên cạn
+        if (entity instanceof model.living_beings.Rabbit) {
+            if (gameMap != null) {
+                // Thêm 1 khoảng đệm (padding) để thỏ quay đầu sớm hơn khi đến gần mép nước.
+                // Do viền đa giác OCEAN/LAKE trên Tiled có thể không khớp 100% với viền ảnh.
+                float safeDistance = margin + 15.0f; // Cách thêm 15 pixels để đảm bảo an toàn tuyệt đối
+
+                boolean nearWater = gameMap.isPositionInWater(pos.x, pos.y) ||
+                                    gameMap.isPositionInWater(pos.x - safeDistance, pos.y) ||
+                                    gameMap.isPositionInWater(pos.x + safeDistance, pos.y) ||
+                                    gameMap.isPositionInWater(pos.x, pos.y - safeDistance) ||
+                                    gameMap.isPositionInWater(pos.x, pos.y + safeDistance);
+                
+                if (nearWater) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     // =========================================================
@@ -156,6 +185,10 @@ public class World {
 
     public float getHeight() {
         return height;
+    }
+
+    public void setGameMap(model.map.GameMap gameMap) {
+        this.gameMap = gameMap;
     }
 
     public void setWidth(float width) {

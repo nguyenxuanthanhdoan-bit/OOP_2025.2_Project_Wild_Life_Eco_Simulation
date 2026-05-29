@@ -14,6 +14,7 @@ public abstract class Entity {
     protected Vector2 position;
     protected float size;
     protected boolean isAlive;
+    protected model.world.World world;
 
     public Entity(Vector2 position, float size) {
         this.id = UUID.randomUUID();
@@ -42,6 +43,14 @@ public abstract class Entity {
 
     public boolean isAlive() {
         return this.isAlive;
+    }
+
+    public model.world.World getWorld() {
+        return this.world;
+    }
+
+    public void setWorld(model.world.World world) {
+        this.world = world;
     }
 
     // ==========================================

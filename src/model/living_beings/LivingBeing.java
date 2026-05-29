@@ -30,9 +30,20 @@ public abstract class LivingBeing extends Entity {
 
         // Dùng copy() để không làm hỏng Vector hướng, sau đó nhân với tốc độ và deltaTime
         Vector2 velocity = direction.copy().scale(this.speed * deltaTime);
+        Vector2 nextPosition = this.position.copy().add(velocity);
 
-        // Cộng thẳng vận tốc vào vị trí hiện tại
-        this.position.add(velocity);
+        // Cộng vào nếu vị trí hợp lệ
+        if (this.world != null && this.world.isValidPositionFor(this, nextPosition)) {
+            this.position.set(nextPosition);
+        } else {
+            // Nếu bị chặn, báo cho bộ não (Strategy) biết để chuyển hướng
+            if (this.currentStrategy instanceof model.strategies.PassiveStrategy) {
+                ((model.strategies.PassiveStrategy) this.currentStrategy).forceStateChange();
+            } else if (this.world == null) {
+                // Dự phòng nếu world chưa kịp gắn
+                this.position.set(nextPosition);
+            }
+        }
     }
 
     // =========================================================
@@ -72,7 +83,7 @@ public abstract class LivingBeing extends Entity {
     @Override
     public void update(float deltaTime) {
         if (!isAlive || currentStrategy == null) return;
-        // Ủy quyền toàn bộ logic hành động cho Strategy [cite: 40, 87]
-        currentStrategy.execute(this, null, deltaTime);
+        // Ủy quyền toàn bộ logic hành động cho Strategy
+        currentStrategy.execute(this, this.world, deltaTime);
     }
 }
