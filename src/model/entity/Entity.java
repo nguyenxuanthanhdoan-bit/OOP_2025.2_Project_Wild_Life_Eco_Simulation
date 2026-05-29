@@ -45,6 +45,10 @@ public abstract class Entity {
         return this.isAlive;
     }
 
+    public void setAlive(boolean isAlive) {
+        this.isAlive = isAlive;
+    }
+
     public model.world.World getWorld() {
         return this.world;
     }
