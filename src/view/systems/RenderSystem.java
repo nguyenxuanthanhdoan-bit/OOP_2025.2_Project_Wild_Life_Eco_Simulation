@@ -8,6 +8,8 @@ import model.world.World;
 import model.plants.Grass;
 import model.plants.FruitTree;
 import model.living_beings.Rabbit;
+import model.living_beings.Deer;
+import model.living_beings.Elephant;
 import model.map.GameMap;
 
 import javax.imageio.ImageIO;
@@ -46,7 +48,9 @@ public class RenderSystem {
     private void loadAssets() {
         String path = "resources/assets/images/";
         try {
-            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit_walk.png")));
+            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit/Rabbit_walk.png")));
+            assetMap.put("deer",   ImageIO.read(new File(path + "Deer/deer_walk.png")));
+            assetMap.put("elephant", ImageIO.read(new File(path + "Elephant/elephant_walk.png")));
             assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
             assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
             assetMap.put("tree_small", ImageIO.read(new File(path + "Oak_Tree_Small.png")));
@@ -194,8 +198,13 @@ public class RenderSystem {
             float zoom = camera.getZoomLevel();
 
             BufferedImage img = null;
-            if (e instanceof Rabbit) drawAnimatedRabbit((Rabbit) e, g2d, screenPos, zoom);
-            else {
+            if (e instanceof Rabbit) {
+                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "rabbit");
+            } else if (e instanceof Deer) {
+                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "deer");
+            } else if (e instanceof Elephant) {
+                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "elephant");
+            } else {
                 if (e instanceof Grass) img = assetMap.get("grass_plant");
                 else if (e instanceof FruitTree) img = ((FruitTree) e).isSmall() ? assetMap.get("tree_small") : assetMap.get("tree_big");
 
@@ -211,22 +220,34 @@ public class RenderSystem {
         }
     }
 
-    private void drawAnimatedRabbit(Rabbit r, Graphics2D g2d, Vector2 screenPos, float zoom) {
-        BufferedImage sheet = assetMap.get("rabbit");
+    /**
+     * Vẽ hoạt ảnh chung cho mọi loài sử dụng spritesheet 2x2 (4 frame).
+     * Hoán đổi dstX1/dstX2 để lật hình theo hướng mặt.
+     *
+     * @param being    Sinh vật cần vẽ (LivingBeing → có facingRight + size)
+     * @param g2d      Đồ họa canvas
+     * @param screenPos Tọa độ trên màn hình
+     * @param zoom     Hệ số zoom camera
+     * @param assetKey Key trong assetMap ("rabbit" / "deer" / "elephant")
+     */
+    private void drawAnimatedSprite(model.living_beings.LivingBeing being,
+                                    Graphics2D g2d, Vector2 screenPos,
+                                    float zoom, String assetKey) {
+        BufferedImage sheet = assetMap.get(assetKey);
         if (sheet == null) return;
 
         int frameW = sheet.getWidth() / 2;
         int frameH = sheet.getHeight() / 2;
         int frameIdx = (int) (animationTimer / FRAME_DURATION) % 4;
 
-        int drawSize = (int) (r.getSize() * zoom);
+        int drawSize = (int) (being.getSize() * zoom);
 
-        int dstX1 = (int)screenPos.x - drawSize/2;
-        int dstY1 = (int)screenPos.y - drawSize/2;
-        int dstX2 = (int)screenPos.x + drawSize/2;
-        int dstY2 = (int)screenPos.y + drawSize/2;
+        int dstX1 = (int) screenPos.x - drawSize / 2;
+        int dstY1 = (int) screenPos.y - drawSize / 2;
+        int dstX2 = (int) screenPos.x + drawSize / 2;
+        int dstY2 = (int) screenPos.y + drawSize / 2;
 
-        if (r.isFacingRight()) {
+        if (being.isFacingRight()) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;

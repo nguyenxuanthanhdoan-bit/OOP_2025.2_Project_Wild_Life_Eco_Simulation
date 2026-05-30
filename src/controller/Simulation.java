@@ -10,6 +10,8 @@ import core.Vector2;
 import model.plants.Grass;
 import model.plants.FruitTree;
 import model.living_beings.Rabbit;
+import model.living_beings.Deer;
+import model.living_beings.Elephant;
 import java.util.Random;
 import java.awt.geom.Rectangle2D;
 import model.map.GameMap.MapPolygonObject;
@@ -70,21 +72,36 @@ public class Simulation {
             if ("FOREST".equalsIgnoreCase(poly.type)) forestPolygons.add(poly);
         }
 
-        // Sinh Thỏ: 80% Plain, 20% Forest
+        // Sinh Thỏ: 80% Plain, 20% Forest (50 con)
         for (int i = 0; i < 50; i++) {
             boolean inPlain = rand.nextFloat() < 0.8f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new Rabbit(pos));
         }
 
-        // Sinh Cỏ: 90% Plain, 10% Forest
+        // Sinh Hươu: 60% Plain, 40% Forest (30 con, 2 đàn)
+        for (int i = 0; i < 30; i++) {
+            boolean inPlain = rand.nextFloat() < 0.6f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            int herdId = (i < 15) ? 1 : 2; // Đàn 1 (15 con) và Đàn 2 (15 con)
+            if (pos != null) world.addEntity(new Deer(pos, herdId));
+        }
+
+        // Sinh Voi: 70% Plain, 30% Forest (10 con, 1 đàn)
+        for (int i = 0; i < 10; i++) {
+            boolean inPlain = rand.nextFloat() < 0.7f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            if (pos != null) world.addEntity(new Elephant(pos, 1));
+        }
+
+        // Sinh Cỏ: 90% Plain, 10% Forest (100 bụi)
         for (int i = 0; i < 100; i++) {
             boolean inPlain = rand.nextFloat() < 0.9f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new Grass(pos));
         }
 
-        // Sinh Cây ăn quả: 30% Plain, 70% Forest
+        // Sinh Cây ăn quả: 30% Plain, 70% Forest (20 cây)
         for (int i = 0; i < 20; i++) {
             boolean inPlain = rand.nextFloat() < 0.3f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);

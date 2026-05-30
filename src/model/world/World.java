@@ -148,7 +148,7 @@ public class World {
         }
 
         // Kiểm tra địa hình nước đối với động vật trên cạn
-        if (entity instanceof model.living_beings.Rabbit) {
+        if (entity instanceof model.living_beings.LivingBeing) {
             if (gameMap != null) {
                 // Thêm 1 khoảng đệm (padding) để thỏ quay đầu sớm hơn khi đến gần mép nước.
                 // Do viền đa giác OCEAN/LAKE trên Tiled có thể không khớp 100% với viền ảnh.

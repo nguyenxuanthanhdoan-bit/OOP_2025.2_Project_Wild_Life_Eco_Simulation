@@ -3,6 +3,8 @@ package view.systems;
 import core.Vector2;
 import model.entity.Entity;
 import model.living_beings.Rabbit;
+import model.living_beings.Deer;
+import model.living_beings.Elephant;
 import model.plants.Grass;
 import model.plants.FruitTree;
 
@@ -30,18 +32,38 @@ public class MinimalRenderer {
 
         // Thiết lập màu sắc và hình dáng dựa trên loại thực thể
         if (e instanceof Rabbit) {
-            g2d.setColor(new Color(100, 149, 237)); // Màu lam (Cornflower Blue) cho Thỏ
+            g2d.setColor(new Color(100, 149, 237)); // Màu lam cho Thỏ
             g2d.fillRect((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
         }
+        else if (e instanceof Deer) {
+            g2d.setColor(new Color(255, 165, 0)); // Màu cam cho Hươu
+            // Hươu vẽ hình thoi để phân biệt với Thỏ
+            int[] xPoints = {
+                    (int) screenPos.x,
+                    (int) screenPos.x - size / 2,
+                    (int) screenPos.x,
+                    (int) screenPos.x + size / 2
+            };
+            int[] yPoints = {
+                    (int) screenPos.y - size / 2,
+                    (int) screenPos.y,
+                    (int) screenPos.y + size / 2,
+                    (int) screenPos.y
+            };
+            g2d.fillPolygon(xPoints, yPoints, 4);
+        }
+        else if (e instanceof Elephant) {
+            g2d.setColor(new Color(120, 120, 140)); // Màu xám cho Voi
+            // Voi vẽ hình tròn to — lớn nhất hệ sinh thái
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
         else if (e instanceof Grass) {
-            g2d.setColor(new Color(50, 205, 50)); // Màu xanh lá tươi cho Cỏ
-            // Cỏ được vẽ bằng các chấm tròn nhỏ vương vãi
+            g2d.setColor(new Color(50, 205, 50)); // Xanh lá tươi
             int dotSize = Math.max(2, size / 3);
             g2d.fillOval((int) screenPos.x - dotSize / 2, (int) screenPos.y - dotSize / 2, dotSize, dotSize);
         }
         else if (e instanceof FruitTree) {
-            g2d.setColor(new Color(34, 139, 34)); // Màu xanh rừng đậm cho Cây
-            // Vẽ cây dưới dạng hình tam giác để phân biệt với cỏ
+            g2d.setColor(new Color(34, 139, 34)); // Xanh rừng đậm
             int[] xPoints = {
                     (int) screenPos.x,
                     (int) screenPos.x - size / 2,
