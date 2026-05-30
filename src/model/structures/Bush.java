@@ -3,6 +3,7 @@ package model.structures;
 import core.DisplayMode;
 import core.Vector2;
 import model.entity.Entity;
+import java.util.Random;
 
 /**
  * Bụi cây — cấu trúc môi trường cho phép động vật nhỏ ẩn nấp.
@@ -33,11 +34,17 @@ public class Bush extends Entity {
         super(position, radius);   // size = radius để SpatialGrid / render dùng đúng
         this.radius   = radius;
         this.occupied = false;
+        this.isSolid  = false; // Bụi rậm là thực thể mềm, thú có thể đi xuyên qua
+
+        // Random hình ảnh từ Bush_1 đến Bush_2
+        Random random = new Random();
+        int variant = random.nextInt(2) + 1;
+        this.imageVariant = "Bush_" + variant;
     }
 
-    /** Constructor với bán kính mặc định 30px. */
+    /** Constructor với bán kính mặc định 25px. */
     public Bush(Vector2 position) {
-        this(position, 30.0f);
+        this(position, 25.0f);
     }
 
     // =========================================================
@@ -53,7 +60,7 @@ public class Bush extends Entity {
     /** Render để trống — RenderSystem đảm nhận vẽ sprite Bush. */
     @Override
     public void render(DisplayMode mode) {
-        // RenderSystem vẽ sprite Bush dựa trên vị trí
+        // RenderSystem vẽ sprite Bush dựa trên vị trí và imageVariant
     }
 
     // =========================================================

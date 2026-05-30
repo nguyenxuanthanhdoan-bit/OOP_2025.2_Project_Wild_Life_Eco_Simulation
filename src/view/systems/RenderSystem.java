@@ -55,9 +55,23 @@ public class RenderSystem {
             assetMap.put("elephant", ImageIO.read(new File(path + "Elephant/elephant_walk.png")));
             assetMap.put("tiger", ImageIO.read(new File(path + "Tiger/tiger_walk.png")));
             assetMap.put("wolf", ImageIO.read(new File(path + "Wolf/wolf_walk.png")));
-            assetMap.put("grass_plant", ImageIO.read(new File(path + "Grass.png")));
-            assetMap.put("tree_big", ImageIO.read(new File(path + "Oak_Tree.png")));
-            assetMap.put("tree_small", ImageIO.read(new File(path + "Oak_Tree_Small.png")));
+            
+            // Tải cỏ
+            for (int i = 1; i <= 2; i++) {
+                assetMap.put("grass_" + i, ImageIO.read(new File(path + "Grass/Grass_" + i + ".png")));
+            }
+            // Tải cây
+            for (int i = 1; i <= 13; i++) {
+                assetMap.put("tree_" + i, ImageIO.read(new File(path + "Tree/Tree_" + i + ".png")));
+            }
+            // Tải bụi rậm
+            for (int i = 1; i <= 2; i++) {
+                assetMap.put("bush_" + i, ImageIO.read(new File(path + "Bush/Bush_" + i + ".png")));
+            }
+            // Tải đá
+            for (int i = 1; i <= 3; i++) {
+                assetMap.put("rock_" + i, ImageIO.read(new File(path + "Rock/Rock_" + i + ".png")));
+            }
         } catch (IOException e) {
             System.err.println("Lỗi nạp ảnh: " + e.getMessage());
         }
@@ -213,8 +227,10 @@ public class RenderSystem {
             } else if (e instanceof Wolf) {
                 drawWolf((Wolf) e, g2d, screenPos, zoom);
             } else {
-                if (e instanceof Grass) img = assetMap.get("grass_plant");
-                else if (e instanceof FruitTree) img = ((FruitTree) e).isSmall() ? assetMap.get("tree_small") : assetMap.get("tree_big");
+                String variant = e.getImageVariant();
+                if (variant != null && !variant.isEmpty()) {
+                    img = assetMap.get(variant.toLowerCase());
+                }
 
                 if (img != null) {
                     float aspect = (float) img.getHeight() / img.getWidth();

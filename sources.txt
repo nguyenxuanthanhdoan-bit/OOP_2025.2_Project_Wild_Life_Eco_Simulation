@@ -14,6 +14,7 @@ src/model/living_beings/Animal.java
 src/model/living_beings/DietType.java
 src/model/structures/Bush.java
 src/model/structures/FoodStorage.java
+src/model/structures/Rock.java
 src/model/structures/House.java
 src/model/structures/Well.java
 src/model/plants/FruitTree.java
