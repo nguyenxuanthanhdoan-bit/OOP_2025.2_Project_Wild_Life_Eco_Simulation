@@ -67,7 +67,7 @@ public class World {
                 // Cập nhật logic (Thỏ chạy nhảy, chuyển sang tọa độ MỚI)
                 e.update(deltaTime);
 
-                if (e instanceof model.living_beings.Rabbit) {
+                if (e instanceof model.living_beings.LivingBeing) {
                     keepInBounds(e);
                 }
 

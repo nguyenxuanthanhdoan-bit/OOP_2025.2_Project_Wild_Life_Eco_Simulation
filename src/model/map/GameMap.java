@@ -28,7 +28,12 @@ public class GameMap {
         public Tileset(int firstgid, String imagePath) {
             this.firstgid = firstgid;
             try {
-                this.image = ImageIO.read(new File(imagePath));
+                File imgFile = new File(imagePath);
+
+                System.out.println("Đang load: " + imgFile.getAbsolutePath());
+                System.out.println("Tồn tại: " + imgFile.exists());
+
+                this.image = ImageIO.read(imgFile);
                 this.columns = this.image.getWidth() / this.tileWidth;
             } catch (Exception e) {
                 System.err.println("Không thể nạp tileset: " + imagePath);
