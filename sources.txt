@@ -9,7 +9,12 @@ src/controller/GameLoop.java
 src/Main.java
 src/model/living_beings/Rabbit.java
 src/model/living_beings/HerbivoreAnimal.java
+src/model/living_beings/Elephant.java
+src/model/living_beings/Deer.java
 src/model/living_beings/LivingBeing.java
+src/model/living_beings/Wolf.java
+src/model/living_beings/CarnivoreAnimal.java
+src/model/living_beings/Tiger.java
 src/model/living_beings/Animal.java
 src/model/living_beings/DietType.java
 src/model/structures/Bush.java
@@ -20,6 +25,7 @@ src/model/structures/Well.java
 src/model/plants/FruitTree.java
 src/model/plants/Plant.java
 src/model/plants/Grass.java
+src/model/plants/Fruit.java
 src/model/entity/Structure.java
 src/model/entity/Entity.java
 src/model/strategies/PassiveStrategy.java

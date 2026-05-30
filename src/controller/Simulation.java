@@ -55,16 +55,6 @@ public class Simulation {
         camera.setPosition(new Vector2(realWorldWidth / 2, realWorldHeight / 2));
     }
 
-    private boolean isValidSpawnPosition(Vector2 pos, float minDistance) {
-        if (world == null) return true;
-        float minDistSq = minDistance * minDistance;
-        for (model.entity.Entity other : world.getEntities()) {
-            if (other.getPosition() != null && pos.distanceSquared(other.getPosition()) < minDistSq) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     private void spawnInitialEntities() {
         Random rand = new Random();
@@ -87,14 +77,7 @@ public class Simulation {
         // Sinh Thỏ: 80% Plain, 20% Forest (50 con)
         for (int i = 0; i < 50; i++) {
             boolean inPlain = rand.nextFloat() < 0.8f;
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 30.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new Rabbit(pos));
         }
 
@@ -116,14 +99,7 @@ public class Simulation {
         // Sinh Cỏ: 90% Plain, 10% Forest (100 bụi)
         for (int i = 0; i < 100; i++) {
             boolean inPlain = rand.nextFloat() < 0.9f;
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 25.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new Grass(pos));
         }
 
@@ -133,27 +109,13 @@ public class Simulation {
 
         // 1. Cây 2 (Gần Làng)
         for (int i = 0; i < 15; i++) {
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getPointNearVillage(plainPolygons, villagePolygons, rand, 300f);
-                if (candidate != null && isValidSpawnPosition(candidate, 50.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getPointNearVillage(plainPolygons, villagePolygons, rand, 300f);
             if (pos != null) world.addEntity(new FruitTree(pos, 2));
         }
 
         // 2. Cây 3, 4 (Gần Nước)
         for (int i = 0; i < 20; i++) {
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getPointNearWater(plainPolygons, rand, 200f);
-                if (candidate != null && isValidSpawnPosition(candidate, 50.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getPointNearWater(plainPolygons, rand, 200f);
             if (pos != null) {
                 int type = rand.nextBoolean() ? 3 : 4;
                 world.addEntity(new FruitTree(pos, type));
@@ -165,14 +127,7 @@ public class Simulation {
         
         // Đồng cỏ: Sinh rải rác thưa thớt (20 cây)
         for (int i = 0; i < 20; i++) {
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(plainPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 50.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getRandomPointInPolygons(plainPolygons, rand);
             if (pos != null) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
                 world.addEntity(new FruitTree(pos, type));
@@ -189,14 +144,7 @@ public class Simulation {
         List<TreeCluster> clusters = new ArrayList<>();
         // Tăng lượng tâm cụm để rừng bao phủ rộng hơn
         for (int i = 0; i < 50; i++) {
-            Vector2 center = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(forestPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 80.0f)) {
-                    center = candidate;
-                    break;
-                }
-            }
+            Vector2 center = getRandomPointInPolygons(forestPolygons, rand);
             if (center != null) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
                 clusters.add(new TreeCluster(center, type));
@@ -208,17 +156,12 @@ public class Simulation {
             for (int i = 0; i < 300; i++) {
                 TreeCluster cluster = clusters.get(rand.nextInt(clusters.size()));
                 Vector2 spawnPos = null;
-                for (int attempt = 0; attempt < 30; attempt++) {
-                    float offsetX = (rand.nextFloat() * 400f) - 200f;
-                    float offsetY = (rand.nextFloat() * 400f) - 200f;
-                    Vector2 candidate = new Vector2(cluster.center.x + offsetX, cluster.center.y + offsetY);
-                    
-                    if (gameMap != null && !gameMap.isPositionInWater(candidate.x, candidate.y)) {
-                        if (isValidSpawnPosition(candidate, 50.0f)) {
-                            spawnPos = candidate;
-                            break;
-                        }
-                    }
+                float offsetX = (rand.nextFloat() * 400f) - 200f;
+                float offsetY = (rand.nextFloat() * 400f) - 200f;
+                Vector2 candidate = new Vector2(cluster.center.x + offsetX, cluster.center.y + offsetY);
+                
+                if (gameMap != null && !gameMap.isPositionInWater(candidate.x, candidate.y)) {
+                    spawnPos = candidate;
                 }
                 
                 if (spawnPos != null) {
@@ -230,28 +173,14 @@ public class Simulation {
         // Sinh Đá: 60% Plain, 40% Forest
         for (int i = 0; i < 15; i++) {
             boolean inPlain = rand.nextFloat() < 0.6f;
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 50.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new model.structures.Rock(pos));
         }
 
         // Sinh Bụi rậm: 40% Plain, 60% Forest
         for (int i = 0; i < 30; i++) {
             boolean inPlain = rand.nextFloat() < 0.4f;
-            Vector2 pos = null;
-            for (int attempt = 0; attempt < 30; attempt++) {
-                Vector2 candidate = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-                if (candidate != null && isValidSpawnPosition(candidate, 35.0f)) {
-                    pos = candidate;
-                    break;
-                }
-            }
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new model.structures.Bush(pos));
         }
 
@@ -284,7 +213,7 @@ public class Simulation {
                 }
             }
         }
-        return new Vector2((float)bounds.getCenterX(), (float)bounds.getCenterY());
+        return null;
     }
 
     private Vector2 getPointNearWater(List<MapPolygonObject> spawnPolys, Random rand, float maxDistance) {
