@@ -15,6 +15,8 @@ public abstract class Entity {
     protected float size;
     protected boolean isAlive;
     protected model.world.World world;
+    protected boolean isSolid = false;
+    protected String imageVariant = "";
 
     public Entity(Vector2 position, float size) {
         this.id = UUID.randomUUID();
@@ -55,6 +57,22 @@ public abstract class Entity {
 
     public void setWorld(model.world.World world) {
         this.world = world;
+    }
+
+    public boolean isSolid() {
+        return this.isSolid;
+    }
+
+    public void setSolid(boolean solid) {
+        this.isSolid = solid;
+    }
+
+    public String getImageVariant() {
+        return this.imageVariant;
+    }
+
+    public void setImageVariant(String variant) {
+        this.imageVariant = variant;
     }
 
     // ==========================================

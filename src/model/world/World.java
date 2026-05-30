@@ -166,6 +166,21 @@ public class World {
             }
         }
 
+        // Kiểm tra va chạm với các thực thể cản đường (Obstacles)
+        for (Entity other : entities) {
+            // Bỏ qua chính bản thân nó và thực thể đã chết
+            if (other != entity && other.isAlive() && other.isSolid()) {
+                // Tính khoảng cách tâm đến tâm
+                float distSq = pos.distanceSquared(other.getPosition());
+                // Tổng bán kính
+                float minDistance = (entity.getSize() + other.getSize()) / 2.0f;
+                // Nếu khoảng cách bình phương nhỏ hơn tổng bán kính bình phương thì có va chạm
+                if (distSq < (minDistance * minDistance)) {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 

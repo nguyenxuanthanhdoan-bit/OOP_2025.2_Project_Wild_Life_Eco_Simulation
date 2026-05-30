@@ -88,7 +88,21 @@ public class Simulation {
         for (int i = 0; i < 20; i++) {
             boolean inPlain = rand.nextFloat() < 0.3f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-            if (pos != null) world.addEntity(new FruitTree(pos, rand.nextBoolean()));
+            if (pos != null) world.addEntity(new FruitTree(pos));
+        }
+
+        // Sinh Đá: 60% Plain, 40% Forest
+        for (int i = 0; i < 15; i++) {
+            boolean inPlain = rand.nextFloat() < 0.6f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            if (pos != null) world.addEntity(new model.structures.Rock(pos));
+        }
+
+        // Sinh Bụi rậm: 40% Plain, 60% Forest
+        for (int i = 0; i < 30; i++) {
+            boolean inPlain = rand.nextFloat() < 0.4f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            if (pos != null) world.addEntity(new model.structures.Bush(pos));
         }
     }
 
