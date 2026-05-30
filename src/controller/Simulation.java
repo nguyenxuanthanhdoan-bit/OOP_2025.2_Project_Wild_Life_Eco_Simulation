@@ -1,7 +1,7 @@
 package controller;
 
 import model.world.World;
-import model.map.GameMap; // Nhớ import GameMap
+import model.map.GameMap; 
 import view.systems.RenderSystem;
 import view.systems.Camera;
 import core.DisplayMode;
@@ -26,7 +26,6 @@ public class Simulation {
     private Camera camera;
     private DisplayMode currentDisplayMode;
 
-    // [MỚI] Thêm biến quản lý bản đồ
     private GameMap gameMap;
 
     public Simulation(Camera camera, World world, RenderSystem renderSystem) {
@@ -35,26 +34,20 @@ public class Simulation {
         this.renderSystem = renderSystem;
         this.currentDisplayMode = DisplayMode.REALISTIC;
 
-        // [MỚI] Khởi tạo bản đồ ngay khi game bắt đầu
         initMap();
         spawnInitialEntities();
     }
 
-    // Hàm chuyên lo việc nạp dữ liệu bản đồ
     private void initMap() {
         this.gameMap = new GameMap("resources/map/map.tmx");
         this.renderSystem.setGameMap(this.gameMap);
-        this.world.setGameMap(this.gameMap); // Gửi map sang World để check va chạm
+        this.world.setGameMap(this.gameMap); 
 
-        // 1. ĐỒNG BỘ KÍCH THƯỚC: Báo cho World biết thế giới này to bằng kích thước map
-        // (Kích thước ảnh x 32 pixel mỗi ô)
         float realWorldWidth = gameMap.getCols() * 32f;
         float realWorldHeight = gameMap.getRows() * 32f;
         this.world.setWidth(realWorldWidth);
         this.world.setHeight(realWorldHeight);
         this.camera.setWorldBounds(realWorldWidth, realWorldHeight);
-        // 2. DI CHUYỂN CAMERA RA GIỮA ĐẢO
-        // Đặt camera ở chính giữa bản đồ thay vì góc (0,0)
         camera.setPosition(new Vector2(realWorldWidth / 2, realWorldHeight / 2));
     }
 
@@ -64,11 +57,17 @@ public class Simulation {
 
         List<MapPolygonObject> plainPolygons = new ArrayList<>();
         List<MapPolygonObject> forestPolygons = new ArrayList<>();
+        List<MapPolygonObject> villagePolygons = new ArrayList<>();
 
         for (MapPolygonObject poly : polygons) {
             if ("PLAIN".equalsIgnoreCase(poly.type)) plainPolygons.add(poly);
-            if ("FOREST".equalsIgnoreCase(poly.type)) forestPolygons.add(poly);
+            else if ("FOREST".equalsIgnoreCase(poly.type)) forestPolygons.add(poly);
+            else if ("VILLAGE".equalsIgnoreCase(poly.type)) villagePolygons.add(poly);
         }
+        
+        // Backup nếu map chưa vẽ polygon
+        if (plainPolygons.isEmpty()) plainPolygons = polygons;
+        if (forestPolygons.isEmpty()) forestPolygons = polygons;
 
         // Sinh Thỏ: 80% Plain, 20% Forest
         for (int i = 0; i < 50; i++) {
@@ -84,11 +83,66 @@ public class Simulation {
             if (pos != null) world.addEntity(new Grass(pos));
         }
 
-        // Sinh Cây ăn quả: 30% Plain, 70% Forest
+        // ===============================================
+        // THUẬT TOÁN SINH CÂY (TREE CLUSTERING & BIOMES)
+        // ===============================================
+
+        // 1. Cây 2 (Gần Làng)
+        for (int i = 0; i < 15; i++) {
+            Vector2 pos = getPointNearVillage(plainPolygons, villagePolygons, rand, 300f);
+            if (pos != null) world.addEntity(new FruitTree(pos, 2));
+        }
+
+        // 2. Cây 3, 4 (Gần Nước)
         for (int i = 0; i < 20; i++) {
-            boolean inPlain = rand.nextFloat() < 0.3f;
-            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
-            if (pos != null) world.addEntity(new FruitTree(pos));
+            Vector2 pos = getPointNearWater(plainPolygons, rand, 200f);
+            if (pos != null) {
+                int type = rand.nextBoolean() ? 3 : 4;
+                world.addEntity(new FruitTree(pos, type));
+            }
+        }
+
+        // 3. Cây Rừng & Đồng Cỏ (1, 5, 6, 7..13)
+        int[] normalTrees = {1, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+        
+        // Đồng cỏ: Sinh rải rác thưa thớt (20 cây)
+        for (int i = 0; i < 20; i++) {
+            Vector2 pos = getRandomPointInPolygons(plainPolygons, rand);
+            if (pos != null) {
+                int type = normalTrees[rand.nextInt(normalTrees.length)];
+                world.addEntity(new FruitTree(pos, type));
+            }
+        }
+
+        // Rừng: Sinh cụm có trật tự (300 cây)
+        class TreeCluster {
+            Vector2 center;
+            int treeType;
+            TreeCluster(Vector2 c, int t) { center = c; treeType = t; }
+        }
+        
+        List<TreeCluster> clusters = new ArrayList<>();
+        // Tăng lượng tâm cụm để rừng bao phủ rộng hơn
+        for (int i = 0; i < 30; i++) {
+            Vector2 center = getRandomPointInPolygons(forestPolygons, rand);
+            if (center != null) {
+                int type = normalTrees[rand.nextInt(normalTrees.length)];
+                clusters.add(new TreeCluster(center, type));
+            }
+        }
+
+        if (!clusters.isEmpty()) {
+            // Tăng số lượng cây rải xung quanh cụm lên rất nhiều để rừng rậm rạp
+            for (int i = 0; i < 300; i++) {
+                TreeCluster cluster = clusters.get(rand.nextInt(clusters.size()));
+                float offsetX = (rand.nextFloat() * 400f) - 200f;
+                float offsetY = (rand.nextFloat() * 400f) - 200f;
+                Vector2 spawnPos = new Vector2(cluster.center.x + offsetX, cluster.center.y + offsetY);
+                
+                if (gameMap != null && !gameMap.isPositionInWater(spawnPos.x, spawnPos.y)) {
+                    world.addEntity(new FruitTree(spawnPos, cluster.treeType));
+                }
+            }
         }
 
         // Sinh Đá: 60% Plain, 40% Forest
@@ -107,7 +161,7 @@ public class Simulation {
     }
 
     private Vector2 getRandomPointInPolygons(List<MapPolygonObject> polys, Random rand) {
-        if (polys.isEmpty()) return null;
+        if (polys == null || polys.isEmpty()) return null;
         MapPolygonObject selectedPoly = polys.get(rand.nextInt(polys.size()));
         Rectangle2D bounds = selectedPoly.polygonPath.getBounds2D();
 
@@ -123,16 +177,49 @@ public class Simulation {
         return new Vector2((float)bounds.getCenterX(), (float)bounds.getCenterY());
     }
 
-    /**
-     * Cập nhật logic trong mỗi khung hình.
-     */
+    private Vector2 getPointNearWater(List<MapPolygonObject> spawnPolys, Random rand, float maxDistance) {
+        if (gameMap == null || spawnPolys == null || spawnPolys.isEmpty()) return null;
+        for (int attempt = 0; attempt < 30; attempt++) {
+            Vector2 pos = getRandomPointInPolygons(spawnPolys, rand);
+            if (pos != null) {
+                if (gameMap.isPositionInWater(pos.x + maxDistance, pos.y) ||
+                    gameMap.isPositionInWater(pos.x - maxDistance, pos.y) ||
+                    gameMap.isPositionInWater(pos.x, pos.y + maxDistance) ||
+                    gameMap.isPositionInWater(pos.x, pos.y - maxDistance)) {
+                    return pos;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Vector2 getPointNearVillage(List<MapPolygonObject> spawnPolys, List<MapPolygonObject> villagePolys, Random rand, float maxDistance) {
+        if (spawnPolys == null || spawnPolys.isEmpty()) return null;
+        if (villagePolys == null || villagePolys.isEmpty()) {
+            return getRandomPointInPolygons(spawnPolys, rand); // Fallback
+        }
+        
+        for (int attempt = 0; attempt < 30; attempt++) {
+            Vector2 pos = getRandomPointInPolygons(spawnPolys, rand);
+            if (pos != null) {
+                for (MapPolygonObject poly : villagePolys) {
+                    Rectangle2D bounds = poly.polygonPath.getBounds2D();
+                    float dx = (float) Math.max(0, Math.max(bounds.getMinX() - pos.x, pos.x - bounds.getMaxX()));
+                    float dy = (float) Math.max(0, Math.max(bounds.getMinY() - pos.y, pos.y - bounds.getMaxY()));
+                    if (dx*dx + dy*dy < maxDistance * maxDistance) {
+                        return pos;
+                    }
+                }
+            }
+        }
+        return null; // Fallback có thể không sinh ra cây nếu khó tìm
+    }
+
     public void update(float deltaTime) {
-        // 1. Cập nhật logic thế giới (Thỏ di chuyển, cây cỏ...)
         world.update(deltaTime);
     }
 
     public void render(Graphics2D g2d, float deltaTime) {
-        // 2. Vẽ thế giới lên màn hình
         renderSystem.renderAll(world, g2d, deltaTime);
     }
 

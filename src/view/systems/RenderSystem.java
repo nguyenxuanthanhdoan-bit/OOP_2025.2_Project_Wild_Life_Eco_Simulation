@@ -53,7 +53,7 @@ public class RenderSystem {
                 assetMap.put("grass_" + i, ImageIO.read(new File(path + "Grass/Grass_" + i + ".png")));
             }
             // Tải cây
-            for (int i = 1; i <= 5; i++) {
+            for (int i = 1; i <= 13; i++) {
                 assetMap.put("tree_" + i, ImageIO.read(new File(path + "Tree/Tree_" + i + ".png")));
             }
             // Tải bụi rậm

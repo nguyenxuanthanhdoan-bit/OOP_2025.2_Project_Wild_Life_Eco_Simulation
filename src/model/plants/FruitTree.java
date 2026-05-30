@@ -7,14 +7,14 @@ import java.util.Random;
 public class FruitTree extends Plant {
 
     public FruitTree(Vector2 position) {
+        this(position, new Random().nextInt(13) + 1);
+    }
+
+    public FruitTree(Vector2 position, int variantId) {
         // Cây không bị ăn nên dinh dưỡng = 0, kích thước mặc định 60.0f
         super(position, 60.0f, 0);
         this.isSolid = true; // Là vật cản
-        
-        // Random hình ảnh từ Tree_1 đến Tree_5
-        Random random = new Random();
-        int variant = random.nextInt(5) + 1;
-        this.imageVariant = "Tree_" + variant;
+        this.imageVariant = "Tree_" + variantId;
     }
 
     @Override
