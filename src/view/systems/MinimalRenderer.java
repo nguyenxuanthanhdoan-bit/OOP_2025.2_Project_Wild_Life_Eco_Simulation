@@ -5,6 +5,8 @@ import model.entity.Entity;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;
+import model.living_beings.Tiger;
+import model.living_beings.Wolf;
 import model.plants.Grass;
 import model.plants.FruitTree;
 
@@ -56,6 +58,18 @@ public class MinimalRenderer {
             g2d.setColor(new Color(120, 120, 140)); // Màu xám cho Voi
             // Voi vẽ hình tròn to — lớn nhất hệ sinh thái
             g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Tiger) {
+            g2d.setColor(new Color(235, 115, 20)); // Màu cam cho Hổ
+            int[] xPoints = { (int) screenPos.x, (int) screenPos.x - size / 2, (int) screenPos.x, (int) screenPos.x + size / 2 };
+            int[] yPoints = { (int) screenPos.y - size / 2, (int) screenPos.y, (int) screenPos.y + size / 2, (int) screenPos.y };
+            g2d.fillPolygon(xPoints, yPoints, 4);
+        }
+        else if (e instanceof Wolf) {
+            g2d.setColor(new Color(120, 130, 140)); // Màu xám cho Sói
+            int[] xPoints = { (int) screenPos.x, (int) screenPos.x - size / 2, (int) screenPos.x, (int) screenPos.x + size / 2 };
+            int[] yPoints = { (int) screenPos.y - size / 2, (int) screenPos.y, (int) screenPos.y + size / 2, (int) screenPos.y };
+            g2d.fillPolygon(xPoints, yPoints, 4);
         }
         else if (e instanceof Grass) {
             g2d.setColor(new Color(50, 205, 50)); // Xanh lá tươi

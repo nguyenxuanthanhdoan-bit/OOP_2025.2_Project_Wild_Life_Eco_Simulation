@@ -12,6 +12,8 @@ import model.plants.FruitTree;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;
+import model.living_beings.Tiger;
+import model.living_beings.Wolf;
 import java.util.Random;
 import java.awt.geom.Rectangle2D;
 import model.map.GameMap.MapPolygonObject;
@@ -106,6 +108,20 @@ public class Simulation {
             boolean inPlain = rand.nextFloat() < 0.3f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
             if (pos != null) world.addEntity(new FruitTree(pos, rand.nextBoolean()));
+        }
+
+        // Sinh Hổ: 10% Plain, 90% Forest
+        for (int i = 0; i < 10; i++) {
+            boolean inPlain = rand.nextFloat() < 0.1f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            if (pos != null) world.addEntity(new Tiger(pos));
+        }
+
+        // Sinh Sói: 50% Plain, 50% Forest
+        for (int i = 0; i < 15; i++) {
+            boolean inPlain = rand.nextFloat() < 0.5f;
+            Vector2 pos = getRandomPointInPolygons(inPlain ? plainPolygons : forestPolygons, rand);
+            if (pos != null) world.addEntity(new Wolf(pos));
         }
     }
 

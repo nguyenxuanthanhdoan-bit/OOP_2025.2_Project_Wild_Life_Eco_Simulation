@@ -28,6 +28,8 @@ public class GameConfig {
     // CẤU HÌNH THỰC THỂ (PHASE 1)
     // ==========================================
     public final float RABBIT_BASE_SPEED = 100.0f; // Tốc độ chạy của thỏ (pixels/giây)
+    public final float TIGER_BASE_SPEED = 130.0f;  // Tốc độ chạy của hổ (pixels/giây)
+    public final float WOLF_BASE_SPEED = 120.0f;   // Tốc độ chạy của sói (pixels/giây)
 
     // Constructor private để cấm dùng từ khóa 'new' từ bên ngoài
     private GameConfig() {}
