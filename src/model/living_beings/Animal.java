@@ -105,6 +105,9 @@ public abstract class Animal extends LivingBeing {
 
     /** Chế độ ăn của loài. */
     protected DietType dietType;
+    
+    /** Cờ đánh dấu con vật có đang di chuyển trong frame hiện tại không. */
+    protected boolean isMoving;
 
     // =========================================================
     // CONSTRUCTOR
@@ -209,8 +212,8 @@ public abstract class Animal extends LivingBeing {
 
         // --- 3. Tính hệ số tiêu hao dựa trên vận động ---
         float distSq = this.position.distanceSquared(oldPos);
-        boolean isMoving = distSq > 0.0001f;
-        float decayMultiplier = isMoving ? 1.5f : 1.0f;
+        this.isMoving = distSq > 0.0001f;
+        float decayMultiplier = this.isMoving ? 1.5f : 1.0f;
 
         // --- 4. Suy giảm chỉ số sinh học ---
         this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime));
@@ -266,6 +269,22 @@ public abstract class Animal extends LivingBeing {
     }
 
     /**
+     * Hành vi ăn thịt. Tăng chỉ số {@code hunger}.
+     * Dành cho CarnivoreAnimal hoặc OmnivoreAnimal.
+     *
+     * @param meat Miếng thịt muốn ăn (không null)
+     */
+    public void eatMeat(model.items.Meat meat) {
+        if (!alive) return;
+        if (meat != null && meat.isAlive()) {
+            this.hunger = Math.min(this.maxHunger, this.hunger + meat.getNutritionValue());
+            meat.setAlive(false);
+            System.out.printf("[%s] ăn %s → đói: %.1f/%.1f%n",
+                    speciesName, meat.getClass().getSimpleName(), hunger, maxHunger);
+        }
+    }
+
+    /**
      * Hành vi uống nước. Khôi phục {@code thirst} về tối đa.
      * Chỉ có hiệu lực khi con vật đứng cạnh nguồn nước ({@link #isNearWater()}).
      */
@@ -312,6 +331,15 @@ public abstract class Animal extends LivingBeing {
         this.isAlive = false;       // Đồng bộ với trường kế thừa từ Entity
         System.out.printf("[%s | %s] đã chết! Nguyên nhân: %s (tuổi: %.1f)%n",
                 speciesName, id, reason, age);
+                
+        // Rớt thịt và xương khi chết
+        if (world != null && this.position != null) {
+            // Giới hạn xê dịch một chút để rớt ra không bị đè hẳn lên nhau nếu cần
+            model.items.Meat meat = new model.items.Meat(new core.Vector2(this.position.x - 5, this.position.y));
+            model.items.Bone bone = new model.items.Bone(new core.Vector2(this.position.x + 5, this.position.y));
+            world.addEntity(meat);
+            world.addEntity(bone);
+        }
     }
 
     // =========================================================
@@ -349,10 +377,19 @@ public abstract class Animal extends LivingBeing {
      * @return true nếu đang đứng trên ô nước
      */
     public boolean isNearWater() {
-        if (this.world != null) {
-            return this.world.isPositionInWater(this.position.x, this.position.y);
-        }
-        return false;
+        if (world == null || world.getSpatialGrid() == null) return false;
+        
+        // Cần đảm bảo khoảng cách quét lớn hơn size của con thú một chút
+        float checkDist = this.getSize() / 2 + 10.0f;
+        
+        return world.isPositionInWater(position.x + checkDist, position.y) ||
+               world.isPositionInWater(position.x - checkDist, position.y) ||
+               world.isPositionInWater(position.x, position.y + checkDist) ||
+               world.isPositionInWater(position.x, position.y - checkDist);
+    }
+
+    public boolean isMoving() {
+        return isMoving;
     }
 
     /**

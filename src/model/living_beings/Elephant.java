@@ -123,32 +123,7 @@ public class Elephant extends HerbivoreAnimal {
         this(position, -1);
     }
 
-    // =========================================================
-    // VÒNG ĐỜI — update()
-    // =========================================================
 
-    /**
-     * Mỗi frame, Voi:
-     * <ol>
-     *   <li>Dẫn đàn di chuyển ({@link #leadHerd()}).</li>
-     *   <li>Cập nhật chỉ số sinh học qua {@code super.update()}.</li>
-     * </ol>
-     * Voi không phản ứng với kẻ thù — không gọi flee() ở bất kỳ đâu.
-     *
-     * @param deltaTime Thời gian frame (giây)
-     */
-    @Override
-    public void update(float deltaTime) {
-        if (!alive) return;
-
-        // Điều phối đàn mỗi frame
-        leadHerd();
-
-        // Cập nhật sinh học (đói, khát, tuổi, hậu quả)
-        super.update(deltaTime);
-    }
-
-    // =========================================================
     // HÀNH VI ĐẶC TRƯNG
     // =========================================================
 

@@ -114,41 +114,7 @@ public class Rabbit extends HerbivoreAnimal {
     // VÒNG ĐỜI — update()
     // =========================================================
 
-    /**
-     * Mỗi frame, Thỏ:
-     * <ol>
-     *   <li>Nếu đang ẩn: kiểm tra có nên rời Bush không (quá đói/khát).</li>
-     *   <li>Quét kẻ thù trong tầm nhìn — ưu tiên trốn hoặc chạy.</li>
-     *   <li>Gọi {@code super.update()} để suy giảm chỉ số sinh học.</li>
-     * </ol>
-     *
-     * @param deltaTime Thời gian frame (giây)
-     */
-    @Override
-    public void update(float deltaTime) {
-        if (!alive) return;
 
-        // 1. Kiểm tra có nên rời Bush vì quá đói/khát không
-        if (hidden && shouldLeaveBushDueToNeed()) {
-            leaveBush();
-        }
-
-        // 2. Nếu không ẩn → quét kẻ thù và phản ứng
-        if (!hidden && world != null) {
-            Entity threat = detectThreat();
-            if (threat != null) {
-                Bush nearbyBush = findNearbyBush();
-                if (nearbyBush != null) {
-                    hideInBush(nearbyBush);
-                } else {
-                    flee(threat);
-                }
-            }
-        }
-
-        // 3. Cập nhật chỉ số sinh học (đói, khát, tuổi, hậu quả)
-        super.update(deltaTime);
-    }
 
     // =========================================================
     // HÀNH VI ĐẶC TRƯNG

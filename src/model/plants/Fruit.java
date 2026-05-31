@@ -41,6 +41,7 @@ public class Fruit extends Plant {
     public Fruit(Vector2 position) {
         super(position, DEFAULT_SIZE, DEFAULT_NUTRITION);
         this.decayTimer = MAX_DECAY_TIME;
+        this.imageVariant = "Fruit_" + (new java.util.Random().nextInt(2) + 1);
     }
 
     /**

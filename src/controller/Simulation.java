@@ -103,6 +103,17 @@ public class Simulation {
             if (pos != null) world.addEntity(new Grass(pos));
         }
 
+        // Sinh Nấm: 20% Plain gần nước, 80% Forest (40 cây nấm ban đầu)
+        for (int i = 0; i < 40; i++) {
+            Vector2 pos;
+            if (rand.nextFloat() < 0.8f && !forestPolygons.isEmpty()) {
+                pos = getRandomPointInPolygons(forestPolygons, rand);
+            } else {
+                pos = getPointNearWater(plainPolygons, rand, 150f);
+            }
+            if (pos != null) world.addEntity(new model.plants.Mushroom(pos));
+        }
+
         // ===============================================
         // THUẬT TOÁN SINH CÂY (TREE CLUSTERING & BIOMES)
         // ===============================================

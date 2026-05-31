@@ -49,42 +49,75 @@ public class RenderSystem {
 
     private void loadAssets() {
         String path = "resources/assets/images/";
-        try {
-            assetMap.put("rabbit", ImageIO.read(new File(path + "Rabbit/Rabbit_walk.png")));
-            assetMap.put("deer",   ImageIO.read(new File(path + "Deer/deer_walk.png")));
-            assetMap.put("elephant", ImageIO.read(new File(path + "Elephant/elephant_walk.png")));
-            assetMap.put("tiger", ImageIO.read(new File(path + "Tiger/tiger_walk.png")));
-            assetMap.put("wolf", ImageIO.read(new File(path + "Wolf/wolf_walk.png")));
+        
+        // Herbivores
+        String[] herbivores = {"rabbit", "deer", "elephant"};
+        for (String sp : herbivores) {
+            String capitalizedSp = sp.substring(0, 1).toUpperCase() + sp.substring(1);
+            String dirPath = path + "HerbivoreAnimal/" + capitalizedSp + "/";
+            String prefix = sp.equals("rabbit") ? "Rabbit_" : (sp + "_");
             
-            // Tải cỏ
-            for (int i = 1; i <= 2; i++) {
-                assetMap.put("grass_" + i, ImageIO.read(new File(path + "Grass/Grass_" + i + ".png")));
+            tryLoadAsset(sp + "_west", dirPath + "west.png");
+            tryLoadAsset(sp + "_walk", dirPath + prefix + "walk.png");
+            if (!sp.equals("elephant")) {
+                tryLoadAsset(sp + "_run", dirPath + prefix + "run.png");
             }
-            // Tải cây
-            for (int i = 1; i <= 13; i++) {
-                assetMap.put("tree_" + i, ImageIO.read(new File(path + "Tree/Tree_" + i + ".png")));
+            
+            if (sp.equals("rabbit") || sp.equals("deer")) {
+                tryLoadAsset(sp + "_eat", dirPath + sp + "_eating.png");
+            } else if (sp.equals("elephant")) {
+                tryLoadAsset(sp + "_eat", dirPath + sp + "_eat.png");
             }
-            // Tải bụi rậm
-            for (int i = 1; i <= 2; i++) {
-                assetMap.put("bush_" + i, ImageIO.read(new File(path + "Bush/Bush_" + i + ".png")));
+        }
+        
+        // Carnivores
+        String[] carnivores = {"tiger", "wolf"};
+        for (String sp : carnivores) {
+            String capitalizedSp = sp.substring(0, 1).toUpperCase() + sp.substring(1);
+            String dirPath = path + "CarnivoreAnimal/" + capitalizedSp + "/";
+            String prefix = sp + "_";
+            
+            tryLoadAsset(sp + "_west", dirPath + "west.png");
+            tryLoadAsset(sp + "_walk", dirPath + prefix + "walk.png");
+            tryLoadAsset(sp + "_run", dirPath + prefix + "run.png");
+            
+            if (sp.equals("tiger")) {
+                tryLoadAsset(sp + "_attack", dirPath + "tiger_attack.png");
+                tryLoadAsset(sp + "_drink", dirPath + "tiger_drink.png");
             }
-            // Tải đá
-            for (int i = 1; i <= 3; i++) {
-                assetMap.put("rock_" + i, ImageIO.read(new File(path + "Rock/Rock_" + i + ".png")));
+        }
+
+        // Plants
+        for (int i = 1; i <= 2; i++) tryLoadAsset("grass_" + i, path + "Plant/Grass/Grass_" + i + ".png");
+        for (int i = 1; i <= 13; i++) tryLoadAsset("tree_" + i, path + "Plant/Tree/Tree_" + i + ".png");
+        for (int i = 1; i <= 8; i++) tryLoadAsset("mushroom_" + i, path + "Plant/Mushrooms/Mushroom_" + i + ".png");
+
+        // Structures
+        for (int i = 1; i <= 2; i++) tryLoadAsset("bush_" + i, path + "Structures/Bush/Bush_" + i + ".png");
+        for (int i = 1; i <= 3; i++) tryLoadAsset("rock_" + i, path + "Structures/Rock/Rock_" + i + ".png");
+
+        // Items
+        for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
+        tryLoadAsset("meat", path + "Items/Meat/Meat.png");
+        tryLoadAsset("bone", path + "Items/Bone/Bone.png");
+    }
+
+    private void tryLoadAsset(String key, String path) {
+        try {
+            File f = new File(path);
+            if (f.exists()) {
+                assetMap.put(key, ImageIO.read(f));
             }
         } catch (IOException e) {
-            System.err.println("Lỗi nạp ảnh: " + e.getMessage());
+            System.err.println("Không thể nạp: " + path);
         }
     }
 
     public void renderAll(World world, Graphics2D g2d, float deltaTime) {
         animationTimer += deltaTime;
 
-        if (displayMode == DisplayMode.MINIMAL) {
-            minimalRenderer.renderBackground(g2d, world.getWidth(), world.getHeight());
-        } else {
-            renderMap(g2d);
-        }
+        // Luôn luôn vẽ map dù ở chế độ REALISTIC hay MINIMAL
+        renderMap(g2d);
 
         // =========================================================
         // [MỚI] TỐI ƯU HÓA VẼ THỰC THỂ BẰNG SPATIAL GRID
@@ -211,22 +244,16 @@ public class RenderSystem {
     }
 
     private void renderEntity(Entity e, Graphics2D g2d) {
+        if (e instanceof Rabbit && ((Rabbit) e).isHidden()) return;
+        
         if (displayMode == DisplayMode.REALISTIC) {
             Vector2 screenPos = camera.worldToScreen(e.getPosition());
             float zoom = camera.getZoomLevel();
 
-            BufferedImage img = null;
-            if (e instanceof Rabbit) {
-                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "rabbit");
-            } else if (e instanceof Deer) {
-                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "deer");
-            } else if (e instanceof Elephant) {
-                drawAnimatedSprite((model.living_beings.LivingBeing) e, g2d, screenPos, zoom, "elephant");
-            } else if (e instanceof Tiger) {
-                drawTiger((Tiger) e, g2d, screenPos, zoom);
-            } else if (e instanceof Wolf) {
-                drawWolf((Wolf) e, g2d, screenPos, zoom);
+            if (e instanceof model.living_beings.Animal) {
+                drawDynamicAnimatedSprite((model.living_beings.Animal) e, g2d, screenPos, zoom);
             } else {
+                BufferedImage img = null;
                 String variant = e.getImageVariant();
                 if (variant != null && !variant.isEmpty()) {
                     img = assetMap.get(variant.toLowerCase());
@@ -245,42 +272,68 @@ public class RenderSystem {
     }
 
     /**
-     * Vẽ hoạt ảnh chung cho mọi loài sử dụng spritesheet 2x2 (4 frame).
-     * Hoán đổi dstX1/dstX2 để lật hình theo hướng mặt.
-     *
-     * @param being    Sinh vật cần vẽ (LivingBeing → có facingRight + size)
-     * @param g2d      Đồ họa canvas
-     * @param screenPos Tọa độ trên màn hình
-     * @param zoom     Hệ số zoom camera
-     * @param assetKey Key trong assetMap ("rabbit" / "deer" / "elephant")
+     * Tự động tính toán khung hình (grid) dựa trên kích thước west.png làm chuẩn.
      */
-    private void drawAnimatedSprite(model.living_beings.LivingBeing being,
-                                    Graphics2D g2d, Vector2 screenPos,
-                                    float zoom, String assetKey) {
-        BufferedImage sheet = assetMap.get(assetKey);
+    private void drawDynamicAnimatedSprite(model.living_beings.Animal animal,
+                                           Graphics2D g2d, Vector2 screenPos,
+                                           float zoom) {
+        // Xác định loại động vật (tên class)
+        String species = animal.getClass().getSimpleName().toLowerCase();
+        
+        // Suy diễn trạng thái
+        String state = "west";
+        if (animal.isMoving()) {
+            float speed = animal.getSpeed();
+            if (speed > animal.getBaseSpeed() * 1.1f) {
+                state = "run";
+            } else {
+                state = "walk";
+            }
+        }
+        
+        // [CÓ THỂ MỞ RỘNG] Nếu animal có thuộc tính isEating() hay isSleeping() thì gắn state tương ứng ở đây
+        
+        // Lấy spritesheet
+        BufferedImage sheet = assetMap.get(species + "_" + state);
+        if (sheet == null) sheet = assetMap.get(species + "_walk");
+        if (sheet == null) sheet = assetMap.get(species + "_west");
         if (sheet == null) return;
+        
+        // Lấy frame chuẩn
+        BufferedImage base = assetMap.get(species + "_west");
+        if (base == null) base = sheet; // Dự phòng
+        
+        int frameW = base.getWidth();
+        int frameH = base.getHeight();
+        int cols = sheet.getWidth() / frameW;
+        int rows = sheet.getHeight() / frameH;
+        int totalFrames = cols * rows;
+        if (totalFrames <= 0) totalFrames = 1;
+        
+        int frameIdx = 0;
+        if (totalFrames > 1) {
+            // Chỉnh tốc độ hoạt ảnh theo trạng thái
+            float animSpeed = (state.equals("run")) ? FRAME_DURATION * 0.6f : FRAME_DURATION;
+            frameIdx = (int) (animationTimer / animSpeed) % totalFrames;
+        }
 
-        int frameW = sheet.getWidth() / 2;
-        int frameH = sheet.getHeight() / 2;
-        int frameIdx = (int) (animationTimer / FRAME_DURATION) % 4;
-
-        int drawSize = (int) (being.getSize() * zoom);
+        int drawSize = (int) (animal.getSize() * zoom);
 
         int dstX1 = (int) screenPos.x - drawSize / 2;
         int dstY1 = (int) screenPos.y - drawSize / 2;
         int dstX2 = (int) screenPos.x + drawSize / 2;
         int dstY2 = (int) screenPos.y + drawSize / 2;
 
-        if (being.isFacingRight()) {
+        if (animal.isFacingRight()) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;
         }
 
-        int srcX1 = (frameIdx % 2) * frameW;
-        int srcY1 = (frameIdx / 2) * frameH;
-        int srcX2 = ((frameIdx % 2) + 1) * frameW;
-        int srcY2 = ((frameIdx / 2) + 1) * frameH;
+        int srcX1 = (frameIdx % cols) * frameW;
+        int srcY1 = (frameIdx / cols) * frameH;
+        int srcX2 = srcX1 + frameW;
+        int srcY2 = srcY1 + frameH;
 
         g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
     }

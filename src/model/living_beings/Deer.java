@@ -137,52 +137,7 @@ public class Deer extends HerbivoreAnimal {
         this(position, -1);
     }
 
-    // =========================================================
-    // VÒNG ĐỜI — update()
-    // =========================================================
 
-    /**
-     * Mỗi frame, Deer:
-     * <ol>
-     *   <li>Nếu đang hoảng loạn → tiếp tục chạy theo {@code panicDirection}.</li>
-     *   <li>Nếu bình thường → quét kẻ thù, phát hiện thì scatter() + flee().</li>
-     *   <li>Nếu không có kẻ thù → followHerd().</li>
-     *   <li>Gọi super.update() để cập nhật chỉ số sinh học.</li>
-     * </ol>
-     *
-     * @param deltaTime Thời gian frame (giây)
-     */
-    @Override
-    public void update(float deltaTime) {
-        if (!alive) return;
-
-        if (panicTimer > 0) {
-            // -- Đang hoảng loạn: chạy theo hướng ngẫu nhiên --
-            panicTimer -= deltaTime;
-            float savedSpeed = this.speed;
-            this.speed = BASE_SPEED * FLEE_SPEED_BOOST;
-            move(panicDirection, deltaTime);
-            this.speed = savedSpeed;
-
-            if (panicTimer <= 0) {
-                // Hết hoảng loạn → quay lại đàn
-                inHerd = (herdId >= 0);
-            }
-        } else {
-            // -- Bình thường --
-            Entity threat = detectThreat();
-            if (threat != null) {
-                scatter();
-                flee(threat);
-            } else if (inHerd) {
-                followHerd();
-            }
-            // Nếu inHerd=false và không có kẻ thù → PassiveStrategy xử lý qua super
-        }
-
-        // Cập nhật chỉ số sinh học
-        super.update(deltaTime);
-    }
 
     // =========================================================
     // HÀNH VI ĐẶC TRƯNG
