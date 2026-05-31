@@ -19,6 +19,19 @@ import model.plants.Plant;
 public abstract class Animal extends LivingBeing {
 
     // =========================================================
+    // HẰNG SỐ CẢNH BÁO AI
+    // =========================================================
+    
+    /** Ngưỡng đói để bắt đầu đi kiếm ăn (< 50%) */
+    public static final double HUNGER_WARNING_THRESHOLD = 0.50;
+    
+    /** Ngưỡng khát để bắt đầu đi uống nước (< 50%) */
+    public static final double THIRST_WARNING_THRESHOLD = 0.50;
+    
+    /** Ngưỡng nguy hiểm sinh tử để kích hoạt chế độ liều lĩnh (< 15%) */
+    public static final double CRITICAL_SURVIVAL_THRESHOLD = 0.15;
+
+    // =========================================================
     // THUỘC TÍNH ĐỊNH DANH
     // =========================================================
 
@@ -204,6 +217,9 @@ public abstract class Animal extends LivingBeing {
     public void update(float deltaTime) {
         if (!alive) return;
 
+        // --- 0. Quét trạng thái và cập nhật Chiến thuật (AI Brain Selector) ---
+        decideActiveStrategy();
+
         // --- 1. Ghi lại vị trí cũ để tính hệ số vận động ---
         Vector2 oldPos = this.position.copy();
 
@@ -233,6 +249,55 @@ public abstract class Animal extends LivingBeing {
         if (this.thirst <= 0) {
             takeDamage(10.0f * deltaTime);  // Mất máu do khát (khát nguy hiểm hơn)
         }
+    }
+
+    /**
+     * Bộ não AI (Priority Selector): Quyết định chiến thuật nào sẽ được chạy trong frame này
+     * dựa trên mức độ ưu tiên của các nhu cầu sinh lý và đe dọa từ môi trường.
+     */
+    protected void decideActiveStrategy() {
+        // A. ƯU TIÊN 5: Sinh tồn liều lĩnh (Khát/Đói < 15%)
+        if (hunger < maxHunger * CRITICAL_SURVIVAL_THRESHOLD || thirst < maxThirst * CRITICAL_SURVIVAL_THRESHOLD) {
+            // TODO: (Người 1) Kích hoạt AggressiveStrategy
+            // if (!(currentStrategy instanceof model.strategies.AggressiveStrategy)) {
+            //     setStrategy(new model.strategies.AggressiveStrategy());
+            // }
+            // return;
+        }
+
+        // B. ƯU TIÊN 4: Bỏ chạy khỏi kẻ thù
+        if (detectDangerousThreats()) {
+            // TODO: (Người 2) Kích hoạt ScaredStrategy khi phát hiện kẻ thù
+            // if (!(currentStrategy instanceof model.strategies.ScaredStrategy)) {
+            //     setStrategy(new model.strategies.ScaredStrategy());
+            // }
+            // return;
+        }
+
+        // C. ƯU TIÊN 3: Tìm kiếm thức ăn & nước uống (Khát/Đói < 50%)
+        if (hunger < maxHunger * HUNGER_WARNING_THRESHOLD || thirst < maxThirst * THIRST_WARNING_THRESHOLD) {
+            // TODO: (Người 1) Kích hoạt ForageStrategy
+            // if (!(currentStrategy instanceof model.strategies.ForageStrategy)) {
+            //     setStrategy(new model.strategies.ForageStrategy());
+            // }
+            // return;
+        }
+
+        // D. ƯU TIÊN 2: MatingStrategy (Người 3)
+        // E. ƯU TIÊN 1: FlockingStrategy (Người 3)
+
+        // F. ƯU TIÊN 0: Trạng thái mặc định (Đi dạo)
+        if (!(currentStrategy instanceof model.strategies.PassiveStrategy)) {
+            setStrategy(new model.strategies.PassiveStrategy());
+        }
+    }
+
+    /**
+     * Hàm chờ (Stub) để Người 2 phát triển logic quét kẻ thù bằng SpatialGrid.
+     */
+    protected boolean detectDangerousThreats() {
+        // Mặc định Phase 1 chưa có kẻ thù, trả về false
+        return false;
     }
 
     // =========================================================
