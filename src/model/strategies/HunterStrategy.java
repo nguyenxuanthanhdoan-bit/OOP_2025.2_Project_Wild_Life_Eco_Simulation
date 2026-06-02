@@ -11,13 +11,14 @@ import java.util.List;
 public class HunterStrategy implements IStrategy {
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
     private Animal targetPrey = null;
+    private static final double RUN_COST_MULTIPLIER = 3.0;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
 
-        // Kiểm tra xem mục tiêu cũ còn hợp lệ không (còn sống, không trốn, trong tầm nhìn)
+        // Kiểm tra xem mục tiêu cũ còn hợp lệ không (còn sống, không trốn, trong tầm nhìn, kích thước phù hợp)
         if (targetPrey != null) {
             float dist = ownerAnimal.getPosition().distanceTo(targetPrey.getPosition());
             if (!targetPrey.isAliveState() || targetPrey.isHidden() || dist > ownerAnimal.getVisionRange()) {
@@ -33,8 +34,8 @@ public class HunterStrategy implements IStrategy {
             for (Entity neighbor : neighbors) {
                 if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
-                    // Săn động vật ăn cỏ có kích thước nhỏ hơn bản thân kẻ săn mồi
-                    if (other.isAliveState() && other.getDietType() == DietType.HERBIVORE && !other.isHidden() && other.getSize() < ownerAnimal.getSize()) {
+                    // Săn động vật khác miễn là nhỏ hơn hoặc bằng kích thước, không trốn, và còn sống
+                    if (other.isAliveState() && !other.isHidden() && other.getSize() <= ownerAnimal.getSize()) {
                         float dist = ownerAnimal.getPosition().distanceTo(other.getPosition());
                         if (dist < closestDist) {
                             closestDist = dist;
@@ -77,8 +78,14 @@ public class HunterStrategy implements IStrategy {
                 }
             } else {
                 // Đang đuổi bắt mục tiêu ở tốc độ cao
+                // Tiêu hao thêm năng lượng khi chạy
+                double extraHunger = ownerAnimal.getHungerDecayRate() * (RUN_COST_MULTIPLIER - 1) * deltaTime;
+                double extraThirst = ownerAnimal.getThirstDecayRate() * (RUN_COST_MULTIPLIER - 1) * deltaTime;
+                ownerAnimal.setHunger(ownerAnimal.getHunger() - extraHunger);
+                ownerAnimal.setThirst(ownerAnimal.getThirst() - extraThirst);
+
                 ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.5f));
-                ownerAnimal.setActionState("idle");
+                ownerAnimal.setActionState("run");
                 ownerAnimal.move(dirToPrey, deltaTime);
             }
         } else {

@@ -3,12 +3,11 @@ package model.living_beings;
 import core.DisplayMode;
 import core.GameConfig;
 import core.Vector2;
-import model.entity.Entity;
 import model.plants.Fruit;
 import model.plants.Grass;
 import model.plants.Plant;
+import model.strategies.FlockingStrategy;
 import model.strategies.PassiveStrategy;
-import java.util.List;
 import java.util.Random;
 
 public class Deer extends HerbivoreAnimal {
@@ -44,12 +43,18 @@ public class Deer extends HerbivoreAnimal {
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
 
-        this.setStrategy(new PassiveStrategy());
+        this.setStrategy(new FlockingStrategy.DeerFlock());
     }
 
     @Override
     public Animal reproduce() {
-        return null;
+        Deer baby = new Deer(this.getPosition().copy());
+        baby.age = 0;
+        baby.size = SIZE * 0.5f; // 50% kích thước
+        baby.setAdult(false);
+        // Con non chỉ sử dụng PassiveStrategy
+        baby.setStrategy(new PassiveStrategy());
+        return baby;
     }
 
     @Override
@@ -57,6 +62,17 @@ public class Deer extends HerbivoreAnimal {
         if (!alive) return;
         if (food instanceof Grass || food instanceof Fruit) {
             super.eat(food);
+        }
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        super.update(deltaTime);
+        
+        // Cập nhật strategy khi trưởng thành
+        if (this.adult && this.currentStrategy instanceof PassiveStrategy && this.age > 0) {
+            this.setStrategy(new FlockingStrategy.DeerFlock());
+            this.size = SIZE;
         }
     }
 

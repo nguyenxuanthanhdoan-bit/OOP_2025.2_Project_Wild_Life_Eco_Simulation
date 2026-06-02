@@ -6,7 +6,7 @@ import core.Vector2;
 import model.entity.Entity;
 import model.plants.Grass;
 import model.plants.Plant;
-import model.strategies.PassiveStrategy;
+import model.strategies.ScaredStrategy;
 import java.util.List;
 import java.util.Random;
 
@@ -37,7 +37,7 @@ public class Rabbit extends HerbivoreAnimal {
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
 
-        this.setStrategy(new model.strategies.ScaredStrategy());
+        this.setStrategy(new ScaredStrategy());
     }
 
     @Override
@@ -50,6 +50,24 @@ public class Rabbit extends HerbivoreAnimal {
         if (!alive) return;
         if (food instanceof Grass) {
             super.eat(food);
+        }
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        super.update(deltaTime);
+        updateAnimation();
+    }
+
+    private void updateAnimation() {
+        if ("attack".equals(this.actionState)) {
+            this.imageVariant = "west.png"; // No attack frame for rabbit, fallback to west
+        } else if ("run".equals(this.actionState)) {
+            this.imageVariant = "run.png";
+        } else if (this.isMoving) {
+            this.imageVariant = "walk.png";
+        } else {
+            this.imageVariant = "west.png"; // idle
         }
     }
 

@@ -3,15 +3,14 @@ package model.living_beings;
 import core.Vector2;
 import core.GameConfig;
 import core.DisplayMode;
-import model.strategies.PassiveStrategy;
+import model.strategies.HunterStrategy;
+import model.strategies.FlockingStrategy;
 
 public class Wolf extends CarnivoreAnimal {
 
     public Wolf(Vector2 position) {
-        // Khởi tạo sói với kích thước 28.0f và tốc độ lấy từ GameConfig
         super(position, 28.0f, GameConfig.getInstance().WOLF_BASE_SPEED);
 
-        // Khởi tạo các chỉ số sinh học
         this.speciesName = "Sói";
         this.maxHealth = 150.0f;
         this.health = this.maxHealth;
@@ -23,8 +22,8 @@ public class Wolf extends CarnivoreAnimal {
         this.thirstDecayRate = 2.5f;
         this.maxAge = 450.0f;
 
-        // Gắn "bộ não" mặc định cho Sói ở Phase 1 là đi dạo/đứng im (Passive)
-        this.setStrategy(new model.strategies.HunterStrategy());
+        // Sói có thể đi săn hoặc đi theo bầy (Hunter / Flocking)
+        this.setStrategy(new HunterStrategy());
     }
 
     @Override
@@ -33,7 +32,24 @@ public class Wolf extends CarnivoreAnimal {
     }
 
     @Override
+    public void update(float deltaTime) {
+        super.update(deltaTime);
+        updateAnimation();
+    }
+
+    private void updateAnimation() {
+        if ("attack".equals(this.actionState)) {
+            this.imageVariant = "west.png"; // Yêu cầu: "Wolf: west.png vì chưa có frame attack"
+        } else if ("run".equals(this.actionState)) {
+            this.imageVariant = "run.png";
+        } else if (this.isMoving) {
+            this.imageVariant = "walk.png";
+        } else {
+            this.imageVariant = "west.png";
+        }
+    }
+
+    @Override
     public void render(DisplayMode mode) {
-        // Hàm này để trống vì RenderSystem sẽ đảm nhận việc vẽ hình ảnh
     }
 }
