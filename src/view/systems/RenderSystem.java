@@ -244,8 +244,6 @@ public class RenderSystem {
     }
 
     private void renderEntity(Entity e, Graphics2D g2d) {
-        if (e instanceof Rabbit && ((Rabbit) e).isHidden()) return;
-        
         if (displayMode == DisplayMode.REALISTIC) {
             Vector2 screenPos = camera.worldToScreen(e.getPosition());
             float zoom = camera.getZoomLevel();

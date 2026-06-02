@@ -29,21 +29,7 @@ public class Wolf extends CarnivoreAnimal {
 
     @Override
     public Animal reproduce() {
-        if (!canReproduce()) return null;
-        if (world == null) return null;
-
-        float offsetX = (new java.util.Random().nextFloat() * 60) - 30;
-        float offsetY = (new java.util.Random().nextFloat() * 60) - 30;
-        Vector2 birthPos = new Vector2(this.position.x + offsetX, this.position.y + offsetY);
-
-        Wolf offspring = new Wolf(birthPos);
-
-        this.hunger = Math.max(0, this.hunger - maxHunger * 0.3);
-        this.thirst = Math.max(0, this.thirst - maxThirst * 0.2);
-        this.health = Math.max(1, this.health - maxHealth * 0.1);
-
-        System.out.printf("[%s] sinh ra một con Sói con tại %s%n", speciesName, birthPos);
-        return offspring;
+        return null;
     }
 
     @Override

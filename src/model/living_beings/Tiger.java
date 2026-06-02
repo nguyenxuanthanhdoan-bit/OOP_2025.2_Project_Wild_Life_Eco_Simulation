@@ -29,21 +29,7 @@ public class Tiger extends CarnivoreAnimal {
 
     @Override
     public Animal reproduce() {
-        if (!canReproduce()) return null;
-        if (world == null) return null;
-
-        float offsetX = (new java.util.Random().nextFloat() * 80) - 40;
-        float offsetY = (new java.util.Random().nextFloat() * 80) - 40;
-        Vector2 birthPos = new Vector2(this.position.x + offsetX, this.position.y + offsetY);
-
-        Tiger offspring = new Tiger(birthPos);
-
-        this.hunger = Math.max(0, this.hunger - maxHunger * 0.3);
-        this.thirst = Math.max(0, this.thirst - maxThirst * 0.2);
-        this.health = Math.max(1, this.health - maxHealth * 0.1);
-
-        System.out.printf("[%s] sinh ra một con Hổ con tại %s%n", speciesName, birthPos);
-        return offspring;
+        return null;
     }
 
     @Override
