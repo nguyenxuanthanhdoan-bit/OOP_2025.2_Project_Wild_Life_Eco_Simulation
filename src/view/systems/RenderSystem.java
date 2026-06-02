@@ -279,13 +279,16 @@ public class RenderSystem {
         String species = animal.getClass().getSimpleName().toLowerCase();
         
         // Suy diễn trạng thái
-        String state = "west";
-        if (animal.isMoving()) {
-            float speed = animal.getSpeed();
-            if (speed > animal.getBaseSpeed() * 1.1f) {
-                state = "run";
-            } else {
-                state = "walk";
+        String state = animal.getActionState();
+        if (state == null || state.equals("idle")) {
+            state = "west";
+            if (animal.isMoving()) {
+                float speed = animal.getSpeed();
+                if (speed > animal.getBaseSpeed() * 1.1f) {
+                    state = "run";
+                } else {
+                    state = "walk";
+                }
             }
         }
         
@@ -293,8 +296,13 @@ public class RenderSystem {
         
         // Lấy spritesheet
         BufferedImage sheet = assetMap.get(species + "_" + state);
-        if (sheet == null) sheet = assetMap.get(species + "_walk");
-        if (sheet == null) sheet = assetMap.get(species + "_west");
+        if (sheet == null) {
+            if (state.equals("attack")) {
+                sheet = assetMap.get(species + "_west");
+            }
+            if (sheet == null) sheet = assetMap.get(species + "_walk");
+            if (sheet == null) sheet = assetMap.get(species + "_west");
+        }
         if (sheet == null) return;
         
         // Lấy frame chuẩn

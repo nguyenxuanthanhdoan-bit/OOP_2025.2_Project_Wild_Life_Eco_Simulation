@@ -49,6 +49,7 @@ public abstract class Animal extends LivingBeing {
     protected boolean isMoving;
     protected boolean hidden = false;
     protected model.structures.Bush hiddenInBush = null;
+    protected String actionState = "idle";
 
     // =========================================================
     // CONSTRUCTOR
@@ -258,6 +259,14 @@ public abstract class Animal extends LivingBeing {
 
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
+    }
+
+    public String getActionState() {
+        return actionState;
+    }
+
+    public void setActionState(String actionState) {
+        this.actionState = actionState;
     }
 
     public void hideInBush(model.structures.Bush bush) {

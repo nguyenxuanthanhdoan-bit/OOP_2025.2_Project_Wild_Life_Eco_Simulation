@@ -22,6 +22,7 @@ public class HunterStrategy implements IStrategy {
             float dist = ownerAnimal.getPosition().distanceTo(targetPrey.getPosition());
             if (!targetPrey.isAliveState() || targetPrey.isHidden() || dist > ownerAnimal.getVisionRange()) {
                 targetPrey = null;
+                ownerAnimal.setActionState("idle");
             }
         }
 
@@ -32,7 +33,8 @@ public class HunterStrategy implements IStrategy {
             for (Entity neighbor : neighbors) {
                 if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
-                    if (other.isAliveState() && other.getDietType() == DietType.HERBIVORE && !other.isHidden()) {
+                    // Săn động vật ăn cỏ có kích thước nhỏ hơn bản thân kẻ săn mồi
+                    if (other.isAliveState() && other.getDietType() == DietType.HERBIVORE && !other.isHidden() && other.getSize() < ownerAnimal.getSize()) {
                         float dist = ownerAnimal.getPosition().distanceTo(other.getPosition());
                         if (dist < closestDist) {
                             closestDist = dist;
@@ -45,7 +47,6 @@ public class HunterStrategy implements IStrategy {
 
         // Nếu có mục tiêu -> đuổi bắt và tấn công
         if (targetPrey != null) {
-            ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.5f));
             Vector2 dirToPrey = targetPrey.getPosition().copy().subtract(ownerAnimal.getPosition());
             float distToPrey = dirToPrey.length();
             if (distToPrey > 0) {
@@ -57,22 +58,32 @@ public class HunterStrategy implements IStrategy {
             } else if (dirToPrey.x < 0) {
                 ownerAnimal.setFacingRight(false);
             }
-            ownerAnimal.move(dirToPrey, deltaTime);
 
             // Tấn công khi đủ gần
             float attackRange = ownerAnimal.getSize() / 2 + targetPrey.getSize() / 2 + 10.0f;
             if (distToPrey <= attackRange) {
+                // Đứng yên tại chỗ, không di chuyển tiếp để tránh giật lắc
+                ownerAnimal.setSpeed(0);
+                ownerAnimal.setActionState("attack");
+
                 float damage = (ownerAnimal instanceof model.living_beings.Tiger) ? 40.0f : 20.0f;
                 targetPrey.takeDamage(damage * deltaTime);
 
-                // Nếu mục tiêu chết -> hồi đói và xóa mục tiêu
+                // Nếu mục tiêu chết -> hồi đói và reset trạng thái hành động
                 if (!targetPrey.isAliveState()) {
                     ownerAnimal.setHunger(Math.min(ownerAnimal.getMaxHunger(), ownerAnimal.getHunger() + 50.0));
                     targetPrey = null;
+                    ownerAnimal.setActionState("idle");
                 }
+            } else {
+                // Đang đuổi bắt mục tiêu ở tốc độ cao
+                ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.5f));
+                ownerAnimal.setActionState("idle");
+                ownerAnimal.move(dirToPrey, deltaTime);
             }
         } else {
-            // Không có con mồi -> đi lang thang
+            // Không có con mồi -> đi lang thang bình thường
+            ownerAnimal.setActionState("idle");
             if (ownerAnimal.getSpeed() != ownerAnimal.getBaseSpeed()) {
                 ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             }
