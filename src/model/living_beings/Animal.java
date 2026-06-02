@@ -47,6 +47,8 @@ public abstract class Animal extends LivingBeing {
     protected boolean alive;
     protected DietType dietType;
     protected boolean isMoving;
+    protected boolean hidden = false;
+    protected model.structures.Bush hiddenInBush = null;
 
     // =========================================================
     // CONSTRUCTOR
@@ -122,6 +124,11 @@ public abstract class Animal extends LivingBeing {
      * Các TODO sẽ được người phụ trách từng nhánh bật lên khi triển khai.
      */
     protected void decideActiveStrategy() {
+        if (currentStrategy instanceof model.strategies.ScaredStrategy ||
+            currentStrategy instanceof model.strategies.HunterStrategy) {
+            return;
+        }
+
         // Ưu tiên 5: Sinh tồn liều lĩnh (< 15%)
         if (hunger < maxHunger * CRITICAL_SURVIVAL_THRESHOLD || thirst < maxThirst * CRITICAL_SURVIVAL_THRESHOLD) {
             // TODO: Kích hoạt AggressiveStrategy
@@ -155,8 +162,9 @@ public abstract class Animal extends LivingBeing {
     // HÀNH VI
     // =========================================================
 
+    @Override
     public void move(Vector2 direction, float deltaTime) {
-        if (!alive) return;
+        if (!alive || hidden) return;
         super.move(direction, deltaTime);
     }
 
@@ -199,6 +207,8 @@ public abstract class Animal extends LivingBeing {
         this.alive = false;
         this.isAlive = false;
 
+        exitBush();
+
         if (world != null && this.position != null) {
             model.items.Meat meat = new model.items.Meat(new core.Vector2(this.position.x - 5, this.position.y));
             model.items.Bone bone = new model.items.Bone(new core.Vector2(this.position.x + 5, this.position.y));
@@ -240,6 +250,33 @@ public abstract class Animal extends LivingBeing {
         if (age < maxAge * 0.2 || age > maxAge * 0.8) return false;
         if (hunger < maxHunger * 0.7 || thirst < maxThirst * 0.7) return false;
         return true;
+    }
+
+    public boolean isHidden() {
+        return hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        this.hidden = hidden;
+    }
+
+    public void hideInBush(model.structures.Bush bush) {
+        this.hidden = true;
+        this.hiddenInBush = bush;
+        if (bush != null) {
+            bush.setOccupied(true);
+            this.setPosition(bush.getPosition());
+        }
+        this.setSpeed(0);
+    }
+
+    public void exitBush() {
+        this.hidden = false;
+        if (this.hiddenInBush != null) {
+            this.hiddenInBush.setOccupied(false);
+            this.hiddenInBush = null;
+        }
+        this.setSpeed(this.baseSpeed);
     }
 
     // =========================================================

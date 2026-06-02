@@ -24,7 +24,7 @@ public class Wolf extends CarnivoreAnimal {
         this.maxAge = 450.0f;
 
         // Gắn "bộ não" mặc định cho Sói ở Phase 1 là đi dạo/đứng im (Passive)
-        this.setStrategy(new PassiveStrategy());
+        this.setStrategy(new model.strategies.HunterStrategy());
     }
 
     @Override

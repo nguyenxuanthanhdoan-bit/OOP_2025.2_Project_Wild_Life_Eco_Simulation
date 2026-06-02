@@ -37,7 +37,7 @@ public class Rabbit extends HerbivoreAnimal {
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
 
-        this.setStrategy(new PassiveStrategy());
+        this.setStrategy(new model.strategies.ScaredStrategy());
     }
 
     @Override

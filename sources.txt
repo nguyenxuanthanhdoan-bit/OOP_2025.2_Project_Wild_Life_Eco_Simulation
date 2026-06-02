@@ -43,3 +43,5 @@ src/view/systems/RenderSystem.java
 src/view/systems/MinimalRenderer.java
 src/view/systems/Camera.java
 src/TestMap.java
+src/model/strategies/ScaredStrategy.java
+src/model/strategies/HunterStrategy.java

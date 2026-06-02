@@ -24,7 +24,7 @@ public class Tiger extends CarnivoreAnimal {
         this.maxAge = 600.0f; // Sống thọ hơn
 
         // Gắn "bộ não" mặc định cho Hổ ở Phase 1 là đi dạo/đứng im (Passive)
-        this.setStrategy(new PassiveStrategy());
+        this.setStrategy(new model.strategies.HunterStrategy());
     }
 
     @Override
