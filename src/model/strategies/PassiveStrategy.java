@@ -35,8 +35,24 @@ public class PassiveStrategy implements IStrategy {
             }
         }
 
+        Vector2 finalDir = new Vector2();
         if (!isIdling) {
-            owner.move(wanderDirection, deltaTime);
+            finalDir.add(wanderDirection);
+        }
+
+        if (owner instanceof model.living_beings.Animal) {
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce((model.living_beings.Animal) owner, world);
+            if (avoidance.lengthSquared() > 0) {
+                finalDir.add(avoidance);
+            }
+        }
+
+        if (finalDir.lengthSquared() > 0) {
+            finalDir.normalize();
+            if (finalDir.x > 0) owner.setFacingRight(true);
+            else if (finalDir.x < 0) owner.setFacingRight(false);
+            
+            owner.move(finalDir, deltaTime);
         }
     }
 

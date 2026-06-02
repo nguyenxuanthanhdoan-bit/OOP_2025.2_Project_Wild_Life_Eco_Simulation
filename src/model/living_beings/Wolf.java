@@ -32,6 +32,11 @@ public class Wolf extends CarnivoreAnimal {
     }
 
     @Override
+    protected model.items.Carcass createCarcass() {
+        return new model.items.WolfCarcass(this.position.copy());
+    }
+
+    @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
         updateAnimation();

@@ -58,6 +58,11 @@ public class Deer extends HerbivoreAnimal {
     }
 
     @Override
+    protected model.items.Carcass createCarcass() {
+        return new model.items.DeerCarcass(this.position.copy());
+    }
+
+    @Override
     public void eat(Plant food) {
         if (!alive) return;
         if (food instanceof Grass || food instanceof Fruit) {

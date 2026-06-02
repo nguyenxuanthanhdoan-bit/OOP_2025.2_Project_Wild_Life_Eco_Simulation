@@ -176,11 +176,20 @@ public abstract class Animal extends LivingBeing {
         food.setAlive(false);
     }
 
-    /** Ăn thịt — hồi điểm đói (dành cho động vật ăn thịt). */
-    public void eatMeat(model.items.Meat meat) {
-        if (!alive || meat == null || !meat.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + meat.getNutritionValue());
-        meat.setAlive(false);
+    /** Ăn thịt (FoodSource chung) — dành cho động vật ăn thịt. */
+    public void eatMeat(model.items.FoodSource food) {
+        if (!alive || food == null || !food.isAlive()) return;
+        float nutrition = food.consume((float) this.maxHunger); // Dùng cho Meat cũ (tiêu thụ 1 lần)
+        this.hunger = Math.min(this.maxHunger, this.hunger + nutrition);
+    }
+    
+    /** Đứng ăn dần Carcass theo thời gian. */
+    public void eatCarcass(model.items.Carcass carcass, float deltaTime) {
+        if (!alive || carcass == null || !carcass.isAlive()) return;
+        // Tốc độ cắn: ví dụ 15 khối lượng mỗi giây
+        float biteSize = 15.0f * deltaTime;
+        float actualNutrition = carcass.consume(biteSize);
+        this.hunger = Math.min(this.maxHunger, this.hunger + actualNutrition);
     }
 
     /** Uống nước — hồi đầy điểm khát (phải đứng gần nguồn nước). */
@@ -193,6 +202,9 @@ public abstract class Animal extends LivingBeing {
 
     /** Sinh sản — lớp con bắt buộc override. */
     public abstract Animal reproduce();
+    
+    /** Sinh xác — lớp con bắt buộc override trả về loại xác tương ứng. */
+    protected abstract model.items.Carcass createCarcass();
 
     /** Tăng tuổi — chết già khi vượt maxAge. */
     public void growOlder(double deltaTime) {
@@ -211,10 +223,10 @@ public abstract class Animal extends LivingBeing {
         exitBush();
 
         if (world != null && this.position != null) {
-            model.items.Meat meat = new model.items.Meat(new core.Vector2(this.position.x - 5, this.position.y));
-            model.items.Bone bone = new model.items.Bone(new core.Vector2(this.position.x + 5, this.position.y));
-            world.addEntity(meat);
-            world.addEntity(bone);
+            model.items.Carcass carcass = createCarcass();
+            world.addEntity(carcass);
+            
+            model.world.PopulationManager.onAnimalDeath(this, world);
         }
     }
 

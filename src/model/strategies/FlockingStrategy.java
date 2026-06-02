@@ -90,6 +90,13 @@ public class FlockingStrategy extends PassiveStrategy {
 
         if (moveDir.lengthSquared() > 0) {
             moveDir.normalize();
+            
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+            if (avoidance.lengthSquared() > 0) {
+                moveDir.add(avoidance);
+                if (moveDir.lengthSquared() > 0) moveDir.normalize();
+            }
+
             if (moveDir.x > 0) ownerAnimal.setFacingRight(true);
             else if (moveDir.x < 0) ownerAnimal.setFacingRight(false);
             
@@ -183,6 +190,13 @@ public class FlockingStrategy extends PassiveStrategy {
 
                 if (dir.lengthSquared() > 0) {
                     dir.normalize();
+                    
+                    Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(owner, world);
+                    if (avoidance.lengthSquared() > 0) {
+                        dir.add(avoidance);
+                        if (dir.lengthSquared() > 0) dir.normalize();
+                    }
+                    
                     if (dir.x > 0) owner.setFacingRight(true);
                     else if (dir.x < 0) owner.setFacingRight(false);
                     owner.setActionState("idle");

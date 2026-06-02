@@ -23,6 +23,7 @@ public class FruitTree extends Plant {
         // Cây không bị ăn nên dinh dưỡng = 0, kích thước mặc định 60.0f
         super(position, 60.0f, 0);
         this.isSolid = true; // Là vật cản
+        this.collider = new model.collision.Collider(this, 15.0f, model.collision.CollisionLayer.OBSTACLE); // Gốc cây nhỏ
         this.imageVariant = "Tree_" + variantId;
         this.random = new Random();
         this.dropTimer = DROP_INTERVAL + random.nextFloat() * 10;

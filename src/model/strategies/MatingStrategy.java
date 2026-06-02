@@ -86,13 +86,21 @@ public class MatingStrategy extends PassiveStrategy {
                 ownerAnimal.setSpeed(0);
             } else {
                 // Move to mate
-                if (dirToMate.lengthSquared() > 0) dirToMate.normalize();
-                if (dirToMate.x > 0) ownerAnimal.setFacingRight(true);
-                else if (dirToMate.x < 0) ownerAnimal.setFacingRight(false);
+                Vector2 finalDir = dirToMate.copy();
+                if (finalDir.lengthSquared() > 0) finalDir.normalize();
+                
+                Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+                if (avoidance.lengthSquared() > 0) {
+                    finalDir.add(avoidance);
+                    if (finalDir.lengthSquared() > 0) finalDir.normalize();
+                }
+
+                if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
+                else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
                 
                 ownerAnimal.setActionState("run"); // or walk
                 ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
-                ownerAnimal.move(dirToMate, deltaTime);
+                ownerAnimal.move(finalDir, deltaTime);
             }
         } else {
             ownerAnimal.setActionState("idle");

@@ -30,6 +30,11 @@ public class Tiger extends CarnivoreAnimal {
     }
 
     @Override
+    protected model.items.Carcass createCarcass() {
+        return new model.items.TigerCarcass(this.position.copy());
+    }
+
+    @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
         updateAnimation();

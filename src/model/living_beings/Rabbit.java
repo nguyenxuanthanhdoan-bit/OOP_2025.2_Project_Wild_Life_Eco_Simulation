@@ -46,6 +46,11 @@ public class Rabbit extends HerbivoreAnimal {
     }
 
     @Override
+    protected model.items.Carcass createCarcass() {
+        return new model.items.RabbitCarcass(this.position.copy());
+    }
+
+    @Override
     public void eat(Plant food) {
         if (!alive) return;
         if (food instanceof Grass) {

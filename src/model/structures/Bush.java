@@ -35,6 +35,7 @@ public class Bush extends Entity {
         this.radius   = radius;
         this.occupied = false;
         this.isSolid  = false; // Bụi rậm là thực thể mềm, thú có thể đi xuyên qua
+        this.collider = new model.collision.Collider(this, this.radius * 0.5f, model.collision.CollisionLayer.OBSTACLE);
 
         // Random hình ảnh từ Bush_1 đến Bush_2
         Random random = new Random();

@@ -94,10 +94,17 @@ public class ScaredStrategy implements IStrategy {
                 Vector2 dirToBush = bestBush.getPosition().copy().subtract(ownerAnimal.getPosition());
                 if (dirToBush.lengthSquared() > 0) dirToBush.normalize();
 
-                if (dirToBush.x > 0) ownerAnimal.setFacingRight(true);
-                else if (dirToBush.x < 0) ownerAnimal.setFacingRight(false);
+                Vector2 finalDir = dirToBush.copy();
+                Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+                if (avoidance.lengthSquared() > 0) {
+                    finalDir.add(avoidance);
+                    if (finalDir.lengthSquared() > 0) finalDir.normalize();
+                }
+
+                if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
+                else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
                 
-                ownerAnimal.move(dirToBush, deltaTime);
+                ownerAnimal.move(finalDir, deltaTime);
             }
         } else {
             if (ownerAnimal.isHidden()) {
@@ -117,10 +124,17 @@ public class ScaredStrategy implements IStrategy {
             if (fleeDir.lengthSquared() > 0) fleeDir.normalize();
             else fleeDir.set(1, 0); 
 
-            if (fleeDir.x > 0) ownerAnimal.setFacingRight(true);
-            else if (fleeDir.x < 0) ownerAnimal.setFacingRight(false);
+            Vector2 finalDir = fleeDir.copy();
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+            if (avoidance.lengthSquared() > 0) {
+                finalDir.add(avoidance);
+                if (finalDir.lengthSquared() > 0) finalDir.normalize();
+            }
+
+            if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
+            else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
             
-            ownerAnimal.move(fleeDir, deltaTime);
+            ownerAnimal.move(finalDir, deltaTime);
         }
     }
 
