@@ -30,54 +30,5 @@ public abstract class HerbivoreAnimal extends Animal {
         super(position, size, baseSpeed, DietType.HERBIVORE);
     }
 
-    // =========================================================
-    // PHƯƠNG THỨC ĂN ĐA HÌNH
-    // =========================================================
 
-    /**
-     * Ăn thực vật.
-     * HerbivoreAnimal chấp nhận {@link Grass} và {@link Fruit} theo mặc định.
-     * Lớp con override để thu hẹp hoặc mở rộng danh sách thức ăn.
-     *
-     * @param food Thực vật muốn ăn
-     */
-    @Override
-    public void eat(Plant food) {
-        if (!alive || food == null || !food.isAlive()) return;
-
-        if (food instanceof Grass) {
-            eatGrass((Grass) food);
-        } else if (food instanceof Fruit) {
-            eatFruit((Fruit) food);
-        }
-        // Các loại Plant khác bị bỏ qua mặc định
-    }
-
-    /**
-     * Ăn Grass — tăng hunger theo {@code nutritionValue}.
-     *
-     * @param grass Cỏ muốn ăn (không null, phải còn sống)
-     */
-    public void eatGrass(Grass grass) {
-        if (!alive || grass == null || !grass.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + grass.getNutritionValue());
-        grass.setAlive(false);
-        System.out.printf("[%s] ăn Grass → đói: %.1f/%.1f%n",
-                speciesName, hunger, maxHunger);
-    }
-
-    /**
-     * Ăn Fruit — dinh dưỡng cao hơn Grass.
-     * Mặc định trong HerbivoreAnimal là được phép ăn quả;
-     * Rabbit override để chặn hành vi này.
-     *
-     * @param fruit Quả rụng muốn ăn (không null, phải còn sống)
-     */
-    public void eatFruit(Fruit fruit) {
-        if (!alive || fruit == null || !fruit.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + fruit.getNutritionValue());
-        fruit.setAlive(false);
-        System.out.printf("[%s] ăn Fruit → đói: %.1f/%.1f%n",
-                speciesName, hunger, maxHunger);
-    }
 }

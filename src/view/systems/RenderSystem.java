@@ -113,6 +113,22 @@ public class RenderSystem {
         }
     }
 
+    private float getEntityBottomY(Entity e) {
+        if (e instanceof model.living_beings.Animal) {
+            return e.getPosition().y + e.getSize() / 2;
+        } else {
+            String variant = e.getImageVariant();
+            if (variant != null && !variant.isEmpty()) {
+                BufferedImage img = assetMap.get(variant.toLowerCase());
+                if (img != null) {
+                    float aspect = (float) img.getHeight() / img.getWidth();
+                    return e.getPosition().y + (e.getSize() * aspect) / 2;
+                }
+            }
+            return e.getPosition().y + e.getSize() / 2;
+        }
+    }
+
     public void renderAll(World world, Graphics2D g2d, float deltaTime) {
         animationTimer += deltaTime;
 
@@ -142,6 +158,9 @@ public class RenderSystem {
             // TRUY VẤN LƯỚI: Lấy danh sách thực thể nằm trong và xung quanh khung hình
             List<Entity> visibleEntities = world.getSpatialGrid().getNeighbors(centerView, scanRange);
 
+            // Sắp xếp theo trục Y (Lấy tọa độ ĐÁY/CHÂN của vật thể để che khuất đúng chuẩn 2.5D)
+            visibleEntities.sort((e1, e2) -> Float.compare(getEntityBottomY(e1), getEntityBottomY(e2)));
+
             // Chỉ duyệt vòng lặp trên danh sách nhỏ này
             for (Entity e : visibleEntities) {
                 if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
@@ -150,7 +169,10 @@ public class RenderSystem {
             }
         } else {
             // [PHÒNG HỜ] Nếu Lưới chưa kịp khởi tạo thì dùng cách quét thủ công toàn bộ danh sách cũ
-            for (Entity e : world.getEntities()) {
+            List<Entity> allEntities = new java.util.ArrayList<>(world.getEntities());
+            allEntities.sort((e1, e2) -> Float.compare(getEntityBottomY(e1), getEntityBottomY(e2)));
+            
+            for (Entity e : allEntities) {
                 if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
                     renderEntity(e, g2d);
                 }
@@ -249,7 +271,35 @@ public class RenderSystem {
             float zoom = camera.getZoomLevel();
 
             if (e instanceof model.living_beings.Animal) {
-                drawDynamicAnimatedSprite((model.living_beings.Animal) e, g2d, screenPos, zoom);
+                model.living_beings.Animal animal = (model.living_beings.Animal) e;
+                drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
+                
+                // Vẽ thanh trạng thái (đói và khát) khi zoom to
+                if (zoom >= 1.2f) {
+                    int barW = (int)(25 * zoom);
+                    int barH = Math.max(3, (int)(4 * zoom));
+                    int barX = (int)screenPos.x - barW / 2;
+                    int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
+                    
+                    // Vẽ thanh Đói (Đỏ)
+                    g2d.setColor(Color.BLACK);
+                    g2d.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+                    g2d.setColor(new Color(50, 50, 50));
+                    g2d.fillRect(barX, barY, barW, barH);
+                    g2d.setColor(new Color(220, 60, 60)); // Màu đỏ
+                    int hungerFill = (int)(barW * (animal.getHunger() / animal.getMaxHunger()));
+                    if (hungerFill > 0) g2d.fillRect(barX, barY, hungerFill, barH);
+                    
+                    // Vẽ thanh Khát (Xanh) - Nằm ngay dưới thanh đói
+                    int thirstY = barY + barH + 1;
+                    g2d.setColor(Color.BLACK);
+                    g2d.fillRect(barX - 1, thirstY - 1, barW + 2, barH + 2);
+                    g2d.setColor(new Color(50, 50, 50));
+                    g2d.fillRect(barX, thirstY, barW, barH);
+                    g2d.setColor(new Color(60, 140, 240)); // Màu xanh dương
+                    int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
+                    if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
+                }
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
@@ -280,7 +330,17 @@ public class RenderSystem {
         
         // Suy diễn trạng thái
         String state = "west";
-        if (animal.isMoving()) {
+        
+        // Cập nhật trạng thái ăn/uống theo yêu cầu của user
+        if (animal.isEatingState() || animal.isDrinkingState()) {
+            if (species.equals("tiger")) {
+                state = "drink"; // Tiger dùng tiger_drink cho cả ăn và uống
+            } else if (species.equals("rabbit") || species.equals("deer") || species.equals("elephant")) {
+                state = "eat"; // Rabbit, Deer, Elephant dùng chung asset _eat cho cả ăn và uống
+            } else {
+                state = "west"; // Dự phòng cho sói (wolf) nếu chưa có hình
+            }
+        } else if (animal.isMoving()) {
             float speed = animal.getSpeed();
             if (speed > animal.getBaseSpeed() * 1.1f) {
                 state = "run";
@@ -288,8 +348,6 @@ public class RenderSystem {
                 state = "walk";
             }
         }
-        
-        // [CÓ THỂ MỞ RỘNG] Nếu animal có thuộc tính isEating() hay isSleeping() thì gắn state tương ứng ở đây
         
         // Lấy spritesheet
         BufferedImage sheet = assetMap.get(species + "_" + state);
@@ -312,7 +370,13 @@ public class RenderSystem {
         if (totalFrames > 1) {
             // Chỉnh tốc độ hoạt ảnh theo trạng thái
             float animSpeed = (state.equals("run")) ? FRAME_DURATION * 0.6f : FRAME_DURATION;
-            frameIdx = (int) (animationTimer / animSpeed) % totalFrames;
+            
+            if (animal.isEatingState() || animal.isDrinkingState()) {
+                // Đảm bảo hoạt ảnh bắt đầu từ frame 0 khi chuyển trạng thái ăn/uống
+                frameIdx = (int) (animal.getActionTimer() / FRAME_DURATION) % totalFrames;
+            } else {
+                frameIdx = (int) (animationTimer / animSpeed) % totalFrames;
+            }
         }
 
         int drawSize = (int) (animal.getSize() * zoom);

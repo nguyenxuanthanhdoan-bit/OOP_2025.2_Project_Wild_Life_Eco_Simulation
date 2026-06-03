@@ -56,6 +56,17 @@ public class Simulation {
     }
 
 
+    private boolean isSpaceFree(Vector2 pos, World world, float minSpacing) {
+        for (model.entity.Entity e : world.getEntities()) {
+            if (e instanceof FruitTree || e instanceof model.structures.Rock) {
+                if (e.getPosition().distanceSquared(pos) < minSpacing * minSpacing) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private void spawnInitialEntities() {
         Random rand = new Random();
         List<MapPolygonObject> polygons = gameMap.getBiomePolygons();
@@ -121,13 +132,13 @@ public class Simulation {
         // 1. Cây 2 (Gần Làng)
         for (int i = 0; i < 15; i++) {
             Vector2 pos = getPointNearVillage(plainPolygons, villagePolygons, rand, 300f);
-            if (pos != null) world.addEntity(new FruitTree(pos, 2));
+            if (pos != null && isSpaceFree(pos, world, 90f)) world.addEntity(new FruitTree(pos, 2));
         }
 
         // 2. Cây 3, 4 (Gần Nước)
         for (int i = 0; i < 20; i++) {
             Vector2 pos = getPointNearWater(plainPolygons, rand, 200f);
-            if (pos != null) {
+            if (pos != null && isSpaceFree(pos, world, 90f)) {
                 int type = rand.nextBoolean() ? 3 : 4;
                 world.addEntity(new FruitTree(pos, type));
             }
@@ -136,16 +147,16 @@ public class Simulation {
         // 3. Cây Rừng & Đồng Cỏ (1, 5, 6, 7..13)
         int[] normalTrees = {1, 5, 6, 7, 8, 9, 10, 11, 12, 13};
         
-        // Đồng cỏ: Sinh rải rác thưa thớt (20 cây)
-        for (int i = 0; i < 20; i++) {
+        // Đồng cỏ: Sinh rải rác thưa thớt (40 cây)
+        for (int i = 0; i < 40; i++) {
             Vector2 pos = getRandomPointInPolygons(plainPolygons, rand);
-            if (pos != null) {
+            if (pos != null && isSpaceFree(pos, world, 200f)) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
                 world.addEntity(new FruitTree(pos, type));
             }
         }
 
-        // Rừng: Sinh cụm có trật tự (300 cây)
+        // Rừng: Sinh cụm có trật tự
         class TreeCluster {
             Vector2 center;
             int treeType;
@@ -153,30 +164,27 @@ public class Simulation {
         }
         
         List<TreeCluster> clusters = new ArrayList<>();
-        // Tăng lượng tâm cụm để rừng bao phủ rộng hơn
-        for (int i = 0; i < 50; i++) {
+        // Tâm cụm
+        for (int i = 0; i < 100; i++) {
             Vector2 center = getRandomPointInPolygons(forestPolygons, rand);
-            if (center != null) {
+            if (center != null && isSpaceFree(center, world, 250f)) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
                 clusters.add(new TreeCluster(center, type));
+                world.addEntity(new FruitTree(center, type));
             }
         }
 
         if (!clusters.isEmpty()) {
-            // Tăng số lượng cây rải xung quanh cụm lên rất nhiều để rừng rậm rạp
-            for (int i = 0; i < 300; i++) {
+            for (int i = 0; i < 1500; i++) {
                 TreeCluster cluster = clusters.get(rand.nextInt(clusters.size()));
-                Vector2 spawnPos = null;
                 float offsetX = (rand.nextFloat() * 400f) - 200f;
                 float offsetY = (rand.nextFloat() * 400f) - 200f;
                 Vector2 candidate = new Vector2(cluster.center.x + offsetX, cluster.center.y + offsetY);
                 
                 if (gameMap != null && !gameMap.isPositionInWater(candidate.x, candidate.y)) {
-                    spawnPos = candidate;
-                }
-                
-                if (spawnPos != null) {
-                    world.addEntity(new FruitTree(spawnPos, cluster.treeType));
+                    if (isSpaceFree(candidate, world, 180f)) {
+                        world.addEntity(new FruitTree(candidate, cluster.treeType));
+                    }
                 }
             }
         }

@@ -53,13 +53,5 @@ public class Elephant extends HerbivoreAnimal {
     }
 
     @Override
-    public void eat(Plant food) {
-        if (!alive) return;
-        if (food instanceof Grass || food instanceof Fruit) {
-            super.eat(food);
-        }
-    }
-
-    @Override
     public void render(DisplayMode mode) {}
 }

@@ -18,7 +18,7 @@ import core.Vector2;
 public class Fruit extends Plant {
 
     /** Dinh dưỡng mặc định của một quả. */
-    private static final float DEFAULT_NUTRITION = 30.0f;
+    private static final float DEFAULT_NUTRITION = 50.0f;
 
     /** Kích thước hình học mặc định (pixel). */
     private static final float DEFAULT_SIZE = 10.0f;

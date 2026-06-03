@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Random;
 
 public class FruitTree extends Plant {
-    private static final float DROP_INTERVAL = 40.0f; // Mỗi 40s rơi quả
-    private static final float DROP_RADIUS = 50.0f;
+    private static final float DROP_INTERVAL = 15.0f; // Mỗi 15s rơi quả thay vì 40s
+    private static final float DROP_RADIUS = 120.0f;
     private static final int MAX_FRUITS_NEARBY = 3;
 
     private float dropTimer;
@@ -20,12 +20,13 @@ public class FruitTree extends Plant {
     }
 
     public FruitTree(Vector2 position, int variantId) {
-        // Cây không bị ăn nên dinh dưỡng = 0, kích thước mặc định 60.0f
-        super(position, 60.0f, 0);
+        // Cây không bị ăn nên dinh dưỡng = 0, tăng kích thước lên 90.0f để thành vật cản cứng và to hơn
+        super(position, 90.0f, 0);
         this.isSolid = true; // Là vật cản
         this.imageVariant = "Tree_" + variantId;
         this.random = new Random();
-        this.dropTimer = DROP_INTERVAL + random.nextFloat() * 10;
+        // Cho rớt quả rất nhanh ngay khi vừa vào game (chỉ từ 0 - 5 giây đầu)
+        this.dropTimer = random.nextFloat() * 5.0f;
     }
 
     @Override
@@ -47,7 +48,8 @@ public class FruitTree extends Plant {
                 
                 if (fruitCount < MAX_FRUITS_NEARBY) {
                     float angle = random.nextFloat() * 2 * (float)Math.PI;
-                    float dist = 20.0f + random.nextFloat() * (DROP_RADIUS - 20.0f);
+                    // Bán kính cây là 45 (size 90/2). Quả phải rớt từ khoảng cách 60 -> 110 để không bị kẹt vào cây
+                    float dist = 60.0f + random.nextFloat() * (DROP_RADIUS - 60.0f);
                     float dx = (float)Math.cos(angle) * dist;
                     float dy = (float)Math.sin(angle) * dist;
                     

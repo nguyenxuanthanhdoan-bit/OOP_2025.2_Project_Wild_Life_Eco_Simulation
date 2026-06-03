@@ -147,18 +147,38 @@ public class World {
             return false;
         }
 
+        // Kiểm tra va chạm với các thực thể cứng (Cây, Đá...)
+        if (spatialGrid != null) {
+            java.util.List<Entity> neighbors = spatialGrid.getNeighbors(pos, margin + 120.0f);
+            for (Entity other : neighbors) {
+                if (other != entity && other.isSolid() && other.isAlive()) {
+                    float distSq = pos.distanceSquared(other.getPosition());
+                    // Bán kính an toàn = tổng 2 bán kính
+                    float minSafeDist = (entity.getSize() / 2) + (other.getSize() / 2);
+                    
+                    if (distSq < minSafeDist * minSafeDist) {
+                        return false; // Bị chặn bởi vật cản cứng
+                    }
+                }
+            }
+        }
+
         // Kiểm tra địa hình nước đối với động vật trên cạn
         if (entity instanceof model.living_beings.LivingBeing) {
             if (gameMap != null) {
-                // Thêm 1 khoảng đệm (padding) để thỏ quay đầu sớm hơn khi đến gần mép nước.
-                // Do viền đa giác OCEAN/LAKE trên Tiled có thể không khớp 100% với viền ảnh.
-                float safeDistance = margin + 15.0f; // Cách thêm 15 pixels để đảm bảo an toàn tuyệt đối
+                // Cho phép động vật tiến sát chạm đúng mép nước (chạm mốc 0 pixel khoảng cách)
+                float safeDistance = margin;
+                float diag = safeDistance * 0.707f;
 
                 boolean nearWater = gameMap.isPositionInWater(pos.x, pos.y) ||
                                     gameMap.isPositionInWater(pos.x - safeDistance, pos.y) ||
                                     gameMap.isPositionInWater(pos.x + safeDistance, pos.y) ||
                                     gameMap.isPositionInWater(pos.x, pos.y - safeDistance) ||
-                                    gameMap.isPositionInWater(pos.x, pos.y + safeDistance);
+                                    gameMap.isPositionInWater(pos.x, pos.y + safeDistance) ||
+                                    gameMap.isPositionInWater(pos.x + diag, pos.y + diag) ||
+                                    gameMap.isPositionInWater(pos.x - diag, pos.y + diag) ||
+                                    gameMap.isPositionInWater(pos.x + diag, pos.y - diag) ||
+                                    gameMap.isPositionInWater(pos.x - diag, pos.y - diag);
                 
                 if (nearWater) {
                     return false;

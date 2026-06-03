@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Random;
 
 public class Mushroom extends Plant {
-    private static final float MUSHROOM_NUTRITION = 5.0f;
+    private static final float MUSHROOM_NUTRITION = 40.0f;
     private static final float MUSHROOM_SIZE = 10.0f;
     private static final float SPAWN_INTERVAL = 30.0f; // Mỗi 30s đẻ 1 lần
     private static final float SPAWN_RADIUS = 100.0f;

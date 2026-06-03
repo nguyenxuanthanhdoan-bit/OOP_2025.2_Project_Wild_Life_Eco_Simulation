@@ -1,6 +1,7 @@
 package model.living_beings;
 
 import core.Vector2;
+import model.entity.Entity;
 import model.plants.Plant;
 
 /**
@@ -47,6 +48,10 @@ public abstract class Animal extends LivingBeing {
     protected boolean alive;
     protected DietType dietType;
     protected boolean isMoving;
+    protected boolean isEating = false;
+    protected boolean isDrinking = false;
+    protected float actionTimer = 0.0f;
+    protected Entity targetFood = null; // Thêm biến lưu thức ăn đang ăn
 
     // =========================================================
     // CONSTRUCTOR
@@ -94,6 +99,37 @@ public abstract class Animal extends LivingBeing {
     public void update(float deltaTime) {
         if (!alive) return;
 
+        // Xử lý Ăn (theo thời gian)
+        if (isEating) {
+            actionTimer += deltaTime;
+            if (actionTimer >= 2.0f) {
+                isEating = false;
+                if (targetFood != null && targetFood.isAlive()) {
+                    if (targetFood instanceof Plant) {
+                        this.hunger = Math.min(this.maxHunger, this.hunger + ((Plant)targetFood).getNutritionValue());
+                    } else if (targetFood instanceof model.items.Meat) {
+                        this.hunger = Math.min(this.maxHunger, this.hunger + ((model.items.Meat)targetFood).getNutritionValue());
+                    }
+                    targetFood.setAlive(false);
+                }
+                targetFood = null;
+            } else {
+                return; // Đứng im nhai
+            }
+        }
+
+        // Xử lý Uống (hồi từ từ cho đến khi đầy)
+        if (isDrinking) {
+            actionTimer += deltaTime;
+            if (this.thirst >= this.maxThirst || !isNearWater()) {
+                isDrinking = false;
+                this.thirst = Math.min(this.thirst, this.maxThirst);
+            } else {
+                this.thirst += 30.0 * deltaTime; // Hồi 30 điểm mỗi giây
+                return; // Đứng im uống
+            }
+        }
+
         decideActiveStrategy();
 
         Vector2 oldPos = this.position.copy();
@@ -102,11 +138,14 @@ public abstract class Animal extends LivingBeing {
         // Tính hệ số tiêu hao (di chuyển tiêu hao nhiều hơn)
         float distSq = this.position.distanceSquared(oldPos);
         this.isMoving = distSq > 0.0001f;
-        float decayMultiplier = this.isMoving ? 1.5f : 1.0f;
+        float decayMultiplier = 1.0f;
+        if (this.isMoving) {
+            decayMultiplier = (getSpeed() > getBaseSpeed()) ? 3.0f : 1.5f;
+        }
 
-        // Suy giảm sinh học
-        this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime));
-        this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * decayMultiplier * deltaTime));
+        // Suy giảm sinh học (Giảm tốc độ tụt đói/khát đi 4 lần để thanh trạng thái tụt chậm hơn)
+        this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime * 0.25f));
+        this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * decayMultiplier * deltaTime * 0.25f));
 
         growOlder(deltaTime);
 
@@ -122,19 +161,20 @@ public abstract class Animal extends LivingBeing {
      * Các TODO sẽ được người phụ trách từng nhánh bật lên khi triển khai.
      */
     protected void decideActiveStrategy() {
-        // Ưu tiên 5: Sinh tồn liều lĩnh (< 15%)
-        if (hunger < maxHunger * CRITICAL_SURVIVAL_THRESHOLD || thirst < maxThirst * CRITICAL_SURVIVAL_THRESHOLD) {
-            // TODO: Kích hoạt AggressiveStrategy
-        }
 
         // Ưu tiên 4: Bỏ chạy khỏi kẻ thù
         if (detectDangerousThreats()) {
             // TODO: Kích hoạt ScaredStrategy
+            // (Nhánh hunter-scared sẽ xử lý)
+            return;
         }
 
         // Ưu tiên 3: Tìm kiếm thức ăn & nước uống (< 50%)
         if (hunger < maxHunger * HUNGER_WARNING_THRESHOLD || thirst < maxThirst * THIRST_WARNING_THRESHOLD) {
-            // TODO: Kích hoạt ForageStrategy
+            if (!(currentStrategy instanceof model.strategies.ForageStrategy)) {
+                setStrategy(new model.strategies.ForageStrategy());
+            }
+            return;
         }
 
         // Ưu tiên 2: MatingStrategy (TODO)
@@ -163,22 +203,25 @@ public abstract class Animal extends LivingBeing {
     /** Ăn thực vật — hồi điểm đói. */
     public void eat(Plant food) {
         if (!alive || food == null || !food.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + food.getNutritionValue());
-        food.setAlive(false);
+        this.targetFood = food;
+        this.isEating = true;
+        this.actionTimer = 0.0f; // Bắt đầu đếm thời gian nhai từ 0
     }
 
     /** Ăn thịt — hồi điểm đói (dành cho động vật ăn thịt). */
     public void eatMeat(model.items.Meat meat) {
         if (!alive || meat == null || !meat.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + meat.getNutritionValue());
-        meat.setAlive(false);
+        this.targetFood = meat;
+        this.isEating = true;
+        this.actionTimer = 0.0f; // Bắt đầu đếm thời gian nhai từ 0
     }
 
-    /** Uống nước — hồi đầy điểm khát (phải đứng gần nguồn nước). */
+    /** Bắt đầu uống nước — hồi từ từ trong hàm update(). */
     public void drink() {
         if (!alive) return;
         if (isNearWater()) {
-            this.thirst = this.maxThirst;
+            this.isDrinking = true;
+            this.actionTimer = 0.0f; // Đếm thời gian uống
         }
     }
 
@@ -225,11 +268,18 @@ public abstract class Animal extends LivingBeing {
     /** Kiểm tra con vật có đứng gần nguồn nước không. */
     public boolean isNearWater() {
         if (world == null || world.getSpatialGrid() == null) return false;
-        float checkDist = this.getSize() / 2 + 10.0f;
+        // Kiểm tra đúng mép chạm nước (tăng lên để không bị kẹt bởi biên va chạm)
+        float checkDist = this.getSize() / 2 + 15.0f;
+        float diag = checkDist * 0.707f; // sin(45 độ)
+        
         return world.isPositionInWater(position.x + checkDist, position.y) ||
                world.isPositionInWater(position.x - checkDist, position.y) ||
                world.isPositionInWater(position.x, position.y + checkDist) ||
-               world.isPositionInWater(position.x, position.y - checkDist);
+               world.isPositionInWater(position.x, position.y - checkDist) ||
+               world.isPositionInWater(position.x + diag, position.y + diag) ||
+               world.isPositionInWater(position.x - diag, position.y + diag) ||
+               world.isPositionInWater(position.x + diag, position.y - diag) ||
+               world.isPositionInWater(position.x - diag, position.y - diag);
     }
 
     public boolean isMoving() { return isMoving; }
@@ -282,6 +332,9 @@ public abstract class Animal extends LivingBeing {
     public boolean isAdult() { return adult; }
     public void setAdult(boolean adult) { this.adult = adult; }
     public boolean isAliveState() { return alive; }
+    public boolean isEatingState() { return isEating; }
+    public boolean isDrinkingState() { return isDrinking; }
+    public float getActionTimer() { return actionTimer; }
 
     public DietType getDietType() { return dietType; }
     public void setDietType(DietType dietType) { this.dietType = dietType; }
