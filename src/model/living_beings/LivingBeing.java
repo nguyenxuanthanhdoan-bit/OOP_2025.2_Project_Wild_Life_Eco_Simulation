@@ -17,6 +17,11 @@ public abstract class LivingBeing extends Entity {
     protected Vector2 currentVelocity = new Vector2(0,0);
     protected float maxAcceleration = 300.0f; // Mặc định
 
+    // Thuộc tính chống kẹt (Stuck Detection)
+    protected Vector2 stuckPosition = null;
+    protected float stuckTimer = 1.0f;
+    protected boolean isStuck = false;
+
     public LivingBeing(Vector2 position, float size, float baseSpeed) {
         super(position, size);
         this.baseSpeed = baseSpeed;
@@ -49,22 +54,37 @@ public abstract class LivingBeing extends Entity {
 
         Vector2 nextPosition = this.position.copy().add(this.currentVelocity.copy().scale(deltaTime));
 
-        // Cộng vào nếu vị trí hợp lệ (biên bản đồ, nước)
+        // Cộng vào nếu vị trí hợp lệ (biên bản đồ, nước, vật cản)
         if (this.world != null && this.world.isValidPositionFor(this, nextPosition)) {
             this.position.set(nextPosition);
-            
-            // Tự động xử lý trượt khi va chạm chướng ngại vật (Cây, Đá, Bụi)
-            model.collision.CollisionManager.resolveCollisions(this, this.world);
         } else {
-            // Nếu bị chặn bởi viền hoặc nước
-            this.currentVelocity.set(0, 0);
+            // Cản lại nhưng không set tốc độ về 0 hoàn toàn để tránh giật cục,
+            // chỉ giảm tốc để các lực steering (tránh vật cản) có cơ hội xoay hướng.
+            this.currentVelocity.scale(0.5f);
             
-            if (this.currentStrategy instanceof model.strategies.PassiveStrategy) {
-                ((model.strategies.PassiveStrategy) this.currentStrategy).forceStateChange();
-            } else if (this.world == null) {
-                // Dự phòng nếu world chưa kịp gắn
+            if (this.world == null) {
                 this.position.set(nextPosition);
             }
+        }
+
+        // Chống kẹt (Stuck Detection)
+        if (stuckTimer <= 0) {
+            if (stuckPosition != null) {
+                float distMoved = this.position.distanceTo(stuckPosition);
+                // Nếu khoảng cách di chuyển trong 1 giây quá nhỏ so với tốc độ
+                if (distMoved < this.speed * 0.2f && desiredVelocity.lengthSquared() > 0.1f) {
+                    isStuck = true;
+                    if (this.currentStrategy instanceof model.strategies.PassiveStrategy) {
+                        ((model.strategies.PassiveStrategy) this.currentStrategy).forceStateChange();
+                    }
+                } else {
+                    isStuck = false;
+                }
+            }
+            stuckPosition = this.position.copy();
+            stuckTimer = 1.0f;
+        } else {
+            stuckTimer -= deltaTime;
         }
     }
 

@@ -8,7 +8,7 @@ import java.util.UUID;
  * Lớp cơ sở trừu tượng cho mọi thực thể trong hệ thống.
  * Đã được tối giản cho Phase 1.
  */
-public abstract class Entity {
+public abstract class Entity implements model.collision.Collidable {
 
     protected final UUID id;
     protected Vector2 position;
