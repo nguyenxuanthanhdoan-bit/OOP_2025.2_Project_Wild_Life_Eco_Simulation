@@ -18,6 +18,7 @@ public class Wolf extends CarnivoreAnimal {
         this.hunger = this.maxHunger;
         this.hungerDecayRate = 1.8f;
         this.maxThirst = 100.0f;
+        this.visionRange = 450.0;
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 2.5f;
         this.maxAge = 450.0f;

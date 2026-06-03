@@ -13,11 +13,15 @@ public class PopulationManager {
     public static final int MIN_SPECIES_POPULATION = 15;
     public static final int MAX_SPECIES_POPULATION = 100;
 
+    /** Cho phép bật/tắt auto-spawn (hữu ích khi test). */
+    private static boolean enabled = true;
+    public static void setEnabled(boolean value) { enabled = value; }
+
     /**
      * Kích hoạt khi một động vật chết.
      */
     public static void onAnimalDeath(Animal animal, World world) {
-        if (world == null) return;
+        if (!enabled || world == null) return;
         
         int currentPop = countSpecies(animal.getSpeciesName(), world);
         // Trừ đi 1 vì con hiện tại đang chết nhưng có thể chưa bị xóa khỏi list

@@ -71,8 +71,8 @@ public class HunterStrategy implements IStrategy {
                 } else if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
                     
-                    // Săn nếu đối phương không nấp và kích thước phù hợp
-                    if (!other.isHidden() && other.getSize() <= ownerAnimal.getSize()) {
+                    // Săn nếu đối phương không nấp và kích thước phù hợp (có thể săn mồi nhỉnh hơn mình 1.5 lần)
+                    if (!other.isHidden() && other.getSize() <= ownerAnimal.getSize() * 1.5f) {
                         score = 500.0f - dist;
                         
                         // Ưu tiên mồi yếu (yếu máu hoặc già)
@@ -106,8 +106,14 @@ public class HunterStrategy implements IStrategy {
                 ownerAnimal.setFacingRight(false);
             }
 
-            // Xử lý ăn/tấn công khi đủ gần
-            float interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 + 10.0f;
+            float interactRange;
+            if (targetFood instanceof Carcass) {
+                // Ăn xác: Ép buộc phải bước đè hẳn lên xác (giảm mạnh range)
+                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 10.0f;
+            } else {
+                // Tấn công con vật sống: Ép buộc phải áp sát vào (giảm mạnh range)
+                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 5.0f;
+            }
             if (distToFood <= interactRange) {
                 ownerAnimal.setSpeed(0);
                 
@@ -125,7 +131,8 @@ public class HunterStrategy implements IStrategy {
                     // Tấn công con mồi
                     ownerAnimal.setActionState("attack");
                     Animal prey = (Animal) targetFood;
-                    float damage = (ownerAnimal.getSpeciesName().equals("Hổ")) ? 40.0f : 20.0f;
+                    // Tăng sát thương để thấy rõ hơn (Sói 50/s, Hổ 80/s)
+                    float damage = (ownerAnimal.getSpeciesName().equals("Hổ")) ? 80.0f : 50.0f;
                     prey.takeDamage(damage * deltaTime);
 
                     if (!prey.isAlive()) {
@@ -150,17 +157,25 @@ public class HunterStrategy implements IStrategy {
                     ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.0f));
                 }
                 
-                Vector2 finalDir = dirToFood.copy();
-                Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
-                if (avoidance.lengthSquared() > 0) {
-                    finalDir.add(avoidance);
-                    if (finalDir.lengthSquared() > 0) finalDir.normalize();
+                // Sử dụng thuật toán Context Steering thông minh để lách vật cản trong lúc đi săn
+                Vector2 desiredDir = targetFood.getPosition().copy().subtract(ownerAnimal.getPosition());
+                if (desiredDir.lengthSquared() > 0) desiredDir.normalize();
+                
+                Vector2 bestDir = steer(desiredDir, ownerAnimal, world);
+                
+                // Cơ chế gỡ kẹt (Escape Mode) nếu bị dồn vào góc chữ U
+                float dotProduct = bestDir.x * desiredDir.x + bestDir.y * desiredDir.y;
+                if (bestDir.lengthSquared() == 0 || dotProduct < -0.3f) {
+                    ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 0.5f);
+                    if (bestDir.lengthSquared() == 0) {
+                        bestDir = new Vector2(0, -1);
+                    }
                 }
 
-                if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-                else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
+                if (bestDir.x > 0) ownerAnimal.setFacingRight(true);
+                else if (bestDir.x < 0) ownerAnimal.setFacingRight(false);
                 
-                ownerAnimal.move(finalDir, deltaTime);
+                ownerAnimal.move(bestDir, deltaTime);
             }
         } else {
             // Không có con mồi/thức ăn -> đi lang thang
@@ -170,6 +185,50 @@ public class HunterStrategy implements IStrategy {
             }
             wanderDelegate.execute(owner, world, deltaTime);
         }
+    }
+
+    /**
+     * Context Steering logic for Hunters to avoid obstacles while chasing.
+     */
+    private Vector2 steer(Vector2 desiredDir, Animal animal, World world) {
+        if (world.getSpatialGrid() == null) return desiredDir;
+
+        Vector2 avoidForce = new Vector2(0, 0);
+        int obstacleCount = 0;
+
+        float scanRadius = animal.getSize() / 2 + 150.0f;
+        List<Entity> nearby = world.getSpatialGrid().getNeighbors(animal.getPosition(), scanRadius);
+
+        for (Entity e : nearby) {
+            if (!e.isSolid() || !e.isAlive() || e == animal) continue;
+
+            Vector2 toObstacle = e.getPosition().copy().subtract(animal.getPosition());
+            float dist = toObstacle.length();
+            if (dist < 0.01f) continue;
+
+            float threshold = animal.getSize() / 2 + e.getSize() / 2 + 80.0f;
+
+            if (dist < threshold) {
+                float t = 1.0f - (dist / threshold);
+                float strength = t * t * 3.0f;
+                avoidForce.x -= (toObstacle.x / dist) * strength;
+                avoidForce.y -= (toObstacle.y / dist) * strength;
+                obstacleCount++;
+            }
+        }
+
+        if (obstacleCount == 0) return desiredDir;
+
+        Vector2 result = new Vector2(
+            desiredDir.x + avoidForce.x,
+            desiredDir.y + avoidForce.y
+        );
+        if (result.lengthSquared() > 0.0001f) {
+            result.normalize();
+        } else {
+            result = new Vector2(-desiredDir.y, desiredDir.x);
+        }
+        return result;
     }
 
     @Override
