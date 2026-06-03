@@ -6,7 +6,7 @@ import model.entity.Entity;
 
 public class Meat extends Entity {
     private static final float DEFAULT_SIZE = 15.0f;
-    private static final float DEFAULT_NUTRITION = 50.0f;
+    private static final float DEFAULT_NUTRITION = 80.0f; // Thịt: 50 → 80
     private static final float MAX_DECAY_TIME = 90.0f;
 
     private float nutritionValue;

@@ -16,7 +16,7 @@ public class Grass extends Plant {
     private Random random;
 
     public Grass(Vector2 position) {
-        super(position, 15.0f, 10.0f);
+        super(position, 15.0f, 30.0f); // Cỏ: 10 → 30
         this.isSolid = false; // Cỏ có thể dẫm lên (không cản đường)
         
         // Random hình ảnh từ Grass_1 đến Grass_2

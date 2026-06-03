@@ -262,7 +262,35 @@ public class RenderSystem {
             float zoom = camera.getZoomLevel();
 
             if (e instanceof model.living_beings.Animal) {
-                drawDynamicAnimatedSprite((model.living_beings.Animal) e, g2d, screenPos, zoom);
+                model.living_beings.Animal animal = (model.living_beings.Animal) e;
+                drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
+
+                // Vẽ thanh trạng thái (đói và khát) khi zoom to đủ
+                if (zoom >= 1.2f) {
+                    int barW = (int)(25 * zoom);
+                    int barH = Math.max(3, (int)(4 * zoom));
+                    int barX = (int)screenPos.x - barW / 2;
+                    int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
+
+                    // Thanh Đói (Đỏ)
+                    g2d.setColor(java.awt.Color.BLACK);
+                    g2d.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+                    g2d.setColor(new java.awt.Color(50, 50, 50));
+                    g2d.fillRect(barX, barY, barW, barH);
+                    g2d.setColor(new java.awt.Color(220, 60, 60));
+                    int hungerFill = (int)(barW * (animal.getHunger() / animal.getMaxHunger()));
+                    if (hungerFill > 0) g2d.fillRect(barX, barY, hungerFill, barH);
+
+                    // Thanh Khát (Xanh) — ngay dưới thanh đói
+                    int thirstY = barY + barH + 1;
+                    g2d.setColor(java.awt.Color.BLACK);
+                    g2d.fillRect(barX - 1, thirstY - 1, barW + 2, barH + 2);
+                    g2d.setColor(new java.awt.Color(50, 50, 50));
+                    g2d.fillRect(barX, thirstY, barW, barH);
+                    g2d.setColor(new java.awt.Color(60, 140, 240));
+                    int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
+                    if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
+                }
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();

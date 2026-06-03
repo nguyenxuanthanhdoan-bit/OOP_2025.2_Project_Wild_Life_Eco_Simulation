@@ -49,22 +49,53 @@ public abstract class LivingBeing extends Entity {
 
         Vector2 nextPosition = this.position.copy().add(this.currentVelocity.copy().scale(deltaTime));
 
-        // Cộng vào nếu vị trí hợp lệ (biên bản đồ, nước)
         if (this.world != null && this.world.isValidPositionFor(this, nextPosition)) {
+            // Di chuyển thẳng ok
             this.position.set(nextPosition);
-            
-            // Tự động xử lý trượt khi va chạm chướng ngại vật (Cây, Đá, Bụi)
+            // Xử lý trượt khi va chạm chướng ngại vật (Cây, Đá, Bụi)
             model.collision.CollisionManager.resolveCollisions(this, this.world);
-        } else {
-            // Nếu bị chặn bởi viền hoặc nước
-            this.currentVelocity.set(0, 0);
-            
-            if (this.currentStrategy instanceof model.strategies.PassiveStrategy) {
-                ((model.strategies.PassiveStrategy) this.currentStrategy).forceStateChange();
-            } else if (this.world == null) {
-                // Dự phòng nếu world chưa kịp gắn
-                this.position.set(nextPosition);
+        } else if (this.world != null) {
+            // [TRƯỢT QUANH VẬT CẢN] Tách trục X và Y để lách qua góc cây
+            Vector2 nextX = new Vector2(nextPosition.x, this.position.y);
+            Vector2 nextY = new Vector2(this.position.x, nextPosition.y);
+
+            boolean canX = this.world.isValidPositionFor(this, nextX);
+            boolean canY = this.world.isValidPositionFor(this, nextY);
+
+            if (canX) {
+                this.position.set(nextX);
+                this.currentVelocity.y = 0;
+            } else if (canY) {
+                this.position.set(nextY);
+                this.currentVelocity.x = 0;
+            } else {
+                // [TRƯỢT TIẾP TUYẾN] Thử vuông góc với hướng đi
+                Vector2 tangent1 = new Vector2(-direction.y, direction.x).scale(this.speed * deltaTime);
+                Vector2 tangent2 = new Vector2(direction.y, -direction.x).scale(this.speed * deltaTime);
+                Vector2 nextT1 = this.position.copy().add(tangent1);
+                Vector2 nextT2 = this.position.copy().add(tangent2);
+
+                if (this.world.isValidPositionFor(this, nextT1)) {
+                    this.position.set(nextT1);
+                } else if (this.world.isValidPositionFor(this, nextT2)) {
+                    this.position.set(nextT2);
+                } else {
+                    // [MICRO-STEP] Kẹt cứng — rung lắc nhỏ để thoát
+                    this.currentVelocity.set(0, 0);
+                    if (this.currentStrategy instanceof model.strategies.PassiveStrategy) {
+                        ((model.strategies.PassiveStrategy) this.currentStrategy).forceStateChange();
+                    } else {
+                        float rx = (float)(Math.random() * 10 - 5);
+                        float ry = (float)(Math.random() * 10 - 5);
+                        Vector2 randomStep = new Vector2(this.position.x + rx, this.position.y + ry);
+                        if (this.world.isValidPositionFor(this, randomStep)) {
+                            this.position.set(randomStep);
+                        }
+                    }
+                }
             }
+        } else {
+            this.currentVelocity.set(0, 0);
         }
     }
 

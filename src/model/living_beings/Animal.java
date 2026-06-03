@@ -107,9 +107,9 @@ public abstract class Animal extends LivingBeing {
         this.isMoving = distSq > 0.0001f;
         float decayMultiplier = this.isMoving ? 1.5f : 1.0f;
 
-        // Suy giảm sinh học
-        this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime));
-        this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * decayMultiplier * deltaTime));
+        // Suy giảm sinh học (× 0.25 để thanh đói/khát tụt chậm hơn 4 lần)
+        this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime * 0.25f));
+        this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * decayMultiplier * deltaTime * 0.25f));
 
         growOlder(deltaTime);
 
@@ -122,27 +122,28 @@ public abstract class Animal extends LivingBeing {
 
     /**
      * Bộ não AI (Priority Selector): chọn Strategy phù hợp dựa trên trạng thái.
-     * Các TODO sẽ được người phụ trách từng nhánh bật lên khi triển khai.
      */
     protected void decideActiveStrategy() {
+        // HunterStrategy và ScaredStrategy tự quản lý vòng đời của chúng
         if (currentStrategy instanceof model.strategies.ScaredStrategy ||
             currentStrategy instanceof model.strategies.HunterStrategy) {
             return;
         }
 
-        // Ưu tiên 5: Sinh tồn liều lĩnh (< 15%)
-        if (hunger < maxHunger * CRITICAL_SURVIVAL_THRESHOLD || thirst < maxThirst * CRITICAL_SURVIVAL_THRESHOLD) {
-            // TODO: Kích hoạt AggressiveStrategy
-        }
-
         // Ưu tiên 4: Bỏ chạy khỏi kẻ thù
         if (detectDangerousThreats()) {
-            // TODO: Kích hoạt ScaredStrategy
+            if (!(currentStrategy instanceof model.strategies.ScaredStrategy)) {
+                setStrategy(new model.strategies.ScaredStrategy());
+            }
+            return;
         }
 
         // Ưu tiên 3: Tìm kiếm thức ăn & nước uống (< 50%)
         if (hunger < maxHunger * HUNGER_WARNING_THRESHOLD || thirst < maxThirst * THIRST_WARNING_THRESHOLD) {
-            // TODO: Kích hoạt ForageStrategy
+            if (!(currentStrategy instanceof model.strategies.ForageStrategy)) {
+                setStrategy(new model.strategies.ForageStrategy());
+            }
+            return;
         }
 
         // Ưu tiên 2: MatingStrategy (TODO)
@@ -224,6 +225,7 @@ public abstract class Animal extends LivingBeing {
 
         if (world != null && this.position != null) {
             model.items.Carcass carcass = createCarcass();
+            carcass.setWorld(world); // Gắn world để Carcass rớt xương khi phân hủy
             world.addEntity(carcass);
             
             model.world.PopulationManager.onAnimalDeath(this, world);
@@ -247,8 +249,8 @@ public abstract class Animal extends LivingBeing {
 
     /** Kiểm tra con vật có đứng gần nguồn nước không. */
     public boolean isNearWater() {
-        if (world == null || world.getSpatialGrid() == null) return false;
-        float checkDist = this.getSize() / 2 + 10.0f;
+        if (world == null) return false;
+        float checkDist = this.getSize() / 2 + 15.0f; // Tăng vùng phát hiện nước
         return world.isPositionInWater(position.x + checkDist, position.y) ||
                world.isPositionInWater(position.x - checkDist, position.y) ||
                world.isPositionInWater(position.x, position.y + checkDist) ||

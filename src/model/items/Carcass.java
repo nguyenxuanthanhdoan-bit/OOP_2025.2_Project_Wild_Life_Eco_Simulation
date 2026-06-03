@@ -2,6 +2,7 @@ package model.items;
 
 import core.Vector2;
 import core.DisplayMode;
+import model.world.World;
 
 /**
  * Lớp trừu tượng quản lý xác động vật.
@@ -12,6 +13,8 @@ public class Carcass extends FoodSource {
     protected float currentMass;
     protected float initialMass;
     protected String sourceSpecies;
+    
+    private World world; // Cần để rớt xương khi phân hủy
 
     public Carcass(Vector2 position, float size, float nutritionValue, float decayTime, float initialMass, String sourceSpecies) {
         super(position, size);
@@ -20,13 +23,18 @@ public class Carcass extends FoodSource {
         this.currentMass = initialMass;
         this.initialMass = initialMass;
         this.sourceSpecies = sourceSpecies;
-        this.imageVariant = "Meat"; // Fallback dùng hình ảnh cục thịt có sẵn
+        this.imageVariant = "Meat";
+    }
+
+    /** Gắn tham chiếu world để Carcass có thể rớt xương khi phân hủy. */
+    public void setWorld(World world) {
+        this.world = world;
     }
 
     public String getSourceSpecies() {
         return sourceSpecies;
     }
-    
+
     public float getCurrentMass() {
         return currentMass;
     }
@@ -34,15 +42,14 @@ public class Carcass extends FoodSource {
     @Override
     public float consume(float amount) {
         if (!isAlive || currentMass <= 0) return 0;
-        
+
         float consumed = Math.min(amount, currentMass);
         currentMass -= consumed;
-        
+
         if (currentMass <= 0) {
             this.isAlive = false; // Bị ăn hết, xóa khỏi thế giới
         }
-        
-        // Tỷ lệ dinh dưỡng nhận được tương ứng với khối lượng ăn được
+
         return consumed * (nutritionValue / initialMass);
     }
 
@@ -51,7 +58,11 @@ public class Carcass extends FoodSource {
         if (!isAlive) return;
         decayTimer -= deltaTime;
         if (decayTimer <= 0) {
-            this.isAlive = false; // Phân hủy tự nhiên
+            this.isAlive = false;
+            // Rớt xương khi xác phân hủy tự nhiên
+            if (world != null && this.position != null) {
+                world.addEntity(new Bone(this.position.copy()));
+            }
         }
     }
 
