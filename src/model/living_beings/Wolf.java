@@ -33,7 +33,7 @@ public class Wolf extends CarnivoreAnimal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.WolfCarcass(this.position.copy());
+        return new model.items.Carcass(this.position.copy(), 25.0f, 100.0f, 120.0f, 100.0f, "Sói");
     }
 
     @Override

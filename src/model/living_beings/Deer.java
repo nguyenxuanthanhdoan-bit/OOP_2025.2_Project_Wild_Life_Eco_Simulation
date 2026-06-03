@@ -59,7 +59,7 @@ public class Deer extends HerbivoreAnimal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.DeerCarcass(this.position.copy());
+        return new model.items.Carcass(this.position.copy(), 20.0f, 80.0f, 90.0f, 80.0f, "Hươu");
     }
 
     @Override

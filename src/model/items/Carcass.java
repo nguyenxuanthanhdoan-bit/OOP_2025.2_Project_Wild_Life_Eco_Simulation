@@ -6,7 +6,7 @@ import core.DisplayMode;
 /**
  * Lớp trừu tượng quản lý xác động vật.
  */
-public abstract class Carcass extends FoodSource {
+public class Carcass extends FoodSource {
     protected float nutritionValue;
     protected float decayTimer;
     protected float currentMass;

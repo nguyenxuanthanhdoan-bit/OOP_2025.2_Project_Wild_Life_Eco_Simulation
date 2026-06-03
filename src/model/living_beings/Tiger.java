@@ -31,7 +31,7 @@ public class Tiger extends CarnivoreAnimal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.TigerCarcass(this.position.copy());
+        return new model.items.Carcass(this.position.copy(), 30.0f, 120.0f, 150.0f, 120.0f, "Hổ");
     }
 
     @Override

@@ -59,7 +59,7 @@ public class Elephant extends HerbivoreAnimal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.ElephantCarcass(this.position.copy());
+        return new model.items.Carcass(this.position.copy(), 50.0f, 300.0f, 240.0f, 300.0f, "Voi");
     }
 
     @Override
