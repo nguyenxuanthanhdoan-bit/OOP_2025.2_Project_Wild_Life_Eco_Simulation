@@ -8,7 +8,7 @@ import java.util.UUID;
  * Lớp cơ sở trừu tượng cho mọi thực thể trong hệ thống.
  * Đã được tối giản cho Phase 1.
  */
-public abstract class Entity {
+public abstract class Entity implements model.collision.Collidable {
 
     protected final UUID id;
     protected Vector2 position;
@@ -17,6 +17,7 @@ public abstract class Entity {
     protected model.world.World world;
     protected boolean isSolid = false;
     protected String imageVariant = "";
+    protected model.collision.Collider collider;
 
     public Entity(Vector2 position, float size) {
         this.id = UUID.randomUUID();
@@ -73,6 +74,14 @@ public abstract class Entity {
 
     public void setImageVariant(String variant) {
         this.imageVariant = variant;
+    }
+
+    public model.collision.Collider getCollider() {
+        return this.collider;
+    }
+
+    public void setCollider(model.collision.Collider collider) {
+        this.collider = collider;
     }
 
     // ==========================================

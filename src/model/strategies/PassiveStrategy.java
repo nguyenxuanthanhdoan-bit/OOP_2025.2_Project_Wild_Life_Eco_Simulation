@@ -7,51 +7,81 @@ import java.util.Random;
 
 public class PassiveStrategy implements IStrategy {
     private Vector2 wanderDirection = new Vector2();
+    private float wanderAngle = 0;
     private float stateTimer;
     private boolean isIdling;
     private Random random = new Random();
+
+    public PassiveStrategy() {
+        wanderAngle = (float) (random.nextFloat() * Math.PI * 2);
+    }
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
         stateTimer -= deltaTime;
         if (stateTimer <= 0) {
-            // 50% đứng nghỉ, 50% đi dạo
             isIdling = random.nextBoolean();
             if (isIdling) {
                 stateTimer = 1.0f + random.nextFloat();
             } else {
-                float dx = (random.nextFloat() * 2) - 1;
-                float dy = (random.nextFloat() * 2) - 1;
-                wanderDirection.set(dx, dy).normalize();
                 stateTimer = 2.0f + random.nextFloat() * 2.0f;
-
-                // Cập nhật hướng mặt ngay khi có hướng đi mới
-                if (dx > 0) {
-                    owner.setFacingRight(true);  // Đi sang phải thì quay mặt sang phải
-                } else if (dx < 0) {
-                    owner.setFacingRight(false); // Đi sang trái thì lật mặt lại
-                }
-                // --- KẾT THÚC FIX ---
             }
         }
 
+        Vector2 finalDir = new Vector2();
+        
         if (!isIdling) {
-            owner.move(wanderDirection, deltaTime);
+            // Smart Wander: thay đổi hướng từ từ (jitter nhỏ)
+            float jitter = 0.5f; // Góc lệch tối đa mỗi lần chuyển
+            wanderAngle += (random.nextFloat() * 2 - 1) * jitter;
+            
+            wanderDirection.set((float) Math.cos(wanderAngle), (float) Math.sin(wanderAngle));
+            finalDir.add(wanderDirection);
+        }
+
+        // Tích hợp các lực đẩy
+        Vector2 separation = SteeringBehavior.calculateSeparation(owner, world);
+        Vector2 boundary = SteeringBehavior.calculateBoundaryAvoidance(owner, world);
+        Vector2 obstacle = SteeringBehavior.calculateObstacleAvoidance(owner, world, finalDir);
+
+        if (owner instanceof model.living_beings.Animal) {
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce((model.living_beings.Animal) owner, world);
+            finalDir.add(avoidance);
+        }
+
+        // Thêm các lực vật lý
+        finalDir.add(separation.scale(1.5f));
+        finalDir.add(boundary.scale(2.0f));
+        finalDir.add(obstacle.scale(2.5f)); // Lực né vật cản rất mạnh
+
+        if (finalDir.lengthSquared() > 0) {
+            finalDir.normalize();
+            if (finalDir.x > 0.1f) owner.setFacingRight(true);
+            else if (finalDir.x < -0.1f) owner.setFacingRight(false);
+            
+            // Cập nhật lại wanderAngle nếu bị đẩy bởi lực ngoài
+            if (separation.lengthSquared() > 0 || boundary.lengthSquared() > 0 || obstacle.lengthSquared() > 0) {
+                wanderAngle = (float) Math.atan2(finalDir.y, finalDir.x);
+            }
+            
+            owner.move(finalDir, deltaTime);
         }
     }
 
     public void forceStateChange() {
-        this.stateTimer = 1000f; // Gán một số rất lớn để ngay lập tức kích hoạt đổi trạng thái ở frame tiếp theo
+        // Chỉ đổi góc 90-180 độ chứ không reset random hoàn toàn
+        float turnAngle = (float) (Math.PI / 2 + random.nextFloat() * Math.PI);
+        wanderAngle += turnAngle;
     }
 
     @Override
     public boolean shouldInterrupt(LivingBeing owner, World world) {
-        return false; // Trong Phase 1 chưa có mối đe dọa để ngắt
+        return false;
     }
 
     @Override
     public int getPriority() {
-        return 0; // Ưu tiên thấp nhất
+        return 0;
     }
 
     @Override

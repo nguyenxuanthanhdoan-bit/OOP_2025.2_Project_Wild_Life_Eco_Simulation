@@ -120,8 +120,10 @@ public class RenderSystem {
         renderMap(g2d);
 
         // =========================================================
-        // [MỚI] TỐI ƯU HÓA VẼ THỰC THỂ BẰNG SPATIAL GRID
+        // [MỚI] TỐI ƯU HÓA VẼ THỰC THỂ BẰNG SPATIAL GRID VÀ LAYERS
         // =========================================================
+        List<Entity> entitiesToRender = new java.util.ArrayList<>();
+        
         if (world.getSpatialGrid() != null) {
             Vector2 camPos = camera.getPosition();
             float zoom = camera.getZoomLevel();
@@ -130,32 +132,43 @@ public class RenderSystem {
             float screenW = (clip != null) ? clip.width : 800;
             float screenH = (clip != null) ? clip.height : 600;
 
-            // Tính toán tâm màn hình trong tọa độ thế giới
             Vector2 centerView = new Vector2(
                     camPos.x + (screenW / zoom) / 2f,
                     camPos.y + (screenH / zoom) / 2f
             );
 
-            // Bán kính quét bằng nửa chiều dài đường chéo màn hình cộng thêm một chút khoảng đệm (buffer)
             float scanRange = (Math.max(screenW, screenH) / zoom) / 2f + 100f;
-
-            // TRUY VẤN LƯỚI: Lấy danh sách thực thể nằm trong và xung quanh khung hình
-            List<Entity> visibleEntities = world.getSpatialGrid().getNeighbors(centerView, scanRange);
-
-            // Chỉ duyệt vòng lặp trên danh sách nhỏ này
-            for (Entity e : visibleEntities) {
-                if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
-                    renderEntity(e, g2d);
-                }
-            }
+            entitiesToRender = world.getSpatialGrid().getNeighbors(centerView, scanRange);
         } else {
-            // [PHÒNG HỜ] Nếu Lưới chưa kịp khởi tạo thì dùng cách quét thủ công toàn bộ danh sách cũ
-            for (Entity e : world.getEntities()) {
-                if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
-                    renderEntity(e, g2d);
+            entitiesToRender = world.getEntities();
+        }
+
+        List<Entity> groundLayer = new java.util.ArrayList<>();
+        List<Entity> animalLayer = new java.util.ArrayList<>();
+        List<Entity> topLayer = new java.util.ArrayList<>();
+
+        for (Entity e : entitiesToRender) {
+            if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
+                if (e instanceof model.structures.Bush || e instanceof model.plants.FruitTree) {
+                    topLayer.add(e);
+                } else if (e instanceof model.living_beings.Animal) {
+                    model.living_beings.Animal a = (model.living_beings.Animal) e;
+                    if (a.isHidden()) {
+                        // Núp trong bụi, vẽ dưới Bush
+                        groundLayer.add(e);
+                    } else {
+                        animalLayer.add(e);
+                    }
+                } else {
+                    groundLayer.add(e);
                 }
             }
         }
+
+        // Vẽ theo thứ tự từ dưới lên trên
+        for (Entity e : groundLayer) renderEntity(e, g2d);
+        for (Entity e : animalLayer) renderEntity(e, g2d);
+        for (Entity e : topLayer) renderEntity(e, g2d);
     }
 
     private void renderMap(Graphics2D g2d) {
@@ -244,8 +257,6 @@ public class RenderSystem {
     }
 
     private void renderEntity(Entity e, Graphics2D g2d) {
-        if (e instanceof Rabbit && ((Rabbit) e).isHidden()) return;
-        
         if (displayMode == DisplayMode.REALISTIC) {
             Vector2 screenPos = camera.worldToScreen(e.getPosition());
             float zoom = camera.getZoomLevel();
@@ -281,13 +292,16 @@ public class RenderSystem {
         String species = animal.getClass().getSimpleName().toLowerCase();
         
         // Suy diễn trạng thái
-        String state = "west";
-        if (animal.isMoving()) {
-            float speed = animal.getSpeed();
-            if (speed > animal.getBaseSpeed() * 1.1f) {
-                state = "run";
-            } else {
-                state = "walk";
+        String state = animal.getActionState();
+        if (state == null || state.equals("idle")) {
+            state = "west";
+            if (animal.isMoving()) {
+                float speed = animal.getSpeed();
+                if (speed > animal.getBaseSpeed() * 1.1f) {
+                    state = "run";
+                } else {
+                    state = "walk";
+                }
             }
         }
         
@@ -295,8 +309,13 @@ public class RenderSystem {
         
         // Lấy spritesheet
         BufferedImage sheet = assetMap.get(species + "_" + state);
-        if (sheet == null) sheet = assetMap.get(species + "_walk");
-        if (sheet == null) sheet = assetMap.get(species + "_west");
+        if (sheet == null) {
+            if (state.equals("attack")) {
+                sheet = assetMap.get(species + "_west");
+            }
+            if (sheet == null) sheet = assetMap.get(species + "_walk");
+            if (sheet == null) sheet = assetMap.get(species + "_west");
+        }
         if (sheet == null) return;
         
         // Lấy frame chuẩn

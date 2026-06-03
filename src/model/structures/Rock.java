@@ -11,6 +11,7 @@ public class Rock extends Entity {
         // Tảng đá có kích thước trung bình 30
         super(position, 60.0f);
         this.isSolid = true; // Là vật cản
+        this.collider = new model.collision.Collider(this, this.size * 0.4f, model.collision.CollisionLayer.OBSTACLE);
         
         // Random hình ảnh từ Rock_1 đến Rock_3
         Random random = new Random();

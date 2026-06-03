@@ -166,7 +166,26 @@ public class World {
             }
         }
 
-
+        if (spatialGrid != null && entity.getCollider() != null) {
+            float checkRadius = entity.getCollider().getRadius();
+            java.util.List<Entity> neighbors = spatialGrid.getNeighbors(pos, checkRadius);
+            for (Entity neighbor : neighbors) {
+                if (neighbor == entity || !neighbor.isAlive() || neighbor.getCollider() == null) continue;
+                
+                if (neighbor.getCollider().getLayer() == model.collision.CollisionLayer.OBSTACLE) {
+                    // Cho phép đi xuyên qua bụi cây (Bush)
+                    if (neighbor instanceof model.structures.Bush) {
+                        continue;
+                    }
+                    
+                    float dist = pos.distanceTo(neighbor.getPosition());
+                    float minDist = entity.getCollider().getRadius() + neighbor.getCollider().getRadius();
+                    if (dist < minDist) {
+                        return false; // Va chạm vật cản
+                    }
+                }
+            }
+        }
 
         return true;
     }

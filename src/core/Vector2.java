@@ -63,6 +63,10 @@ public class Vector2 {
         return (float) Math.sqrt(lengthSquared());
     }
 
+    public float dot(Vector2 other) {
+        return this.x * other.x + this.y * other.y;
+    }
+
     // CÁC PHÉP TOÁN (MUTABLE - THAY ĐỔI TRỰC TIẾP VECTOR GỐC)
 
     /**
