@@ -12,6 +12,7 @@ public class MatingStrategy extends PassiveStrategy {
     private static final int MAX_POPULATION = 150;
     private Animal targetMate = null;
     private float cooldownTimer = 0.0f;
+    private float matingTimer = 0.0f;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -71,20 +72,29 @@ public class MatingStrategy extends PassiveStrategy {
 
             float mateRange = ownerAnimal.getSize() / 2 + targetMate.getSize() / 2 + 10.0f;
             if (distToMate <= mateRange) {
-                // Mate!
-                Animal child = ownerAnimal.reproduce();
-                if (child != null) {
-                    world.addEntity(child);
-                    // Consume energy
-                    ownerAnimal.setHunger(Math.max(0, ownerAnimal.getHunger() - 50));
-                    ownerAnimal.setThirst(Math.max(0, ownerAnimal.getThirst() - 50));
-                    // Start cooldown
-                    cooldownTimer = 60.0f; // 60 seconds cooldown
-                    targetMate = null;
-                }
                 ownerAnimal.setActionState("idle");
                 ownerAnimal.setSpeed(0);
+
+                matingTimer += deltaTime;
+                if (matingTimer >= 2.0f) {
+                    // Mate!
+                    Animal child = ownerAnimal.reproduce();
+                    if (child != null) {
+                        world.addEntity(child);
+                        // Consume energy for both parents
+                        ownerAnimal.setHunger(Math.max(0, ownerAnimal.getHunger() - 50));
+                        ownerAnimal.setThirst(Math.max(0, ownerAnimal.getThirst() - 50));
+                        targetMate.setHunger(Math.max(0, targetMate.getHunger() - 50));
+                        targetMate.setThirst(Math.max(0, targetMate.getThirst() - 50));
+                        
+                        // Start cooldown
+                        cooldownTimer = 60.0f; // 60 seconds cooldown
+                        targetMate = null;
+                    }
+                    matingTimer = 0.0f;
+                }
             } else {
+                matingTimer = 0.0f; // Reset nếu bị tách ra
                 // Move to mate
                 Vector2 finalDir = dirToMate.copy();
                 if (finalDir.lengthSquared() > 0) finalDir.normalize();

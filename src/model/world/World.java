@@ -64,6 +64,11 @@ public class World {
                     oldPos = new Vector2(e.getPosition().x, e.getPosition().y);
                 }
 
+                // Gán worldRef để StuckDetector có thể quét SpatialGrid
+                if (e instanceof model.living_beings.Animal) {
+                    ((model.living_beings.Animal) e).setWorldRef(this);
+                }
+
                 // Cập nhật logic (Thỏ chạy nhảy, chuyển sang tọa độ MỚI)
                 e.update(deltaTime);
 

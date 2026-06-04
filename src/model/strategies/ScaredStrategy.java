@@ -12,7 +12,10 @@ import java.util.ArrayList;
 
 public class ScaredStrategy implements IStrategy {
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
+    private final MatingStrategy matingDelegate = new MatingStrategy();
+    private final ForageStrategy forageDelegate = new ForageStrategy();
     private static final double RUN_COST_MULTIPLIER = 3.0;
+    private float safeTimer = 0f;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -44,15 +47,32 @@ public class ScaredStrategy implements IStrategy {
 
         if (predators.isEmpty()) {
             if (ownerAnimal.isHidden()) {
+                safeTimer += deltaTime;
+                if (safeTimer < 3.0f) {
+                    // Chưa đủ an toàn, tiếp tục trốn
+                    return;
+                }
                 ownerAnimal.exitBush();
+                safeTimer = 0f;
             }
             if (ownerAnimal.getSpeed() != ownerAnimal.getBaseSpeed()) {
                 ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             }
-            ownerAnimal.setActionState("idle");
-            wanderDelegate.execute(owner, world, deltaTime);
+
+            if (ownerAnimal.canReproduce()) {
+                matingDelegate.execute(owner, world, deltaTime);
+            } else if (ownerAnimal.getHunger() < ownerAnimal.getMaxHunger() * Animal.HUNGER_WARNING_THRESHOLD || 
+                       ownerAnimal.getThirst() < ownerAnimal.getMaxThirst() * Animal.THIRST_WARNING_THRESHOLD) {
+                forageDelegate.execute(owner, world, deltaTime);
+            } else {
+                ownerAnimal.setActionState("idle");
+                wanderDelegate.execute(owner, world, deltaTime);
+            }
             return;
         }
+
+        // Có thú ăn thịt ở gần -> reset safe timer
+        safeTimer = 0f;
 
         // Không tiêu hao stamina nếu đang ẩn nấp
         if (!ownerAnimal.isHidden()) {
@@ -66,6 +86,11 @@ public class ScaredStrategy implements IStrategy {
         float maxDistToPredators = -1.0f;
 
         for (Bush bush : bushes) {
+            // Nếu bụi cỏ đã có thú trốn bên trong (và đó không phải là chính mình) -> bỏ qua
+            if (bush.isOccupied() && bush != ownerAnimal.getHiddenInBush()) {
+                continue;
+            }
+
             float distToPredatorsForBush = 0;
             for (Animal predator : predators) {
                 distToPredatorsForBush += bush.getPosition().distanceTo(predator.getPosition());
@@ -95,7 +120,9 @@ public class ScaredStrategy implements IStrategy {
                 if (dirToBush.lengthSquared() > 0) dirToBush.normalize();
 
                 Vector2 finalDir = dirToBush.copy();
-                Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+                // Né đá/cây: truyền hướng đi để chọn hướng trượt thông minh
+                Vector2 avoidance = AvoidanceStrategy.getSolidObstacleForce(ownerAnimal, world, finalDir);
+                avoidance.add(AvoidanceStrategy.getLargeAnimalAvoidanceForce(ownerAnimal, world));
                 if (avoidance.lengthSquared() > 0) {
                     finalDir.add(avoidance);
                     if (finalDir.lengthSquared() > 0) finalDir.normalize();
@@ -125,9 +152,17 @@ public class ScaredStrategy implements IStrategy {
             else fleeDir.set(1, 0); 
 
             Vector2 finalDir = fleeDir.copy();
-            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+            // Né đá/cây: truyền hướng chạy trốn để chọn hướng trượt thông minh
+            Vector2 avoidance = AvoidanceStrategy.getSolidObstacleForce(ownerAnimal, world, fleeDir);
+            avoidance.add(AvoidanceStrategy.getLargeAnimalAvoidanceForce(ownerAnimal, world));
             if (avoidance.lengthSquared() > 0) {
-                finalDir.add(avoidance);
+                float avoidMag = avoidance.length();
+                if (avoidMag > 1.5f) {
+                    // Đá quá gần → ưu tiên né đá trước
+                    finalDir = avoidance.copy();
+                } else {
+                    finalDir.add(avoidance.scale(2.0f));
+                }
                 if (finalDir.lengthSquared() > 0) finalDir.normalize();
             }
 

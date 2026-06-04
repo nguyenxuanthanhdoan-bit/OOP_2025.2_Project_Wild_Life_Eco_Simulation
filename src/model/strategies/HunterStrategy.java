@@ -11,6 +11,7 @@ import java.util.List;
 public class HunterStrategy implements IStrategy {
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
     private Entity targetFood = null;
+    private float reassessTimer = 0f;
     private static final double RUN_COST_MULTIPLIER = 3.0;
 
     @Override
@@ -36,9 +37,15 @@ public class HunterStrategy implements IStrategy {
                 if (prey.isHidden()) {
                     targetFood = null;
                     ownerAnimal.setActionState("idle");
+                } else if (reassessTimer > 1.0f) {
+                    // Định kỳ 1 giây đánh giá lại mục tiêu xem có con mồi nào ngon hơn/gần hơn không
+                    targetFood = null;
+                    reassessTimer = 0f;
                 }
             }
         }
+
+        reassessTimer += deltaTime;
 
         // Quét tìm mục tiêu mới
         if (targetFood == null && world != null && world.getSpatialGrid() != null) {
@@ -71,15 +78,26 @@ public class HunterStrategy implements IStrategy {
                 } else if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
                     
-                    // Săn nếu đối phương không nấp và kích thước phù hợp (có thể săn mồi nhỉnh hơn mình 1.5 lần)
-                    if (!other.isHidden() && other.getSize() <= ownerAnimal.getSize() * 1.5f) {
-                        score = 500.0f - dist;
-                        
-                        // Ưu tiên mồi yếu (yếu máu hoặc già)
-                        boolean isWeak = other.getHealth() < other.getMaxHealth() * 0.5 || other.getAge() > other.getMaxAge() * 0.8;
-                        if (isWeak) {
-                            score += 2000.0f;
-                        }
+                    // Không săn đồng loại hoặc con mồi quá to, hoặc đang trốn
+                    if (other.isHidden() || other.getSize() > ownerAnimal.getSize() * 1.5f 
+                            || other.getSpeciesName().equals(ownerAnimal.getSpeciesName())) {
+                        continue;
+                    }
+
+                    // Hạn chế săn thú ăn thịt khác trừ khi cực kỳ đói
+                    if (other.getDietType() == model.living_beings.DietType.CARNIVORE && !isVeryHungry) {
+                        continue;
+                    }
+
+                    score = 500.0f - dist;
+                    if (other.getDietType() == model.living_beings.DietType.CARNIVORE) {
+                        score -= 300.0f; // Trừ điểm để ưu tiên săn thú ăn cỏ hơn nếu có cả hai
+                    }
+                    
+                    // Ưu tiên mồi yếu (yếu máu hoặc già)
+                    boolean isWeak = other.getHealth() < other.getMaxHealth() * 0.5 || other.getAge() > other.getMaxAge() * 0.8;
+                    if (isWeak) {
+                        score += 2000.0f;
                     }
                 }
 
@@ -108,11 +126,11 @@ public class HunterStrategy implements IStrategy {
 
             float interactRange;
             if (targetFood instanceof Carcass) {
-                // Ăn xác: Ép buộc phải bước đè hẳn lên xác (giảm mạnh range)
-                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 10.0f;
+                // Ăn xác: giữ nguyên tầm ăn nhỏ, kết hợp với lực đẩy sẽ tạo ra hiệu ứng tranh giành mồi (chen lấn)
+                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 8.0f;
             } else {
-                // Tấn công con vật sống: Ép buộc phải áp sát vào (giảm mạnh range)
-                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 5.0f;
+                // Tấn công con mồi sống: áp sát là đủ, +5px để trigger chắc hơn
+                interactRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 + 5.0f;
             }
             if (distToFood <= interactRange) {
                 ownerAnimal.setSpeed(0);
@@ -131,8 +149,8 @@ public class HunterStrategy implements IStrategy {
                     // Tấn công con mồi
                     ownerAnimal.setActionState("attack");
                     Animal prey = (Animal) targetFood;
-                    // Tăng sát thương để thấy rõ hơn (Sói 50/s, Hổ 80/s)
-                    float damage = (ownerAnimal.getSpeciesName().equals("Hổ")) ? 80.0f : 50.0f;
+                    // Tăng sát thương để bắt mồi nhanh hơn (Sói 80/s, Hổ 100/s)
+                    float damage = (ownerAnimal.getSpeciesName().equals("Hổ")) ? 100.0f : 80.0f;
                     prey.takeDamage(damage * deltaTime);
 
                     if (!prey.isAlive()) {
@@ -200,20 +218,31 @@ public class HunterStrategy implements IStrategy {
         List<Entity> nearby = world.getSpatialGrid().getNeighbors(animal.getPosition(), scanRadius);
 
         for (Entity e : nearby) {
-            if (!e.isSolid() || !e.isAlive() || e == animal) continue;
+            if (!e.isAlive() || e == animal) continue;
 
             Vector2 toObstacle = e.getPosition().copy().subtract(animal.getPosition());
             float dist = toObstacle.length();
             if (dist < 0.01f) continue;
 
-            float threshold = animal.getSize() / 2 + e.getSize() / 2 + 80.0f;
-
-            if (dist < threshold) {
-                float t = 1.0f - (dist / threshold);
-                float strength = t * t * 3.0f;
-                avoidForce.x -= (toObstacle.x / dist) * strength;
-                avoidForce.y -= (toObstacle.y / dist) * strength;
-                obstacleCount++;
+            if (e.isSolid()) {
+                float threshold = animal.getSize() / 2 + e.getSize() / 2 + 80.0f;
+                if (dist < threshold) {
+                    float t = 1.0f - (dist / threshold);
+                    float strength = t * t * 3.0f;
+                    avoidForce.x -= (toObstacle.x / dist) * strength;
+                    avoidForce.y -= (toObstacle.y / dist) * strength;
+                    obstacleCount++;
+                }
+            } else if (e instanceof Animal) {
+                // Thêm lực đẩy nhẹ (personal space) để các con sói không đè lên nhau thành 1 cục
+                float threshold = animal.getSize() / 2 + e.getSize() / 2;
+                if (dist < threshold) {
+                    float t = 1.0f - (dist / threshold);
+                    float strength = t * 1.5f;
+                    avoidForce.x -= (toObstacle.x / dist) * strength;
+                    avoidForce.y -= (toObstacle.y / dist) * strength;
+                    obstacleCount++;
+                }
             }
         }
 

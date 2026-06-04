@@ -18,7 +18,7 @@ public class Rabbit extends HerbivoreAnimal {
     private static final double HUNGER_DECAY_RATE = 2.0;
     private static final double MAX_THIRST        = 100.0;
     private static final double THIRST_DECAY_RATE = 3.0;
-    private static final double MAX_AGE           = 300.0;
+    private static final double MAX_AGE           = 900.0; // 20% = 180s = 3 phút để trưởng thành
     private static final double VISION_RANGE      = 200.0;
 
     private final Random random = new Random();
@@ -42,7 +42,14 @@ public class Rabbit extends HerbivoreAnimal {
 
     @Override
     public Animal reproduce() {
-        return null;
+        Rabbit baby = new Rabbit(this.getPosition().copy());
+        baby.setAge(0);
+        // Kích thước thỏ con bằng 50% thỏ trưởng thành
+        baby.size = SIZE * 0.5f; 
+        baby.setAdult(false);
+        // Con non chỉ dùng PassiveStrategy ban đầu
+        baby.setStrategy(new model.strategies.PassiveStrategy());
+        return baby;
     }
 
     @Override

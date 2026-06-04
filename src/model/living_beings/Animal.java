@@ -51,6 +51,21 @@ public abstract class Animal extends LivingBeing {
     protected model.structures.Bush hiddenInBush = null;
     protected String actionState = "idle";
 
+    /** Tham chiếu tới World hiện tại — được World.update() gán trước mỗi frame. */
+    protected model.world.World worldRef = null;
+    public void setWorldRef(model.world.World w) { this.worldRef = w; }
+
+    // =========================================================
+    // STUCK DETECTOR — Phát hiện và thoát khẩn cấp khi bị kẹt
+    // =========================================================
+    private Vector2 stuckCheckPos = null;    // Vị trí được lưu lần check trước
+    private float stuckTimer = 0f;           // Thời gian đã đứng yên
+    private float escapeTimer = 0f;          // Thời gian còn lại của chế độ thoát
+    private Vector2 escapeDir = null;        // Hướng thoát đang sử dụng
+    private static final float STUCK_THRESHOLD_TIME = 0.4f;  // Giây bất động trước khi bị coi là kẹt
+    private static final float STUCK_MOVE_THRESHOLD = 3.0f;  // Pixel/frame tối thiểu để không bị coi là kẹt
+    private static final float ESCAPE_DURATION = 0.5f;       // Giây kích hoạt thoát khẩn cấp
+
     // =========================================================
     // CONSTRUCTOR
     // =========================================================
@@ -97,6 +112,21 @@ public abstract class Animal extends LivingBeing {
     public void update(float deltaTime) {
         if (!alive) return;
 
+        // --- STUCK DETECTOR ---
+        updateStuckDetector(deltaTime);
+        // Nếu đang trong chế độ thoát khẩn cấp → bỏ qua strategy thường
+        if (escapeTimer > 0) {
+            doEmergencyEscape(deltaTime);
+            // Vẫn cập nhật sinh học bình thường
+            this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * 1.5f * deltaTime * 0.25f));
+            this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * 1.5f * deltaTime * 0.25f));
+            growOlder(deltaTime);
+            this.adult = (this.age >= this.maxAge * 0.2);
+            if (this.hunger <= 0) takeDamage(5.0f * deltaTime);
+            if (this.thirst <= 0) takeDamage(10.0f * deltaTime);
+            return;
+        }
+
         decideActiveStrategy();
 
         Vector2 oldPos = this.position.copy();
@@ -118,6 +148,104 @@ public abstract class Animal extends LivingBeing {
         // Hậu quả đói/khát
         if (this.hunger <= 0) takeDamage(5.0f * deltaTime);
         if (this.thirst <= 0) takeDamage(10.0f * deltaTime);
+    }
+
+    /**
+     * Cập nhật bộ phát hiện kẹt.
+     * Nếu con vật cố di chuyển (speed > 0) nhưng không nhúc nhích trong STUCK_THRESHOLD_TIME giây
+     * → kích hoạt thoát khẩn cấp.
+     */
+    private void updateStuckDetector(float deltaTime) {
+        // Chỉ kiểm tra khi đang có ý định di chuyển (speed > 0) và không đang thoát
+        if (this.speed <= 0 || escapeTimer > 0) {
+            stuckTimer = 0;
+            stuckCheckPos = this.position.copy();
+            return;
+        }
+
+        if (stuckCheckPos == null) {
+            stuckCheckPos = this.position.copy();
+            return;
+        }
+
+        float dist = this.position.distanceTo(stuckCheckPos);
+        if (dist < STUCK_MOVE_THRESHOLD) {
+            stuckTimer += deltaTime;
+            if (stuckTimer >= STUCK_THRESHOLD_TIME) {
+                // BỊ KẸT — kích hoạt thoát khẩn cấp
+                escapeDir = findBestEscapeDirection();
+                escapeTimer = ESCAPE_DURATION;
+                stuckTimer = 0;
+            }
+        } else {
+            // Đang di chuyển tốt — reset
+            stuckTimer = 0;
+            stuckCheckPos = this.position.copy();
+        }
+    }
+
+    /**
+     * Quét 8 hướng xung quanh, chọn hướng có nhiều không gian trống nhất.
+     */
+    private Vector2 findBestEscapeDirection() {
+        model.world.World w = getCurrentWorld();
+        Vector2 bestDir = new Vector2(1, 0); // mặc định sang phải
+        float maxClearDist = -1f;
+        int numDirections = 8;
+
+        for (int i = 0; i < numDirections; i++) {
+            double angle = 2 * Math.PI * i / numDirections;
+            float dx = (float) Math.cos(angle);
+            float dy = (float) Math.sin(angle);
+            Vector2 dir = new Vector2(dx, dy);
+
+            // Thăm dò khoảng trống theo hướng này (probe 40px)
+            float probeLen = 40f;
+            float clearDist = probeLen;
+
+            if (w != null && w.getSpatialGrid() != null) {
+                Vector2 probeEnd = new Vector2(
+                    this.position.x + dx * probeLen,
+                    this.position.y + dy * probeLen
+                );
+                java.util.List<model.entity.Entity> nearby =
+                    w.getSpatialGrid().getNeighbors(probeEnd, this.size);
+                for (model.entity.Entity e : nearby) {
+                    if (e != this && e.isSolid() && e.isAlive()) {
+                        float d = this.position.distanceTo(e.getPosition()) - this.size / 2 - e.getSize() / 2;
+                        if (d < clearDist) clearDist = d;
+                    }
+                }
+            }
+
+            if (clearDist > maxClearDist) {
+                maxClearDist = clearDist;
+                bestDir = dir;
+            }
+        }
+        return bestDir;
+    }
+
+    /** Thực hiện di chuyển thoát khẩn cấp. */
+    private void doEmergencyEscape(float deltaTime) {
+        escapeTimer -= deltaTime;
+        if (escapeDir != null) {
+            setActionState("run");
+            setSpeed(baseSpeed * 1.5f);
+            if (escapeDir.x > 0) setFacingRight(true);
+            else if (escapeDir.x < 0) setFacingRight(false);
+            super.move(escapeDir, deltaTime);
+            isMoving = true;
+        }
+        if (escapeTimer <= 0) {
+            escapeDir = null;
+            stuckCheckPos = this.position.copy();
+        }
+    }
+
+    /** Lấy World hiện tại — override ở subclass nếu cần (mặc định null-safe). */
+    protected model.world.World getCurrentWorld() {
+        return worldRef; // Được World.update() gán trước mỗi frame
     }
 
     /**
@@ -146,7 +274,14 @@ public abstract class Animal extends LivingBeing {
             return;
         }
 
-        // Ưu tiên 2: MatingStrategy (TODO)
+        // Ưu tiên 2: MatingStrategy
+        if (canReproduce()) {
+            if (!(currentStrategy instanceof model.strategies.MatingStrategy)) {
+                setStrategy(new model.strategies.MatingStrategy());
+            }
+            return;
+        }
+
         // Ưu tiên 1: FlockingStrategy (TODO)
 
         // Ưu tiên 0: Mặc định — đi dạo
@@ -300,6 +435,10 @@ public abstract class Animal extends LivingBeing {
             this.hiddenInBush = null;
         }
         this.setSpeed(this.baseSpeed);
+    }
+
+    public model.structures.Bush getHiddenInBush() {
+        return this.hiddenInBush;
     }
 
     // =========================================================

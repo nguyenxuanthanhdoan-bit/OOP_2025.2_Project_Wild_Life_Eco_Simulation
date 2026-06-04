@@ -51,7 +51,7 @@ public class AvoidanceTest extends JPanel {
 
         // 3. Khởi tạo ngẫu nhiên nhiều cây bụi và đá chắn ở giữa, tạo ra các khe hở
         Random rand = new Random(); 
-        for (int i = 0; i < 45; i++) {
+        for (int i = 0; i < 20; i++) {
             float x = 250 + rand.nextFloat() * 350; // X từ 250 đến 600
             float y = 50 + rand.nextFloat() * 500; // Y từ 50 đến 550
             

@@ -3,9 +3,8 @@ package test.strategy;
 import core.Vector2;
 import model.entity.Entity;
 import model.living_beings.Animal;
-import model.living_beings.Deer;
-import model.living_beings.Tiger;
-import model.plants.Grass;
+import model.living_beings.Rabbit;
+import model.living_beings.Wolf;
 import model.structures.Rock;
 import model.world.World;
 import model.strategies.HunterStrategy;
@@ -16,71 +15,83 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Test kịch bản săn mồi đầy đủ:
- * - 1 con Hổ (kẻ săn mồi, rất đói)
- * - 3 con Hươu (chạy trốn)
- * - 2 bụi cỏ (thức ăn cho hươu)
- * - Hươu chết KHÔNG spawn lại
- * - Bản đồ nhỏ 450x450, khép kín
+ * Test kịch bản Rượt đuổi: Đường đua vòng tròn (Sói đuổi Thỏ).
+ * - Xây dựng một đường đua vòng tròn bằng các tảng đá (vòng trong và vòng ngoài).
+ * - Thỏ và Sói bị nhốt trong đường đua này.
+ * - Sói cực kỳ đói sẽ tìm cách rượt Thỏ.
+ * - Thỏ sẽ phải chạy trốn dọc theo đường đua.
  */
 public class PredatorPreyTest extends JPanel {
 
-    /**
-     * World con không kích hoạt PopulationManager (tắt auto-spawn).
-     */
-    static class IsolatedWorld extends World {
-        @Override
-        public void update(float deltaTime) {
-            // Chỉ cập nhật entities, bỏ qua PopulationManager bằng cách
-            // ghi đè: gọi super.update() nhưng PopulationManager.onAnimalDeath
-            // được kiểm soát ở Animal.die() => chúng ta không thể tắt trực tiếp.
-            // Workaround: ghi đè để set MIN_SPECIES_POPULATION về 0 trước mỗi update
-            super.update(deltaTime);
-        }
-    }
-
     private final World world;
-    private final Tiger predator;
+    private final Wolf predator;
+    private final Rabbit prey;
     private final Timer timer;
     private boolean isRunning = true;
+    private float elapsed = 0f;
 
     private final Camera camera;
     private final RenderSystem renderSystem;
 
+    private static final int MAP_W = 700;
+    private static final int MAP_H = 700;
+
     public PredatorPreyTest() {
         world = new World();
-        world.setWidth(450);
-        world.setHeight(450);
+        world.setWidth(MAP_W);
+        world.setHeight(MAP_H);
 
-        // 1. Tạo 3 con Hươu — hơi đói để chúng vừa tìm cỏ vừa chạy trốn khi thấy Hổ
-        Deer[] deers = {
-            new Deer(new Vector2(350, 120)),
-            new Deer(new Vector2(360, 230)),
-            new Deer(new Vector2(340, 340))
-        };
-        for (Deer d : deers) {
-            d.setHunger(d.getMaxHunger() * 0.15); // Đói nhẹ → sẽ đi tìm cỏ
-            world.addEntity(d);
+        // Tắt auto-spawn
+        model.world.PopulationManager.setEnabled(false);
+
+        // 1. Xây dựng đường đua vòng tròn bằng Đá (Rock)
+        float centerX = MAP_W / 2.0f;
+        float centerY = MAP_H / 2.0f;
+        float innerRadius = 100.0f;
+        float outerRadius = 250.0f;
+        int innerCount = 16; // Số lượng đá vòng trong
+        int outerCount = 36; // Số lượng đá vòng ngoài
+
+        // Vòng trong
+        for (int i = 0; i < innerCount; i++) {
+            double angle = 2 * Math.PI * i / innerCount;
+            float x = centerX + (float) (Math.cos(angle) * innerRadius);
+            float y = centerY + (float) (Math.sin(angle) * innerRadius);
+            world.addEntity(new Rock(new Vector2(x, y)));
         }
 
-        // 2. Tạo 1 con Hổ — cực kỳ đói, lập tức đi săn
-        predator = new Tiger(new Vector2(80, 230));
-        predator.setHunger(3.0);
+        // Vòng ngoài
+        for (int i = 0; i < outerCount; i++) {
+            double angle = 2 * Math.PI * i / outerCount;
+            float x = centerX + (float) (Math.cos(angle) * outerRadius);
+            float y = centerY + (float) (Math.sin(angle) * outerRadius);
+            world.addEntity(new Rock(new Vector2(x, y)));
+        }
+
+        // Bịt các góc bản đồ để chúng không thoát ra ngoài đường đua (tùy chọn)
+
+        // 2. Thả Thỏ vào đường đua (góc 0 độ, bên phải)
+        float trackRadius = (innerRadius + outerRadius) / 2.0f;
+        prey = new Rabbit(new Vector2(centerX + trackRadius, centerY));
+        prey.setHunger(prey.getMaxHunger()); // Thỏ no, chỉ tập trung chạy trốn
+        world.addEntity(prey);
+
+        // 3. Thả Sói vào đường đua, đuổi theo phía sau Thỏ (góc 180 độ, bên trái)
+        predator = new Wolf(new Vector2(centerX - trackRadius, centerY));
+        predator.setHunger(1.0); // Rất đói, ép buộc đi săn ngay
         predator.setStrategy(new HunterStrategy());
         world.addEntity(predator);
-
-        // 3. Thêm 2 bụi cỏ ở giữa bản đồ (thức ăn cho hươu)
-        world.addEntity(new Grass(new Vector2(220, 150)));
-        world.addEntity(new Grass(new Vector2(220, 320)));
 
         camera = new Camera(0, 0);
         renderSystem = new RenderSystem(camera);
 
-        // Vòng lặp game — 60fps
         timer = new Timer(16, e -> {
             if (isRunning) {
+                elapsed += 0.016f;
                 world.update(0.016f);
                 repaint();
             }
@@ -96,54 +107,60 @@ public class PredatorPreyTest extends JPanel {
 
         camera.setViewportSize(getWidth(), getHeight());
 
-        // Nền cỏ xanh
-        g2d.setColor(new Color(120, 185, 110));
+        // Nền đường đất (màu cát/đất)
+        g2d.setColor(new Color(200, 160, 100));
         g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Vẽ viền khép kín (border)
-        g2d.setColor(new Color(80, 55, 30));
-        g2d.setStroke(new BasicStroke(4));
-        g2d.drawRect(2, 2, getWidth() - 4, getHeight() - 4);
+        
+        // Cỏ bên ngoài và bên trong vòng tròn
+        g2d.setColor(new Color(120, 185, 110));
+        // Lấp cỏ khu vực vòng trong
+        g2d.fillOval((int)(MAP_W/2 - 100), (int)(MAP_H/2 - 100), 200, 200);
 
         // Render thực thể
         renderSystem.renderAll(world, g2d, 0.016f);
 
-        // Vẽ thanh máu phía trên mỗi con vật
+        // Thanh máu
+        g2d.setStroke(new BasicStroke(1));
         for (Entity e : world.getEntities()) {
-            if (e instanceof Animal && e.isAlive()) {
-                Animal a = (Animal) e;
-                float hpRatio = (float) (a.getHealth() / a.getMaxHealth());
-                int barW = 36, barH = 5;
-                int bx = (int) a.getPosition().x - barW / 2;
-                int by = (int) a.getPosition().y - (int) a.getSize() / 2 - 12;
+            if (!(e instanceof Animal) || !e.isAlive()) continue;
+            Animal a = (Animal) e;
+            float hpRatio = (float) (a.getHealth() / a.getMaxHealth());
+            int barW = 30, barH = 4;
+            int bx = (int) a.getPosition().x - barW / 2;
+            int by = (int) a.getPosition().y - (int) a.getSize() / 2 - 10;
 
-                g2d.setColor(new Color(180, 30, 30));
-                g2d.fillRoundRect(bx, by, barW, barH, 3, 3);
-                g2d.setColor(new Color(60, 200, 60));
-                g2d.fillRoundRect(bx, by, (int) (barW * hpRatio), barH, 3, 3);
-                g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(1));
-                g2d.drawRoundRect(bx, by, barW, barH, 3, 3);
-            }
+            g2d.setColor(new Color(180, 30, 30));
+            g2d.fillRect(bx, by, barW, barH);
+            g2d.setColor(new Color(60, 200, 60));
+            g2d.fillRect(bx, by, (int) (barW * hpRatio), barH);
+            g2d.setColor(Color.BLACK);
+            g2d.drawRect(bx, by, barW, barH);
         }
 
-        // Hiển thị số lượng còn sống góc trên trái
-        long deerAlive = world.getEntities().stream()
-            .filter(e -> e instanceof Deer && e.isAlive()).count();
+        // HUD thông tin
+        g2d.setColor(new Color(0, 0, 0, 150));
+        g2d.fillRoundRect(10, 10, 300, 70, 10, 10);
+
         g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("SansSerif", Font.BOLD, 13));
-        g2d.drawString("Hươu còn sống: " + deerAlive + "/3", 10, 20);
-        g2d.drawString("Hổ: " + (predator.isAlive() ? "Còn sống" : "Chết"), 10, 38);
+        g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2d.drawString("Đường Đua Vòng Tròn: Sói đuổi Thỏ", 20, 30);
+        
+        g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2d.setColor(new Color(255, 100, 100));
+        g2d.drawString("Sói: " + (predator.isAlive() ? "Đang săn" : "Chết"), 20, 50);
+        g2d.setColor(new Color(150, 255, 150));
+        g2d.drawString("Thỏ: " + (prey.isAlive() ? "Đang chạy" : "Chết"), 150, 50);
+        
+        g2d.setColor(Color.WHITE);
+        g2d.drawString(String.format("Thời gian: %.1fs", elapsed), 20, 70);
     }
 
     public static void main(String[] args) {
-        // Tắt auto-spawn để hươu chết không bị hồi sinh
-        model.world.PopulationManager.setEnabled(false);
-        JFrame frame = new JFrame("Test: Predator vs Prey (Bản đồ khép kín)");
+        JFrame frame = new JFrame("Test: Vòng Đua Sinh Tử (Predator vs Prey)");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         PredatorPreyTest panel = new PredatorPreyTest();
-        panel.setPreferredSize(new Dimension(450, 450));
+        panel.setPreferredSize(new Dimension(MAP_W, MAP_H));
 
         frame.add(panel);
         frame.pack();

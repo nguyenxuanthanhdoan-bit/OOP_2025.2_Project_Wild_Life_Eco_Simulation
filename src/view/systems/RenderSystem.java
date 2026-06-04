@@ -265,8 +265,6 @@ public class RenderSystem {
                 model.living_beings.Animal animal = (model.living_beings.Animal) e;
                 drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
 
-                // Vẽ thanh trạng thái (đói và khát) khi zoom to đủ
-                if (zoom >= 1.2f) {
                     int barW = (int)(25 * zoom);
                     int barH = Math.max(3, (int)(4 * zoom));
                     int barX = (int)screenPos.x - barW / 2;
@@ -290,7 +288,6 @@ public class RenderSystem {
                     g2d.setColor(new java.awt.Color(60, 140, 240));
                     int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
                     if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
-                }
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
@@ -339,7 +336,8 @@ public class RenderSystem {
         BufferedImage sheet = assetMap.get(species + "_" + state);
         if (sheet == null) {
             if (state.equals("attack")) {
-                sheet = assetMap.get(species + "_west");
+                // Fallback: dùng "run" khi attack (trông chân thực hơn "west" đứng yên)
+                sheet = assetMap.get(species + "_run");
             }
             if (sheet == null) sheet = assetMap.get(species + "_walk");
             if (sheet == null) sheet = assetMap.get(species + "_west");
