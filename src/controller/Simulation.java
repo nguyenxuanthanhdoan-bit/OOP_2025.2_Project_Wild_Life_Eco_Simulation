@@ -43,7 +43,7 @@ public class Simulation {
     }
 
     private void initMap() {
-        this.gameMap = new GameMap("resources/map/map.tmx");
+        this.gameMap = new GameMap("resources/map/map2.tmx");
         this.renderSystem.setGameMap(this.gameMap);
         this.world.setGameMap(this.gameMap); 
 

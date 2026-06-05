@@ -153,22 +153,20 @@ public class World {
         }
 
         // Kiểm tra địa hình nước đối với động vật trên cạn
-        if (entity instanceof model.living_beings.LivingBeing) {
-            if (gameMap != null) {
-                // Thêm 1 khoảng đệm (padding) để thỏ quay đầu sớm hơn khi đến gần mép nước.
-                // Do viền đa giác OCEAN/LAKE trên Tiled có thể không khớp 100% với viền ảnh.
-                float safeDistance = margin + 15.0f; // Cách thêm 15 pixels để đảm bảo an toàn tuyệt đối
-
-                boolean nearWater = gameMap.isPositionInWater(pos.x, pos.y) ||
-                                    gameMap.isPositionInWater(pos.x - safeDistance, pos.y) ||
-                                    gameMap.isPositionInWater(pos.x + safeDistance, pos.y) ||
-                                    gameMap.isPositionInWater(pos.x, pos.y - safeDistance) ||
-                                    gameMap.isPositionInWater(pos.x, pos.y + safeDistance);
-                
-                if (nearWater) {
-                    return false;
-                }
+        if (gameMap != null) {
+            // Nếu động vật đứng trên cầu -> luôn cho phép, dù xung quanh là nước
+            if (gameMap.isBridgeTile(pos.x, pos.y)) {
+                return true;
             }
+
+            // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
+            float m = entity.getSize() / 2;
+            boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
+                              gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
+                              gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
+                              gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
+                              gameMap.isPositionInWater(pos.x + m, pos.y + m);
+            if (inWater) return false;
         }
 
 

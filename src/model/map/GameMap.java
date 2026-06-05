@@ -51,6 +51,11 @@ public class GameMap {
     }
     private List<MapPolygonObject> biomePolygons = new ArrayList<>();
 
+    // [MỚI] Lưu tên của từng tile layer theo thứ tự để nhận biết loại địa hình
+    private List<String> layerNames = new ArrayList<>();
+    // Index của layer Water (-1 nếu không tìm thấy)
+    private int waterLayerIndex = -1;
+
     public GameMap(String tmxPath) {
         loadMapFromTmx(tmxPath);
     }
@@ -87,71 +92,101 @@ public class GameMap {
             // Sắp xếp tilesets theo firstgid giảm dần để dễ dàng tra cứu
             tilesets.sort((t1, t2) -> Integer.compare(t2.firstgid, t1.firstgid));
 
-            // Đọc dữ liệu CSV của TẤT CẢ các layer
-            NodeList dataNodes = doc.getElementsByTagName("data");
-            for (int i = 0; i < dataNodes.getLength(); i++) {
-                Element dataElement = (Element) dataNodes.item(i);
-                String encoding = dataElement.getAttribute("encoding");
-                if ("csv".equals(encoding)) {
-                    int[][] layerGrid = new int[cols][rows];
-                    String csvData = dataElement.getTextContent().trim();
-                    String[] tokens = csvData.split(",");
-                    int index = 0;
-                    for (int y = 0; y < rows; y++) {
-                        for (int x = 0; x < cols; x++) {
-                            if (index < tokens.length) {
-                                long rawId = Long.parseLong(tokens[index].trim());
-                                layerGrid[x][y] = (int) rawId;
-                                index++;
+            // Đọc dữ liệu CSV của TẤT CẢ các tile layer
+            NodeList layerNodes = doc.getElementsByTagName("layer");
+            for (int i = 0; i < layerNodes.getLength(); i++) {
+                Element layerElement = (Element) layerNodes.item(i);
+                String layerName = layerElement.getAttribute("name");
+                layerNames.add(layerName);
+                
+                // Đánh dấu layer nước
+                if ("water".equalsIgnoreCase(layerName)) {
+                    waterLayerIndex = layersGrid.size(); // index sau khi add
+                }
+
+                NodeList dataList = layerElement.getElementsByTagName("data");
+                if (dataList.getLength() > 0) {
+                    Element dataElement = (Element) dataList.item(0);
+                    String encoding = dataElement.getAttribute("encoding");
+                    if ("csv".equals(encoding)) {
+                        int[][] layerGrid = new int[cols][rows];
+                        String csvData = dataElement.getTextContent().trim();
+                        String[] tokens = csvData.split(",");
+                        int index = 0;
+                        for (int y = 0; y < rows; y++) {
+                            for (int x = 0; x < cols; x++) {
+                                if (index < tokens.length) {
+                                    long rawId = Long.parseLong(tokens[index].trim());
+                                    layerGrid[x][y] = (int) rawId;
+                                    index++;
+                                }
                             }
                         }
+                        layersGrid.add(layerGrid);
+                    } else {
+                        // Layer không có data CSV (ví dụ layer hidden) -> vẫn add placeholder
+                        layersGrid.add(new int[cols][rows]);
                     }
-                    layersGrid.add(layerGrid);
+                } else {
+                    layersGrid.add(new int[cols][rows]);
                 }
             }
 
-            // [MỚI] Đọc các đa giác (Polygons) từ ObjectGroup "Biomes"
+            // Đọc các Object từ ObjectGroup (hỗ trợ cả tên "Biomes" và "Biome")
             NodeList objectGroupNodes = doc.getElementsByTagName("objectgroup");
             for (int i = 0; i < objectGroupNodes.getLength(); i++) {
                 Element groupElement = (Element) objectGroupNodes.item(i);
-                if ("Biomes".equals(groupElement.getAttribute("name"))) {
+                String groupName = groupElement.getAttribute("name");
+                if ("Biomes".equalsIgnoreCase(groupName) || "Biome".equalsIgnoreCase(groupName)) {
                     NodeList objectNodes = groupElement.getElementsByTagName("object");
                     for (int j = 0; j < objectNodes.getLength(); j++) {
                         Element objElement = (Element) objectNodes.item(j);
                         String type = objElement.getAttribute("type");
-                        float x = 0, y = 0;
+                        if (type == null || type.isEmpty()) {
+                            type = objElement.getAttribute("class"); // Tiled mới dùng 'class' thay 'type'
+                        }
                         float scaleX = 32.0f / mapTileWidth;
                         float scaleY = 32.0f / mapTileHeight;
-
+                        float x = 0, y = 0;
                         if (!objElement.getAttribute("x").isEmpty()) x = Float.parseFloat(objElement.getAttribute("x")) * scaleX;
                         if (!objElement.getAttribute("y").isEmpty()) y = Float.parseFloat(objElement.getAttribute("y")) * scaleY;
 
                         NodeList polygonNodes = objElement.getElementsByTagName("polygon");
+                        Path2D.Float polyPath = new Path2D.Float();
+
                         if (polygonNodes.getLength() > 0) {
+                            // Dạng đa giác (polygon)
                             Element polygonElement = (Element) polygonNodes.item(0);
                             String pointsStr = polygonElement.getAttribute("points");
                             String[] pointPairs = pointsStr.split(" ");
-                            Path2D.Float polyPath = new Path2D.Float();
                             boolean first = true;
                             for (String pair : pointPairs) {
                                 String[] coords = pair.split(",");
                                 if (coords.length == 2) {
                                     float px = x + Float.parseFloat(coords[0]) * scaleX;
                                     float py = y + Float.parseFloat(coords[1]) * scaleY;
-                                    if (first) {
-                                        polyPath.moveTo(px, py);
-                                        first = false;
-                                    } else {
-                                        polyPath.lineTo(px, py);
-                                    }
+                                    if (first) { polyPath.moveTo(px, py); first = false; }
+                                    else { polyPath.lineTo(px, py); }
                                 }
                             }
                             polyPath.closePath();
-                            MapPolygonObject polyObj = new MapPolygonObject();
-                            polyObj.type = type != null && !type.isEmpty() ? type : "UNKNOWN";
-                            polyObj.polygonPath = polyPath;
-                            biomePolygons.add(polyObj);
+                        } else {
+                            // Dạng hình chữ nhật (rectangle) - map2.tmx dùng loại này
+                            float w = 0, h = 0;
+                            if (!objElement.getAttribute("width").isEmpty()) w = Float.parseFloat(objElement.getAttribute("width")) * scaleX;
+                            if (!objElement.getAttribute("height").isEmpty()) h = Float.parseFloat(objElement.getAttribute("height")) * scaleY;
+                            polyPath.moveTo(x, y);
+                            polyPath.lineTo(x + w, y);
+                            polyPath.lineTo(x + w, y + h);
+                            polyPath.lineTo(x, y + h);
+                            polyPath.closePath();
                         }
+
+                        MapPolygonObject polyObj = new MapPolygonObject();
+                        // Map class/type từ Tiled sang tên nội bộ của game
+                        polyObj.type = mapBiomeType(type);
+                        polyObj.polygonPath = polyPath;
+                        biomePolygons.add(polyObj);
                     }
                 }
             }
@@ -160,6 +195,21 @@ public class GameMap {
             System.err.println("Không thể tải map TMX: " + path);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Map tên class/type từ Tiled sang tên chuẩn nội bộ của game.
+     * FOREST / DenseForest -> "FOREST"
+     * PLAIN / Grassland / Plain -> "PLAIN"
+     */
+    private String mapBiomeType(String rawType) {
+        if (rawType == null || rawType.isEmpty()) return "UNKNOWN";
+        String lower = rawType.toLowerCase();
+        if (lower.contains("forest") || lower.contains("dense")) return "FOREST";
+        if (lower.contains("plain") || lower.contains("grass") || lower.contains("land")) return "PLAIN";
+        if (lower.contains("ocean") || lower.contains("sea")) return "OCEAN";
+        if (lower.contains("lake") || lower.contains("water")) return "LAKE";
+        return rawType.toUpperCase();
     }
 
     public int getLayersCount() {
@@ -176,29 +226,67 @@ public class GameMap {
         return biomePolygons;
     }
 
+    /**
+     * Kiểm tra vị trí có phải là tile Cầu (Bridge) không.
+     * Nếu đúng thì động vật được phép đi qua dù xung quanh là nước.
+     */
+    public boolean isBridgeTile(float worldX, float worldY) {
+        int col = (int) (worldX / 32);
+        int row = (int) (worldY / 32);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+        for (int l = 0; l < layersGrid.size(); l++) {
+            String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
+            if (lName.contains("bridge")) {
+                if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Kiểm tra ô gạch tại vị trí thế giới có phải là nước hay không.
+     * Ưu tiên dùng layer có tên "Water" nếu tìm thấy.
+     * Nếu không có, fallback về cách kiểm tra tileId cũ (tương thích map.tmx).
+     */
     public boolean isWaterTile(float worldX, float worldY) {
         int col = (int) (worldX / 32);
         int row = (int) (worldY / 32);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return true; // ngoài map là nước để cấm đi
-        
-        // Kiểm tra lớp nền (Ground) - layer 0
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return true; // ngoài map là nước
+
+        // [MỚI] Nếu có layer Water rõ ràng -> quét từ trên xuống
+        if (waterLayerIndex >= 0 && waterLayerIndex < layersGrid.size()) {
+            int[][] waterLayer = layersGrid.get(waterLayerIndex);
+            boolean hasWaterTile = (waterLayer[col][row] & 0x0FFFFFFF) != 0;
+            if (!hasWaterTile) return false; // Ô đó không có gạch Water -> không phải nước
+
+            // Có gạch Water, nhưng kiểm tra xem layer Ground/Sand/Bridge có đè lên không
+            for (int l = 0; l < layersGrid.size(); l++) {
+                if (l == waterLayerIndex) continue;
+                String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
+                // Nếu layer Ground hoặc Sand hoặc Bridge có tile ở đây -> đây là đất
+                if (lName.contains("ground") || lName.contains("sand") || lName.contains("bridge")) {
+                    if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
+                        return false;
+                    }
+                }
+            }
+            return true; // Có nước, không có gì đè -> là nước
+        }
+
+        // Fallback: cách cũ cho map.tmx (dùng tileId cứng)
         int rawId0 = layersGrid.get(0)[col][row];
         int tileId0 = rawId0 & 0x0FFFFFFF;
         boolean isWater = (tileId0 == 1 || (tileId0 >= 20 && tileId0 <= 37));
-
         if (isWater) {
-            // Nếu nền là nước, kiểm tra xem các lớp Grass, Beach có đè lên không
             for (int l = 1; l < layersGrid.size(); l++) {
                 int rawId = layersGrid.get(l)[col][row];
                 if (rawId != 0) {
                     int tileId = rawId & 0x0FFFFFFF;
-                    // Các tile đất nền: Đường (2-19), Bãi biển (38-52), Cỏ/Cây (53-293)
-                    // Nếu gặp các tile này đè lên nước -> đây là đất
                     if ((tileId >= 2 && tileId <= 19) || (tileId >= 38 && tileId < 294)) {
-                        return false; 
+                        return false;
                     }
-                    // Tileset >= 294 là Sunnysideworld có thể chứa bóng râm (shadow),
-                    // nếu bóng râm đè lên nước thì đó vẫn là nước, không được phép đi.
                 }
             }
         }

@@ -12,7 +12,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 /**
- * Mục đích: Kiểm tra khả năng tìm nguồn nước và uống nước của động vật.
+ * Mục đích: Kiểm tra khả năng tìm nguồn     nước và uống nước của động vật.
  */
 public class ThirstTest extends JPanel {
 
