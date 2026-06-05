@@ -83,7 +83,7 @@ public class ScaredStrategy implements IStrategy {
         }
 
         Bush bestBush = null;
-        float maxDistToPredators = -1.0f;
+        float maxScore = -999999.0f;
 
         for (Bush bush : bushes) {
             // Nếu bụi cỏ đã có thú trốn bên trong (và đó không phải là chính mình) -> bỏ qua
@@ -95,8 +95,12 @@ public class ScaredStrategy implements IStrategy {
             for (Animal predator : predators) {
                 distToPredatorsForBush += bush.getPosition().distanceTo(predator.getPosition());
             }
-            if (distToPredatorsForBush > maxDistToPredators) {
-                maxDistToPredators = distToPredatorsForBush;
+            
+            float distToOwner = bush.getPosition().distanceTo(ownerAnimal.getPosition());
+            float score = distToPredatorsForBush - distToOwner * 2.0f; // Trừ điểm nặng nếu bụi ở xa
+
+            if (score > maxScore) {
+                maxScore = score;
                 bestBush = bush;
             }
         }

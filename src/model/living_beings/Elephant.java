@@ -16,9 +16,9 @@ public class Elephant extends HerbivoreAnimal {
     private int herdId = 1;
     private static final double MAX_HEALTH         = 500.0;
     private static final double MAX_HUNGER         = 300.0;
-    private static final double HUNGER_DECAY_RATE  = 3.0;
+    private static final double HUNGER_DECAY_RATE  = 0.8;
     private static final double MAX_THIRST         = 250.0;
-    private static final double THIRST_DECAY_RATE  = 2.5;
+    private static final double THIRST_DECAY_RATE  = 0.6;
     private static final double MAX_AGE            = 3600.0;
     private static final double VISION_RANGE       = 350.0;
 

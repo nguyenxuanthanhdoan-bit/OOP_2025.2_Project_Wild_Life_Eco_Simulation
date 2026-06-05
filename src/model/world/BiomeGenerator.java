@@ -183,7 +183,21 @@ public class BiomeGenerator {
             float x = (float) (bounds.getX() + rand.nextDouble() * bounds.getWidth());
             float y = (float) (bounds.getY() + rand.nextDouble() * bounds.getHeight());
             if (selectedPoly.polygonPath.contains(x, y)) {
-                if (gameMap != null && !gameMap.isPositionInWater(x, y)) {
+                if (gameMap != null) {
+                    float m = 32.0f; // Khoảng cách an toàn tới mép nước (32px = 1 tile)
+                    boolean isSafe = !gameMap.isPositionInWater(x, y) &&
+                                     !gameMap.isPositionInWater(x - m, y) &&
+                                     !gameMap.isPositionInWater(x + m, y) &&
+                                     !gameMap.isPositionInWater(x, y - m) &&
+                                     !gameMap.isPositionInWater(x, y + m) &&
+                                     !gameMap.isPositionInWater(x - m, y - m) &&
+                                     !gameMap.isPositionInWater(x + m, y - m) &&
+                                     !gameMap.isPositionInWater(x - m, y + m) &&
+                                     !gameMap.isPositionInWater(x + m, y + m);
+                    if (isSafe) {
+                        return new Vector2(x, y);
+                    }
+                } else {
                     return new Vector2(x, y);
                 }
             }

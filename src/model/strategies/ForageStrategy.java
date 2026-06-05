@@ -95,7 +95,7 @@ public class ForageStrategy implements IStrategy {
                 ownerAnimal.drink();
                 return;
             } else {
-                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.5f);
+                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.1f);
 
                 // Tìm ô nước gần nhất trong phạm vi lớn
                 Vector2 bestWaterPos = null;
@@ -189,7 +189,7 @@ public class ForageStrategy implements IStrategy {
                         ownerAnimal.eatMeat((model.items.FoodSource) targetFood);
                     }
                 } else {
-                    ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.5f);
+                    ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.1f);
                     Vector2 desiredDir = targetFood.getPosition().copy().subtract(ownerAnimal.getPosition());
                     if (desiredDir.lengthSquared() > 0) {
                         desiredDir.normalize();

@@ -15,9 +15,9 @@ public class Rabbit extends HerbivoreAnimal {
     private static final float  BASE_SPEED        = GameConfig.getInstance().RABBIT_BASE_SPEED;
     private static final double MAX_HEALTH        = 50.0;
     private static final double MAX_HUNGER        = 100.0;
-    private static final double HUNGER_DECAY_RATE = 2.0;
+    private static final double HUNGER_DECAY_RATE = 0.5;
     private static final double MAX_THIRST        = 100.0;
-    private static final double THIRST_DECAY_RATE = 3.0;
+    private static final double THIRST_DECAY_RATE = 0.8;
     private static final double MAX_AGE           = 900.0; // 20% = 180s = 3 phút để trưởng thành
     private static final double VISION_RANGE      = 200.0;
 

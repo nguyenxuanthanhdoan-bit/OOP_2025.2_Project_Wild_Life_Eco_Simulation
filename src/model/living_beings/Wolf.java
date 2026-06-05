@@ -16,11 +16,11 @@ public class Wolf extends CarnivoreAnimal {
         this.health = this.maxHealth;
         this.maxHunger = 120.0f;
         this.hunger = this.maxHunger;
-        this.hungerDecayRate = 1.8f;
+        this.hungerDecayRate = 0.5f;
         this.maxThirst = 100.0f;
         this.visionRange = 450.0;
         this.thirst = this.maxThirst;
-        this.thirstDecayRate = 2.5f;
+        this.thirstDecayRate = 0.6f;
         this.maxAge = 450.0f;
 
         // Sói có thể đi săn hoặc đi theo bầy (Hunter / Flocking)
