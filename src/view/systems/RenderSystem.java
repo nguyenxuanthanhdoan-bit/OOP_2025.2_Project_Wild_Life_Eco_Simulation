@@ -34,6 +34,9 @@ public class RenderSystem {
 
     private GameMap gameMap;
     private final int TILE_SIZE = 32;
+    private static final int MINIMAP_MARGIN = 14;
+    private static final int MINIMAP_SIZE = 190;
+    private static final float STATUS_BAR_MIN_ZOOM = 0.65f;
 
     public RenderSystem(Camera camera) {
         this.camera = camera;
@@ -175,6 +178,8 @@ public class RenderSystem {
         for (Entity e : groundLayer) renderEntity(e, g2d);
         for (Entity e : animalLayer) renderEntity(e, g2d);
         for (Entity e : topLayer) renderEntity(e, g2d);
+
+        renderMiniMap(world, g2d);
     }
 
     private void renderMap(Graphics2D g2d) {
@@ -273,8 +278,9 @@ public class RenderSystem {
 
                 drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
 
-                    int barW = (int)(25 * zoom);
-                    int barH = Math.max(3, (int)(4 * zoom));
+                if (zoom >= STATUS_BAR_MIN_ZOOM) {
+                    int barW = Math.max(30, (int)(42 * zoom));
+                    int barH = Math.max(2, Math.min(5, Math.round(2.4f * zoom)));
                     int barX = (int)screenPos.x - barW / 2;
                     int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
 
@@ -296,6 +302,7 @@ public class RenderSystem {
                     g2d.setColor(new java.awt.Color(60, 140, 240));
                     int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
                     if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
+                }
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
@@ -313,6 +320,82 @@ public class RenderSystem {
         } else {
             minimalRenderer.renderEntity(e, g2d);
         }
+    }
+
+    private void renderMiniMap(World world, Graphics2D g2d) {
+        if (world == null || gameMap == null) return;
+
+        Rectangle clip = g2d.getClipBounds();
+        float screenW = (clip != null) ? clip.width : 800;
+        float screenH = (clip != null) ? clip.height : 600;
+        float worldW = gameMap.getCols() * TILE_SIZE;
+        float worldH = gameMap.getRows() * TILE_SIZE;
+        if (worldW <= 0 || worldH <= 0) return;
+
+        int mapW = MINIMAP_SIZE;
+        int mapH = Math.max(80, Math.round(MINIMAP_SIZE * (worldH / worldW)));
+        int x0 = MINIMAP_MARGIN;
+        int y0 = MINIMAP_MARGIN;
+
+        Graphics2D g = (Graphics2D) g2d.create();
+        Composite oldComposite = g.getComposite();
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.88f));
+        g.setColor(new Color(18, 24, 28, 215));
+        g.fillRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
+
+        for (int tx = 0; tx < gameMap.getCols(); tx++) {
+            for (int ty = 0; ty < gameMap.getRows(); ty++) {
+                float wx = tx * TILE_SIZE + TILE_SIZE / 2.0f;
+                float wy = ty * TILE_SIZE + TILE_SIZE / 2.0f;
+                if (gameMap.isBridgeTile(wx, wy)) {
+                    g.setColor(new Color(154, 105, 72));
+                } else if (gameMap.isPositionInWater(wx, wy)) {
+                    g.setColor(new Color(18, 145, 207));
+                } else if (gameMap.isGroundTile(wx, wy)) {
+                    g.setColor(new Color(63, 134, 70));
+                } else {
+                    g.setColor(new Color(184, 148, 96));
+                }
+
+                int px = x0 + Math.round((tx / (float) gameMap.getCols()) * mapW);
+                int py = y0 + Math.round((ty / (float) gameMap.getRows()) * mapH);
+                int pw = Math.max(1, (int) Math.ceil(mapW / (float) gameMap.getCols()));
+                int ph = Math.max(1, (int) Math.ceil(mapH / (float) gameMap.getRows()));
+                g.fillRect(px, py, pw, ph);
+            }
+        }
+
+        drawMiniMapCameraFrame(g, x0, y0, mapW, mapH, worldW, worldH, screenW, screenH);
+
+        g.setComposite(oldComposite);
+        g.setColor(new Color(235, 245, 250, 220));
+        g.drawRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
+        g.dispose();
+    }
+
+    private void drawMiniMapCameraFrame(Graphics2D g, int x0, int y0, int mapW, int mapH,
+                                        float worldW, float worldH, float screenW, float screenH) {
+        Vector2 camPos = camera.getPosition();
+        float zoom = camera.getZoomLevel();
+        float viewW = screenW / zoom;
+        float viewH = screenH / zoom;
+
+        int frameX = x0 + Math.round((camPos.x / worldW) * mapW);
+        int frameY = y0 + Math.round((camPos.y / worldH) * mapH);
+        int frameW = Math.max(4, Math.round((viewW / worldW) * mapW));
+        int frameH = Math.max(4, Math.round((viewH / worldH) * mapH));
+
+        if (frameX < x0) frameX = x0;
+        if (frameY < y0) frameY = y0;
+        if (frameX + frameW > x0 + mapW) frameW = x0 + mapW - frameX;
+        if (frameY + frameH > y0 + mapH) frameH = y0 + mapH - frameY;
+
+        g.setStroke(new BasicStroke(2.0f));
+        g.setColor(new Color(255, 255, 255, 235));
+        g.drawRect(frameX, frameY, frameW, frameH);
+        g.setStroke(new BasicStroke(1.0f));
+        g.setColor(new Color(20, 30, 38, 230));
+        g.drawRect(frameX + 1, frameY + 1, Math.max(1, frameW - 2), Math.max(1, frameH - 2));
     }
 
     /**
