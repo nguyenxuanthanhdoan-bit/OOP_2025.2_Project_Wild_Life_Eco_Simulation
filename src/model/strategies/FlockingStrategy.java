@@ -4,6 +4,7 @@ import core.Vector2;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
 import model.living_beings.DietType;
+import model.navigation.PathNavigator;
 import model.world.World;
 import model.entity.Entity;
 import java.util.List;
@@ -14,6 +15,7 @@ public class FlockingStrategy extends PassiveStrategy {
     protected float alignmentWeight = 1.0f;
     protected float cohesionWeight = 1.0f;
     protected final PassiveStrategy wanderDelegate = new PassiveStrategy();
+    protected final PathNavigator flockNavigator = new PathNavigator();
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -66,9 +68,11 @@ public class FlockingStrategy extends PassiveStrategy {
             }
             cohesion.add(other.getPosition());
             
-            // Alignment based on facing direction
-            if (other.isFacingRight()) alignment.x += 1;
-            else alignment.x -= 1;
+            Vector2 otherVelocity = other.getCurrentVelocity();
+            if (otherVelocity.lengthSquared() > 1.0f) {
+                otherVelocity.normalize();
+                alignment.add(otherVelocity);
+            }
             
             count++;
         }
@@ -91,18 +95,17 @@ public class FlockingStrategy extends PassiveStrategy {
         if (moveDir.lengthSquared() > 0) {
             moveDir.normalize();
             
-            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world, moveDir);
             if (avoidance.lengthSquared() > 0) {
                 moveDir.add(avoidance);
                 if (moveDir.lengthSquared() > 0) moveDir.normalize();
             }
 
-            if (moveDir.x > 0) ownerAnimal.setFacingRight(true);
-            else if (moveDir.x < 0) ownerAnimal.setFacingRight(false);
-            
             ownerAnimal.setActionState("idle"); // Will be mapped to walk
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
-            ownerAnimal.move(moveDir, deltaTime);
+            Vector2 flockTarget = ownerAnimal.getPosition().copy().add(moveDir.copy().scale(160.0f));
+            clampToWorld(flockTarget, ownerAnimal, world);
+            flockNavigator.moveTo(ownerAnimal, world, flockTarget, deltaTime, 18.0f, 1.5f);
         } else {
             wanderDelegate.execute(owner, world, deltaTime);
         }
@@ -126,6 +129,12 @@ public class FlockingStrategy extends PassiveStrategy {
     @Override
     public String getName() {
         return "Flocking";
+    }
+
+    protected void clampToWorld(Vector2 target, Animal owner, World world) {
+        float margin = owner.getSize() / 2;
+        target.x = Math.max(margin, Math.min(world.getWidth() - margin, target.x));
+        target.y = Math.max(margin, Math.min(world.getHeight() - margin, target.y));
     }
 
     // ==========================================
@@ -191,21 +200,28 @@ public class FlockingStrategy extends PassiveStrategy {
                 if (dir.lengthSquared() > 0) {
                     dir.normalize();
                     
-                    Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(owner, world);
+                    Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(owner, world, dir);
                     if (avoidance.lengthSquared() > 0) {
                         dir.add(avoidance);
                         if (dir.lengthSquared() > 0) dir.normalize();
                     }
                     
-                    if (dir.x > 0) owner.setFacingRight(true);
-                    else if (dir.x < 0) owner.setFacingRight(false);
                     owner.setActionState("idle");
                     owner.setSpeed(owner.getBaseSpeed());
-                    owner.move(dir, deltaTime);
+                    Vector2 target = owner.getPosition().copy().add(dir.copy().scale(160.0f));
+                    clampToWorld(target, owner, world);
+                    flockNavigator.moveTo(owner, world, target, deltaTime, 18.0f, 1.0f);
                 }
                 return true; // handled
             }
             return false;
         }
+    }
+
+    @Override
+    public void forceStateChange() {
+        super.forceStateChange();
+        wanderDelegate.forceStateChange();
+        flockNavigator.clear();
     }
 }

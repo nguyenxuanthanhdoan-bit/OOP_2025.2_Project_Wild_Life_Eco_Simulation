@@ -234,9 +234,41 @@ public class GameMap {
         int col = (int) (worldX / 32);
         int row = (int) (worldY / 32);
         if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+        return hasTileOnLayer(col, row, "bridge");
+    }
+
+    public boolean isGroundTile(float worldX, float worldY) {
+        int col = (int) (worldX / 32);
+        int row = (int) (worldY / 32);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+        return hasTileOnLayer(col, row, "ground");
+    }
+
+    public boolean isValidGroundSpawnPosition(float worldX, float worldY, float margin) {
+        return isGroundTile(worldX, worldY) &&
+               isGroundTile(worldX - margin, worldY) &&
+               isGroundTile(worldX + margin, worldY) &&
+               isGroundTile(worldX, worldY - margin) &&
+               isGroundTile(worldX, worldY + margin) &&
+               isGroundTile(worldX - margin, worldY - margin) &&
+               isGroundTile(worldX + margin, worldY - margin) &&
+               isGroundTile(worldX - margin, worldY + margin) &&
+               isGroundTile(worldX + margin, worldY + margin) &&
+               !isPositionInWater(worldX, worldY) &&
+               !isPositionInWater(worldX - margin, worldY) &&
+               !isPositionInWater(worldX + margin, worldY) &&
+               !isPositionInWater(worldX, worldY - margin) &&
+               !isPositionInWater(worldX, worldY + margin) &&
+               !isPositionInWater(worldX - margin, worldY - margin) &&
+               !isPositionInWater(worldX + margin, worldY - margin) &&
+               !isPositionInWater(worldX - margin, worldY + margin) &&
+               !isPositionInWater(worldX + margin, worldY + margin);
+    }
+
+    private boolean hasTileOnLayer(int col, int row, String layerNamePart) {
         for (int l = 0; l < layersGrid.size(); l++) {
             String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-            if (lName.contains("bridge")) {
+            if (lName.contains(layerNamePart)) {
                 if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
                     return true;
                 }

@@ -3,6 +3,7 @@ package model.living_beings;
 import core.Vector2;
 import model.plants.Fruit;
 import model.plants.Grass;
+import model.plants.Mushroom;
 import model.plants.Plant;
 
 /**
@@ -44,13 +45,21 @@ public abstract class HerbivoreAnimal extends Animal {
     @Override
     public void eat(Plant food) {
         if (!alive || food == null || !food.isAlive()) return;
+        if (!canEatPlant(food)) return;
 
         if (food instanceof Grass) {
             eatGrass((Grass) food);
         } else if (food instanceof Fruit) {
             eatFruit((Fruit) food);
+        } else if (food instanceof Mushroom) {
+            eatPlant(food);
         }
         // Các loại Plant khác bị bỏ qua mặc định
+    }
+
+    @Override
+    public boolean canEatPlant(Plant food) {
+        return food instanceof Grass || food instanceof Fruit || food instanceof Mushroom;
     }
 
     /**
@@ -62,8 +71,6 @@ public abstract class HerbivoreAnimal extends Animal {
         if (!alive || grass == null || !grass.isAlive()) return;
         this.hunger = Math.min(this.maxHunger, this.hunger + grass.getNutritionValue());
         grass.setAlive(false);
-        System.out.printf("[%s] ăn Grass → đói: %.1f/%.1f%n",
-                speciesName, hunger, maxHunger);
     }
 
     /**
@@ -77,7 +84,11 @@ public abstract class HerbivoreAnimal extends Animal {
         if (!alive || fruit == null || !fruit.isAlive()) return;
         this.hunger = Math.min(this.maxHunger, this.hunger + fruit.getNutritionValue());
         fruit.setAlive(false);
-        System.out.printf("[%s] ăn Fruit → đói: %.1f/%.1f%n",
-                speciesName, hunger, maxHunger);
+    }
+
+    protected void eatPlant(Plant plant) {
+        if (!alive || plant == null || !plant.isAlive()) return;
+        this.hunger = Math.min(this.maxHunger, this.hunger + plant.getNutritionValue());
+        plant.setAlive(false);
     }
 }

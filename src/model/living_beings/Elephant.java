@@ -1,14 +1,12 @@
 package model.living_beings;
 
 import core.DisplayMode;
-import core.GameConfig;
 import core.Vector2;
 import model.plants.Fruit;
 import model.plants.Grass;
+import model.plants.Mushroom;
 import model.plants.Plant;
 import model.strategies.FlockingStrategy;
-import model.strategies.PassiveStrategy;
-import java.util.Random;
 
 public class Elephant extends HerbivoreAnimal {
     private static final float  SIZE               = 50.0f;
@@ -21,8 +19,6 @@ public class Elephant extends HerbivoreAnimal {
     private static final double THIRST_DECAY_RATE  = 0.6;
     private static final double MAX_AGE            = 3600.0;
     private static final double VISION_RANGE       = 350.0;
-
-    private final Random random = new Random();
 
     public Elephant(Vector2 position, int herdId) {
         this(position);
@@ -42,8 +38,22 @@ public class Elephant extends HerbivoreAnimal {
         this.thirstDecayRate  = THIRST_DECAY_RATE;
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
+        // Không set cứng Strategy — để decideActiveStrategy tự quyết định
+    }
 
-        this.setStrategy(new FlockingStrategy.ElephantFlock());
+    @Override
+    protected boolean useFlocking() {
+        return true; // Voi đi theo bầy
+    }
+
+    @Override
+    protected FlockingStrategy createFlockingStrategy() {
+        return new FlockingStrategy.ElephantFlock();
+    }
+
+    @Override
+    public int getEntityLevel() {
+        return LEVEL_APEX_ANIMAL;
     }
 
     @Override
@@ -52,8 +62,7 @@ public class Elephant extends HerbivoreAnimal {
         baby.age = 0;
         baby.size = SIZE * 0.5f; // 50% kích thước
         baby.setAdult(false);
-        // Con non chỉ sử dụng PassiveStrategy
-        baby.setStrategy(new PassiveStrategy());
+        // Không set cứng
         return baby;
     }
 
@@ -65,18 +74,20 @@ public class Elephant extends HerbivoreAnimal {
     @Override
     public void eat(Plant food) {
         if (!alive) return;
-        if (food instanceof Grass || food instanceof Fruit) {
-            super.eat(food);
-        }
+        super.eat(food);
+    }
+
+    @Override
+    public boolean canEatPlant(Plant food) {
+        return food instanceof Grass || food instanceof Fruit || food instanceof Mushroom;
     }
 
     @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
         
-        // Cập nhật strategy khi trưởng thành
-        if (this.adult && this.currentStrategy instanceof PassiveStrategy && this.age > 0) {
-            this.setStrategy(new FlockingStrategy.ElephantFlock());
+        // Cập nhật kích thước khi trưởng thành, không reset strategy mỗi frame.
+        if (this.adult && this.age > 0) {
             this.size = SIZE;
         }
     }

@@ -3,13 +3,13 @@ package model.living_beings;
 import core.Vector2;
 import core.GameConfig;
 import core.DisplayMode;
-import model.strategies.HunterStrategy;
-import model.strategies.FlockingStrategy;
 
 public class Wolf extends CarnivoreAnimal {
+    private static final float SIZE = 28.0f;
+    private static final float BASE_SPEED = GameConfig.getInstance().WOLF_BASE_SPEED;
 
     public Wolf(Vector2 position) {
-        super(position, 28.0f, GameConfig.getInstance().WOLF_BASE_SPEED);
+        super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Sói";
         this.maxHealth = 150.0f;
@@ -23,13 +23,17 @@ public class Wolf extends CarnivoreAnimal {
         this.thirstDecayRate = 0.6f;
         this.maxAge = 450.0f;
 
-        // Sói có thể đi săn hoặc đi theo bầy (Hunter / Flocking)
-        this.setStrategy(new HunterStrategy());
+        // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định
+        // Sói đi săn khi đói (HunterStrategy), đi dạo/bầy đàn khi no
     }
 
     @Override
     public Animal reproduce() {
-        return null;
+        Wolf baby = new Wolf(this.getPosition().copy());
+        baby.setAge(0);
+        baby.size = SIZE * 0.5f;
+        baby.setAdult(false);
+        return baby;
     }
 
     @Override
@@ -46,7 +50,7 @@ public class Wolf extends CarnivoreAnimal {
     private void updateAnimation() {
         if ("attack".equals(this.actionState)) {
             this.imageVariant = "west.png"; // Yêu cầu: "Wolf: west.png vì chưa có frame attack"
-        } else if ("run".equals(this.actionState)) {
+        } else if (this.isMoving && ("run".equals(this.actionState) || this.speed > this.baseSpeed * 1.1f)) {
             this.imageVariant = "run.png";
         } else if (this.isMoving) {
             this.imageVariant = "walk.png";

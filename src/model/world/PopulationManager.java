@@ -56,7 +56,7 @@ public class PopulationManager {
             float x = 200 + rand.nextFloat() * (world.getWidth() - 400);
             float y = 200 + rand.nextFloat() * (world.getHeight() - 400);
             
-            if (world.isPositionInWater(x, y)) continue;
+            if (!world.isValidGroundSpawnPosition(x, y, 32.0f)) continue;
             
             boolean safe = true;
             if (world.getSpatialGrid() != null) {
@@ -78,12 +78,20 @@ public class PopulationManager {
             pos = new Vector2(world.getWidth() / 2, world.getHeight() / 2);
         }
         
+        Animal animal = null;
         switch (species) {
-            case "Thỏ": world.addEntity(new Rabbit(pos)); break;
-            case "Hươu": world.addEntity(new Deer(pos)); break;
-            case "Voi": world.addEntity(new Elephant(pos)); break;
-            case "Sói": world.addEntity(new Wolf(pos)); break;
-            case "Hổ": world.addEntity(new Tiger(pos)); break;
+            case "Thỏ": animal = new Rabbit(pos); break;
+            case "Hươu": animal = new Deer(pos); break;
+            case "Voi": animal = new Elephant(pos); break;
+            case "Sói": animal = new Wolf(pos); break;
+            case "Hổ": animal = new Tiger(pos); break;
+        }
+
+        if (animal != null) {
+            double ageRatio = 0.25 + rand.nextDouble() * 0.4; // 25% - 65% vòng đời
+            animal.setAge(animal.getMaxAge() * ageRatio);
+            animal.setAdult(true);
+            world.addEntity(animal);
         }
     }
 }

@@ -5,67 +5,24 @@ import model.entity.Entity;
 import model.living_beings.Animal;
 import model.living_beings.DietType;
 import model.living_beings.LivingBeing;
+import model.navigation.PathNavigator;
+import model.navigation.PathNavigator.MovementContext;
+import model.navigation.TerrainNavigator;
 import model.world.World;
 import model.plants.Grass;
 import model.plants.Fruit;
 import model.plants.Mushroom;
-import model.items.Meat;
+import model.items.Carcass;
+import model.items.FoodSource;
 import java.util.List;
 
 public class ForageStrategy implements IStrategy {
+    private static final float UNSAFE_FOOD_MEMORY_DURATION = 18.0f;
+    private static final float FOOD_DANGER_RADIUS = 170.0f;
+
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
-
-    /**
-     * [MỚI] Obstacle Avoidance Steering.
-     * Phát hiện vật cản cứng (cây) trong phạm vi gần và tạo lực đẩy ra khỏi chúng.
-     * Kết hợp lực đẩy này với hướng di chuyển mong muốn để lách qua cây.
-     */
-    private Vector2 steer(Vector2 desiredDir, Animal animal, World world) {
-        if (world.getSpatialGrid() == null) return desiredDir;
-
-        Vector2 avoidForce = new Vector2(0, 0);
-        int obstacleCount = 0;
-
-        // Quét vật cản trong phạm vi = kích thước bản thân + kích thước cây + buffer
-        float scanRadius = animal.getSize() / 2 + 150.0f;
-        List<Entity> nearby = world.getSpatialGrid().getNeighbors(animal.getPosition(), scanRadius);
-
-        for (Entity e : nearby) {
-            if (!e.isSolid() || !e.isAlive() || e == animal) continue;
-
-            Vector2 toObstacle = e.getPosition().copy().subtract(animal.getPosition());
-            float dist = toObstacle.length();
-            if (dist < 0.01f) continue;
-
-            // Ngưỡng tạo lực: tổng 2 bán kính + 80px buffer
-            float threshold = animal.getSize() / 2 + e.getSize() / 2 + 80.0f;
-
-            if (dist < threshold) {
-                // Lực đẩy: mạnh dần khi tiến gần (quadratic)
-                float t = 1.0f - (dist / threshold);
-                float strength = t * t * 3.0f;
-                // Hướng đẩy = ngược chiều từ vật cản về con vật
-                avoidForce.x -= (toObstacle.x / dist) * strength;
-                avoidForce.y -= (toObstacle.y / dist) * strength;
-                obstacleCount++;
-            }
-        }
-
-        if (obstacleCount == 0) return desiredDir;
-
-        // Kết hợp hướng mong muốn + lực né vật cản
-        Vector2 result = new Vector2(
-            desiredDir.x + avoidForce.x,
-            desiredDir.y + avoidForce.y
-        );
-        if (result.lengthSquared() > 0.0001f) {
-            result.normalize();
-        } else {
-            // Nếu lực đẩy triệt tiêu hoàn toàn hướng mong muốn, đi vuông góc
-            result = new Vector2(-desiredDir.y, desiredDir.x);
-        }
-        return result;
-    }
+    private final PathNavigator waterNavigator = new PathNavigator();
+    private final PathNavigator foodNavigator = new PathNavigator();
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -88,55 +45,35 @@ public class ForageStrategy implements IStrategy {
             }
         }
 
+        // Tốc độ động: càng đói/khát thì đi càng nhanh
+        double minRatio = Math.min(
+            ownerAnimal.getThirst() / ownerAnimal.getMaxThirst(),
+            ownerAnimal.getHunger() / ownerAnimal.getMaxHunger()
+        );
+        float speedMult = (minRatio < 0.1) ? 1.5f : (minRatio < 0.3) ? 1.3f : 1.1f;
+
         // Ưu tiên 1: Nước (nếu khát)
         if (needsWater) {
             if (ownerAnimal.isNearWater()) {
                 ownerAnimal.setSpeed(0);
+                ownerAnimal.setActionState("drink");
                 ownerAnimal.drink();
+                waterNavigator.clear();
                 return;
             } else {
-                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.1f);
+                ownerAnimal.setActionState("idle");
+                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * speedMult);
 
-                // Tìm ô nước gần nhất trong phạm vi lớn
-                Vector2 bestWaterPos = null;
-                float closestDistSq = Float.MAX_VALUE;
-
-                float searchRadius = 1200.0f;
-                int steps = 24; // Nhiều góc quét hơn để tìm hồ chính xác hơn
-
-                for (int i = 0; i < steps; i++) {
-                    float angle = (float) (i * 2 * Math.PI / steps);
-                    for (float r = 50.0f; r <= searchRadius; r += 50.0f) {
-                        float cx = ownerAnimal.getPosition().x + (float)Math.cos(angle) * r;
-                        float cy = ownerAnimal.getPosition().y + (float)Math.sin(angle) * r;
-
-                        if (world.isPositionInWater(cx, cy)) {
-                            float distSq = ownerAnimal.getPosition().distanceSquared(new Vector2(cx, cy));
-                            if (distSq < closestDistSq) {
-                                closestDistSq = distSq;
-                                bestWaterPos = new Vector2(cx, cy);
-                            }
-                            break;
-                        }
+                Vector2 shorePoint = TerrainNavigator.findNearestShorePoint(ownerAnimal, world, 1200.0f);
+                if (shorePoint != null) {
+                    waterNavigator.moveTo(ownerAnimal, world, shorePoint, deltaTime,
+                            ownerAnimal.getSize() / 2 + 20.0f, 1.25f, MovementContext.SEEKING_WATER);
+                    if (ownerAnimal.isNearWater()) {
+                        ownerAnimal.setSpeed(0);
+                        ownerAnimal.setActionState("drink");
+                        ownerAnimal.drink();
+                        waterNavigator.clear();
                     }
-                }
-
-                Vector2 desiredDir;
-                if (bestWaterPos != null) {
-                    desiredDir = bestWaterPos.subtract(ownerAnimal.getPosition());
-                } else {
-                    // Dự phòng: đi về tâm bản đồ
-                    Vector2 center = new Vector2(world.getWidth() / 2.0f, world.getHeight() / 2.0f);
-                    desiredDir = center.subtract(ownerAnimal.getPosition());
-                }
-
-                if (desiredDir.lengthSquared() > 0) {
-                    desiredDir.normalize();
-                    // [QUAN TRỌNG] Áp dụng lực né cây trước khi di chuyển
-                    Vector2 finalDir = steer(desiredDir, ownerAnimal, world);
-                    if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-                    else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
-                    ownerAnimal.move(finalDir, deltaTime);
                 }
                 return;
             }
@@ -152,24 +89,30 @@ public class ForageStrategy implements IStrategy {
 
             for (Entity neighbor : neighbors) {
                 if (!neighbor.isAlive()) continue;
+                if (ownerAnimal.isFoodMarkedUnsafe(neighbor)) continue;
 
                 int priority = 0;
                 if (ownerAnimal.getDietType() == DietType.HERBIVORE) {
-                    if (neighbor instanceof Fruit) priority = 3;
-                    else if (neighbor instanceof Mushroom) priority = 2;
-                    else if (neighbor instanceof Grass) priority = 1;
+                    if (neighbor instanceof Fruit && ownerAnimal.canEatPlant((Fruit) neighbor)) priority = 3;
+                    else if (neighbor instanceof Mushroom && ownerAnimal.canEatPlant((Mushroom) neighbor)) priority = 2;
+                    else if (neighbor instanceof Grass && ownerAnimal.canEatPlant((Grass) neighbor)) priority = 1;
                 } else if (ownerAnimal.getDietType() == DietType.CARNIVORE) {
-                    if (neighbor instanceof Meat) priority = 3;
-                    else if (neighbor instanceof Fruit) priority = 2;
-                    else if (neighbor instanceof Mushroom) priority = 1;
+                    // Thú ăn thịt CHỈ ăn thịt — ForageStrategy không tìm con mồi sống
+                    // (việc đó là của HunterStrategy)
+                    if (neighbor instanceof FoodSource && canEatMeatSource(ownerAnimal, (FoodSource) neighbor)) priority = 1;
                 } else if (ownerAnimal.getDietType() == DietType.OMNIVORE) {
-                    if (neighbor instanceof Meat) priority = 4;
-                    else if (neighbor instanceof Fruit) priority = 3;
-                    else if (neighbor instanceof Mushroom) priority = 2;
-                    else if (neighbor instanceof Grass) priority = 1;
+                    if (neighbor instanceof FoodSource && canEatMeatSource(ownerAnimal, (FoodSource) neighbor)) priority = 4;
+                    else if (neighbor instanceof Fruit && ownerAnimal.canEatPlant((Fruit) neighbor)) priority = 3;
+                    else if (neighbor instanceof Mushroom && ownerAnimal.canEatPlant((Mushroom) neighbor)) priority = 2;
+                    else if (neighbor instanceof Grass && ownerAnimal.canEatPlant((Grass) neighbor)) priority = 1;
                 }
 
                 if (priority > 0) {
+                    if (isFoodLocationDangerous(ownerAnimal, world, neighbor)) {
+                        ownerAnimal.markFoodUnsafe(neighbor, UNSAFE_FOOD_MEMORY_DURATION);
+                        continue;
+                    }
+
                     float dist = ownerAnimal.getPosition().distanceTo(neighbor.getPosition());
                     float score = dist - (priority * 60.0f);
                     if (score < bestScore) {
@@ -183,22 +126,16 @@ public class ForageStrategy implements IStrategy {
                 float eatRange = ownerAnimal.getSize() / 2 + targetFood.getSize() / 2 - 2.0f;
                 if (ownerAnimal.getPosition().distanceTo(targetFood.getPosition()) <= eatRange) {
                     ownerAnimal.setSpeed(0);
+                    ownerAnimal.setActionState("eat");
                     if (targetFood instanceof model.plants.Plant) {
                         ownerAnimal.eat((model.plants.Plant) targetFood);
-                    } else if (targetFood instanceof Meat) {
+                    } else if (targetFood instanceof FoodSource) {
                         ownerAnimal.eatMeat((model.items.FoodSource) targetFood);
                     }
                 } else {
-                    ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * 1.1f);
-                    Vector2 desiredDir = targetFood.getPosition().copy().subtract(ownerAnimal.getPosition());
-                    if (desiredDir.lengthSquared() > 0) {
-                        desiredDir.normalize();
-                        // [QUAN TRỌNG] Áp dụng lực né cây trước khi di chuyển
-                        Vector2 finalDir = steer(desiredDir, ownerAnimal, world);
-                        if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-                        else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
-                        ownerAnimal.move(finalDir, deltaTime);
-                    }
+                    ownerAnimal.setActionState("idle");
+                    ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * speedMult);
+                    foodNavigator.moveTo(ownerAnimal, world, targetFood.getPosition(), deltaTime, eatRange, 1.0f);
                 }
                 return;
             }
@@ -208,6 +145,7 @@ public class ForageStrategy implements IStrategy {
         if (ownerAnimal.getSpeed() != ownerAnimal.getBaseSpeed()) {
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
         }
+        ownerAnimal.setActionState("idle");
         wanderDelegate.execute(owner, world, deltaTime);
     }
 
@@ -224,5 +162,32 @@ public class ForageStrategy implements IStrategy {
     @Override
     public String getName() {
         return "Forage";
+    }
+
+    private boolean canEatMeatSource(Animal animal, FoodSource food) {
+        if (food instanceof Carcass) {
+            Carcass carcass = (Carcass) food;
+            return !carcass.getSourceSpecies().equals(animal.getSpeciesName());
+        }
+        return true;
+    }
+
+    private boolean isFoodLocationDangerous(Animal ownerAnimal, World world, Entity food) {
+        if (ownerAnimal.getDietType() != DietType.HERBIVORE || world.getSpatialGrid() == null) {
+            return false;
+        }
+
+        List<Entity> nearby = world.getSpatialGrid().getNeighbors(food.getPosition(), FOOD_DANGER_RADIUS);
+        for (Entity entity : nearby) {
+            if (!(entity instanceof Animal) || entity == ownerAnimal || !entity.isAlive()) continue;
+
+            Animal other = (Animal) entity;
+            if (other.getDietType() == DietType.CARNIVORE
+                    && other.getEntityLevel() > ownerAnimal.getEntityLevel()
+                    && other.isAliveState()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

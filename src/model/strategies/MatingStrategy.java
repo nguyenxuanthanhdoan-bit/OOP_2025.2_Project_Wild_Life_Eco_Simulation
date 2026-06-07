@@ -3,13 +3,15 @@ package model.strategies;
 import core.Vector2;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
+import model.navigation.PathNavigator;
 import model.world.World;
 import model.entity.Entity;
 import java.util.List;
 
 public class MatingStrategy extends PassiveStrategy {
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
-    private static final int MAX_POPULATION = 150;
+    private final PathNavigator mateNavigator = new PathNavigator();
+    private static final int MAX_POPULATION = 200;
     private Animal targetMate = null;
     private float cooldownTimer = 0.0f;
     private float matingTimer = 0.0f;
@@ -21,6 +23,7 @@ public class MatingStrategy extends PassiveStrategy {
 
         if (cooldownTimer > 0) {
             cooldownTimer -= deltaTime;
+            mateNavigator.clear();
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
             return;
@@ -28,6 +31,7 @@ public class MatingStrategy extends PassiveStrategy {
 
         // Check if ecosystem reached limit
         if (getAnimalCount(world) >= MAX_POPULATION) {
+            mateNavigator.clear();
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
             return;
@@ -35,6 +39,7 @@ public class MatingStrategy extends PassiveStrategy {
 
         // Check self mating conditions
         if (!ownerAnimal.canReproduce()) {
+            mateNavigator.clear();
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
             return;
@@ -44,6 +49,7 @@ public class MatingStrategy extends PassiveStrategy {
         if (targetMate != null) {
             if (!targetMate.isAliveState() || !targetMate.canReproduce() || ownerAnimal.getPosition().distanceTo(targetMate.getPosition()) > ownerAnimal.getVisionRange()) {
                 targetMate = null;
+                mateNavigator.clear();
             }
         }
 
@@ -90,29 +96,22 @@ public class MatingStrategy extends PassiveStrategy {
                         // Start cooldown
                         cooldownTimer = 60.0f; // 60 seconds cooldown
                         targetMate = null;
+                        mateNavigator.clear();
                     }
                     matingTimer = 0.0f;
                 }
             } else {
                 matingTimer = 0.0f; // Reset nếu bị tách ra
-                // Move to mate
-                Vector2 finalDir = dirToMate.copy();
-                if (finalDir.lengthSquared() > 0) finalDir.normalize();
-                
-                Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world);
-                if (avoidance.lengthSquared() > 0) {
-                    finalDir.add(avoidance);
-                    if (finalDir.lengthSquared() > 0) finalDir.normalize();
-                }
-
-                if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-                else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
-                
                 ownerAnimal.setActionState("run"); // or walk
                 ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
-                ownerAnimal.move(finalDir, deltaTime);
+                mateNavigator.moveTo(ownerAnimal, world, targetMate.getPosition(), deltaTime, mateRange, 1.0f);
+                if (mateNavigator.isBlocked()) {
+                    targetMate = null;
+                    ownerAnimal.setActionState("idle");
+                }
             }
         } else {
+            mateNavigator.clear();
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
         }

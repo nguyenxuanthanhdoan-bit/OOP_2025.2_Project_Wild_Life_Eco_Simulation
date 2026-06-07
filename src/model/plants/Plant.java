@@ -15,6 +15,11 @@ public abstract class Plant extends Entity {
         return nutritionValue;
     }
 
+    @Override
+    public int getEntityLevel() {
+        return LEVEL_HERBIVORE_FOOD;
+    }
+
     // Phase 1: Thực vật tạm thời chưa cần logic phức tạp
     @Override
     public void update(float deltaTime) {}

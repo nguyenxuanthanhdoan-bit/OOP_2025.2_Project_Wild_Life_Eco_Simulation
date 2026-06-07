@@ -2,6 +2,7 @@ package view.systems;
 
 import core.Vector2;
 import model.entity.Entity;
+import model.living_beings.Animal;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;
@@ -28,6 +29,10 @@ public class MinimalRenderer {
      * Vẽ một thực thể dưới dạng hình khối đơn giản.
      */
     public void renderEntity(Entity e, Graphics2D g2d) {
+        if (e instanceof Animal && ((Animal) e).isHidden()) {
+            return;
+        }
+
         Vector2 screenPos = camera.worldToScreen(e.getPosition());
         float zoom = camera.getZoomLevel();
         int size = (int) (e.getSize() * zoom);

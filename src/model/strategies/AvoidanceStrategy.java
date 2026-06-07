@@ -135,11 +135,54 @@ public class AvoidanceStrategy {
      * Gọi cả ba lực: né thú lớn + né vật cản tĩnh + né biên bản đồ.
      */
     public static Vector2 getAvoidanceForce(Animal owner, World world) {
+        return getAvoidanceForce(owner, world, null);
+    }
+
+    public static Vector2 getAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
+        Vector2 total = getNonWaterAvoidanceForce(owner, world, moveDir);
+        total.add(getWaterAvoidanceForce(owner, world, moveDir));
+        return total;
+    }
+
+    public static Vector2 getNonWaterAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
         Vector2 total = new Vector2();
         total.add(getLargeAnimalAvoidanceForce(owner, world));
-        total.add(getSolidObstacleForce(owner, world));
+        total.add(getSolidObstacleForce(owner, world, moveDir));
         total.add(getBoundaryAvoidanceForce(owner, world));
         return total;
+    }
+
+    public static Vector2 getWaterAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
+        Vector2 force = new Vector2();
+        if (owner == null || world == null || moveDir == null || moveDir.lengthSquared() < 0.001f) return force;
+
+        Vector2 dir = moveDir.copy().normalize();
+        float[] distances = {32.0f, 64.0f, 96.0f};
+        float[] angles = {0.0f, -35.0f, 35.0f};
+
+        for (float distance : distances) {
+            for (float angle : angles) {
+                Vector2 probeDir = rotate(dir, angle);
+                Vector2 probe = owner.getPosition().copy().add(probeDir.scale(distance));
+                if (world.isPositionInWater(probe.x, probe.y) || !world.isValidPositionFor(owner, probe)) {
+                    Vector2 away = owner.getPosition().copy().subtract(probe);
+                    if (away.lengthSquared() > 0) {
+                        away.normalize();
+                        float strength = (1.0f - Math.min(distance / 128.0f, 1.0f)) * 2.5f;
+                        force.add(away.scale(strength));
+                    }
+                }
+            }
+        }
+
+        return force;
+    }
+
+    private static Vector2 rotate(Vector2 v, float degrees) {
+        double rad = Math.toRadians(degrees);
+        float cos = (float) Math.cos(rad);
+        float sin = (float) Math.sin(rad);
+        return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
     }
 
     // =========================================================
@@ -202,4 +245,3 @@ public class AvoidanceStrategy {
         return force;
     }
 }
-

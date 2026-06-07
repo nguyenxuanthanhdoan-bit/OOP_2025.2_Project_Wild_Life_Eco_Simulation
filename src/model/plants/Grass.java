@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Random;
 
 public class Grass extends Plant {
-    private static final float SPAWN_INTERVAL = 25.0f; // Mỗi 25s sinh sản
-    private static final float SPAWN_RADIUS = 80.0f;
-    private static final int MAX_GRASS_NEARBY = 5;
+    private static final float SPAWN_INTERVAL = 12.0f;
+    private static final float SPAWN_INTERVAL_VARIANCE = 6.0f;
+    private static final float SPAWN_RADIUS = 110.0f;
+    private static final int MAX_GRASS_NEARBY = 9;
 
     private float spawnTimer;
     private Random random;
@@ -23,7 +24,7 @@ public class Grass extends Plant {
         this.random = new Random();
         int variant = random.nextInt(2) + 1;
         this.imageVariant = "Grass_" + variant;
-        this.spawnTimer = SPAWN_INTERVAL + random.nextFloat() * 10;
+        this.spawnTimer = randomSpawnDelay();
     }
 
     @Override
@@ -32,7 +33,7 @@ public class Grass extends Plant {
         
         spawnTimer -= deltaTime;
         if (spawnTimer <= 0) {
-            spawnTimer = SPAWN_INTERVAL + random.nextFloat() * 10;
+            spawnTimer = randomSpawnDelay();
             
             if (world.getSpatialGrid() != null) {
                 List<Entity> nearby = world.getSpatialGrid().getNeighbors(position, SPAWN_RADIUS);
@@ -67,5 +68,9 @@ public class Grass extends Plant {
     @Override
     public void render(DisplayMode mode) {
         // RenderSystem sẽ dùng this.imageVariant ("Grass_1" hoặc "Grass_2") để vẽ hình
+    }
+
+    private float randomSpawnDelay() {
+        return SPAWN_INTERVAL + random.nextFloat() * SPAWN_INTERVAL_VARIANCE;
     }
 }

@@ -115,6 +115,10 @@ public abstract class LivingBeing extends Entity {
         return this.baseSpeed;
     }
 
+    public Vector2 getCurrentVelocity() {
+        return this.currentVelocity.copy();
+    }
+
     public void setBaseSpeed(float baseSpeed) {
         this.baseSpeed = baseSpeed;
     }

@@ -2,13 +2,12 @@ package test.strategy;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
-import model.living_beings.Deer;
-import model.plants.Fruit;
+import model.living_beings.Wolf;
+import model.items.Carcass;
 import model.structures.Bush;
 import model.structures.Rock;
 import model.world.World;
-import model.strategies.ForageStrategy;
+import model.strategies.HunterStrategy;
 import view.systems.Camera;
 import view.systems.RenderSystem;
 
@@ -25,8 +24,8 @@ import java.util.Random;
 public class AvoidanceTest extends JPanel {
 
     private final World world;
-    private final Deer testDeer;
-    private final Fruit targetFruit;
+    private final Wolf testWolf;
+    private final Carcass targetCarcass;
     private final Timer timer;
     private boolean isRunning = true;
     
@@ -38,16 +37,16 @@ public class AvoidanceTest extends JPanel {
         world.setWidth(800);
         world.setHeight(600);
 
-        // 1. Tạo con hươu đói ở bên trái
-        testDeer = new Deer(new Vector2(100, 300));
-        testDeer.setHunger(10.0); // Ép cho Hươu phải đi kiếm ăn
-        testDeer.setThirst(150.0);
-        testDeer.setStrategy(new ForageStrategy());
-        world.addEntity(testDeer);
+        // 1. Tạo con Sói đói ở bên trái
+        testWolf = new Wolf(new Vector2(100, 300));
+        testWolf.setHunger(10.0); // Ép cho Sói phải đi săn
+        testWolf.setThirst(150.0);
+        testWolf.setStrategy(new HunterStrategy());
+        world.addEntity(testWolf);
 
-        // 2. Tạo đồ ăn ở bên phải
-        targetFruit = new Fruit(new Vector2(700, 300));
-        world.addEntity(targetFruit);
+        // 2. Tạo xác động vật ở bên phải
+        targetCarcass = new Carcass(new Vector2(700, 300), 15.0f, 50.0f, 600.0f, 50.0f, "Thỏ");
+        world.addEntity(targetCarcass);
 
         // 3. Khởi tạo ngẫu nhiên nhiều cây bụi và đá chắn ở giữa, tạo ra các khe hở
         Random rand = new Random(); 
@@ -74,9 +73,9 @@ public class AvoidanceTest extends JPanel {
                 world.update(0.016f); // Update logic
                 repaint(); // Cập nhật màn hình
                 
-                // Dừng nếu hươu đã ăn xong 
-                if (testDeer.getHunger() > 50.0 || !targetFruit.isAlive()) {
-                    System.out.println("TEST PASSED: Deer successfully navigated and reached the food!");
+                // Dừng nếu sói đã ăn xong 
+                if (testWolf.getHunger() > 50.0 || !targetCarcass.isAlive()) {
+                    System.out.println("TEST PASSED: Wolf successfully navigated and reached the carcass!");
                     isRunning = false;
                     ((Timer)e.getSource()).stop();
                 }

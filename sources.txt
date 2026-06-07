@@ -28,6 +28,8 @@ src/model/plants/Grass.java
 src/model/plants/Fruit.java
 src/model/entity/Structure.java
 src/model/entity/Entity.java
+src/model/navigation/TerrainNavigator.java
+src/model/navigation/PathNavigator.java
 src/model/strategies/PassiveStrategy.java
 src/model/strategies/IStrategy.java
 src/model/world/Grassland.java

@@ -68,6 +68,8 @@ public class RenderSystem {
             } else if (sp.equals("elephant")) {
                 tryLoadAsset(sp + "_eat", dirPath + sp + "_eat.png");
             }
+            tryLoadAsset(sp + "_drink", dirPath + sp + "_drink.png");
+            tryLoadAsset(sp + "_drink", dirPath + sp + "_drinking.png");
         }
         
         // Carnivores
@@ -80,6 +82,10 @@ public class RenderSystem {
             tryLoadAsset(sp + "_west", dirPath + "west.png");
             tryLoadAsset(sp + "_walk", dirPath + prefix + "walk.png");
             tryLoadAsset(sp + "_run", dirPath + prefix + "run.png");
+            tryLoadAsset(sp + "_eat", dirPath + sp + "_eat.png");
+            tryLoadAsset(sp + "_eat", dirPath + sp + "_eating.png");
+            tryLoadAsset(sp + "_drink", dirPath + sp + "_drink.png");
+            tryLoadAsset(sp + "_drink", dirPath + sp + "_drinking.png");
             
             if (sp.equals("tiger")) {
                 tryLoadAsset(sp + "_attack", dirPath + "tiger_attack.png");
@@ -263,6 +269,8 @@ public class RenderSystem {
 
             if (e instanceof model.living_beings.Animal) {
                 model.living_beings.Animal animal = (model.living_beings.Animal) e;
+                if (animal.isHidden()) return;
+
                 drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
 
                     int barW = (int)(25 * zoom);
@@ -318,22 +326,25 @@ public class RenderSystem {
         
         // Suy diễn trạng thái
         String state = animal.getActionState();
-        if (state == null || state.equals("idle")) {
-            state = "west";
-            if (animal.isMoving()) {
-                float speed = animal.getSpeed();
-                if (speed > animal.getBaseSpeed() * 1.1f) {
-                    state = "run";
-                } else {
-                    state = "walk";
-                }
+        boolean moving = animal.isMoving();
+        if ("attack".equals(state) || "eat".equals(state) || "drink".equals(state)) {
+            // Giữ các animation hành động ngay cả khi đứng tại chỗ.
+        } else if (moving) {
+            if ("run".equals(state) || animal.getSpeed() > animal.getBaseSpeed() * 1.1f) {
+                state = "run";
+            } else {
+                state = "walk";
             }
+        } else {
+            state = "west";
         }
         
         // [CÓ THỂ MỞ RỘNG] Nếu animal có thuộc tính isEating() hay isSleeping() thì gắn state tương ứng ở đây
         
         // Lấy spritesheet
-        BufferedImage sheet = assetMap.get(species + "_" + state);
+        BufferedImage sheet = ("eat".equals(state) || "drink".equals(state))
+                ? getEatDrinkSheet(species)
+                : assetMap.get(species + "_" + state);
         if (sheet == null) {
             if (state.equals("attack")) {
                 // Fallback: dùng "run" khi attack (trông chân thực hơn "west" đứng yên)
@@ -381,6 +392,17 @@ public class RenderSystem {
         int srcY2 = srcY1 + frameH;
 
         g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
+    }
+
+    private BufferedImage getEatDrinkSheet(String species) {
+        if ("wolf".equals(species)) {
+            return assetMap.get("wolf_west");
+        }
+
+        BufferedImage sheet = assetMap.get(species + "_eat");
+        if (sheet == null) sheet = assetMap.get(species + "_drink");
+        if (sheet == null) sheet = assetMap.get(species + "_west");
+        return sheet;
     }
 
     private void drawTiger(Tiger t, Graphics2D g2d, Vector2 screenPos, float zoom) {

@@ -3,12 +3,13 @@ package model.living_beings;
 import core.Vector2;
 import core.GameConfig;
 import core.DisplayMode;
-import model.strategies.HunterStrategy;
 
 public class Tiger extends CarnivoreAnimal {
+    private static final float SIZE = 35.0f;
+    private static final float BASE_SPEED = GameConfig.getInstance().TIGER_BASE_SPEED;
 
     public Tiger(Vector2 position) {
-        super(position, 35.0f, GameConfig.getInstance().TIGER_BASE_SPEED);
+        super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Hổ";
         this.maxHealth = 250.0f;
@@ -22,12 +23,16 @@ public class Tiger extends CarnivoreAnimal {
         this.thirstDecayRate = 0.5f; 
         this.maxAge = 600.0f; 
 
-        this.setStrategy(new HunterStrategy());
+        // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định
     }
 
     @Override
     public Animal reproduce() {
-        return null;
+        Tiger baby = new Tiger(this.getPosition().copy());
+        baby.setAge(0);
+        baby.size = SIZE * 0.5f;
+        baby.setAdult(false);
+        return baby;
     }
 
     @Override
@@ -44,7 +49,7 @@ public class Tiger extends CarnivoreAnimal {
     private void updateAnimation() {
         if ("attack".equals(this.actionState)) {
             this.imageVariant = "attack.png";
-        } else if ("run".equals(this.actionState)) {
+        } else if (this.isMoving && ("run".equals(this.actionState) || this.speed > this.baseSpeed * 1.1f)) {
             this.imageVariant = "run.png";
         } else if (this.isMoving) {
             this.imageVariant = "walk.png";

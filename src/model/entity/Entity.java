@@ -9,6 +9,11 @@ import java.util.UUID;
  * Đã được tối giản cho Phase 1.
  */
 public abstract class Entity {
+    public static final int LEVEL_UNCLASSIFIED = 0;
+    public static final int LEVEL_HERBIVORE_FOOD = 1;
+    public static final int LEVEL_HERBIVORE = 2;
+    public static final int LEVEL_CARNIVORE = 3;
+    public static final int LEVEL_APEX_ANIMAL = 4;
 
     protected final UUID id;
     protected Vector2 position;
@@ -82,6 +87,10 @@ public abstract class Entity {
 
     public void setCollider(model.collision.Collider collider) {
         this.collider = collider;
+    }
+
+    public int getEntityLevel() {
+        return LEVEL_UNCLASSIFIED;
     }
 
     // ==========================================

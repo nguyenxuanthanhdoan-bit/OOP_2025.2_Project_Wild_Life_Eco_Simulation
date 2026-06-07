@@ -36,8 +36,12 @@ public class Rabbit extends HerbivoreAnimal {
         this.thirstDecayRate  = THIRST_DECAY_RATE;
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
+        // Không set cứng Strategy — để decideActiveStrategy tự quyết định
+    }
 
-        this.setStrategy(new ScaredStrategy());
+    @Override
+    protected boolean useFlocking() {
+        return true; // Thỏ đi theo bầy khi rảnh rỗi
     }
 
     @Override
@@ -47,8 +51,7 @@ public class Rabbit extends HerbivoreAnimal {
         // Kích thước thỏ con bằng 50% thỏ trưởng thành
         baby.size = SIZE * 0.5f; 
         baby.setAdult(false);
-        // Con non chỉ dùng PassiveStrategy ban đầu
-        baby.setStrategy(new model.strategies.PassiveStrategy());
+        // Không set cứng
         return baby;
     }
 
@@ -60,9 +63,12 @@ public class Rabbit extends HerbivoreAnimal {
     @Override
     public void eat(Plant food) {
         if (!alive) return;
-        if (food instanceof Grass) {
-            super.eat(food);
-        }
+        super.eat(food);
+    }
+
+    @Override
+    public boolean canEatPlant(Plant food) {
+        return food instanceof Grass;
     }
 
     @Override
@@ -74,7 +80,7 @@ public class Rabbit extends HerbivoreAnimal {
     private void updateAnimation() {
         if ("attack".equals(this.actionState)) {
             this.imageVariant = "west.png"; // No attack frame for rabbit, fallback to west
-        } else if ("run".equals(this.actionState)) {
+        } else if (this.isMoving && ("run".equals(this.actionState) || this.speed > this.baseSpeed * 1.1f)) {
             this.imageVariant = "run.png";
         } else if (this.isMoving) {
             this.imageVariant = "walk.png";

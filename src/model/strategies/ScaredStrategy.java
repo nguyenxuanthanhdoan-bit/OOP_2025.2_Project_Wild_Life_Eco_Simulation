@@ -4,27 +4,31 @@ import core.Vector2;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
 import model.living_beings.DietType;
+import model.navigation.PathNavigator;
 import model.world.World;
 import model.structures.Bush;
 import model.entity.Entity;
 import java.util.List;
 import java.util.ArrayList;
 
+/**
+ * ScaredStrategy — Chiến lược bỏ chạy / ẩn nấp.
+ * Trách nhiệm DUY NHẤT: Giúp con vật trốn thoát kẻ săn mồi.
+ * Việc chuyển sang Strategy khác (Forage, Mating...) là trách nhiệm
+ * của Animal.decideActiveStrategy(), không phải của class này.
+ */
 public class ScaredStrategy implements IStrategy {
-    private final PassiveStrategy wanderDelegate = new PassiveStrategy();
-    private final MatingStrategy matingDelegate = new MatingStrategy();
-    private final ForageStrategy forageDelegate = new ForageStrategy();
-    private static final double RUN_COST_MULTIPLIER = 3.0;
-    private float safeTimer = 0f;
+    private static final float RUN_SPEED_MULTIPLIER = 1.8f;
+    private final PathNavigator shelterNavigator = new PathNavigator();
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
-
         if (world == null || world.getSpatialGrid() == null) return;
 
-        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(ownerAnimal.getPosition(), (float) ownerAnimal.getVisionRange());
+        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(
+                ownerAnimal.getPosition(), (float) ownerAnimal.getVisionRange());
 
         List<Animal> predators = new ArrayList<>();
         List<Bush> bushes = new ArrayList<>();
@@ -32,72 +36,39 @@ public class ScaredStrategy implements IStrategy {
         for (Entity neighbor : neighbors) {
             if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                 Animal other = (Animal) neighbor;
-                if (other.isAliveState() && other.getDietType() == DietType.CARNIVORE && other.getSize() > ownerAnimal.getSize()) {
-                    predators.add(other);
-                } else if (other.isAliveState() && other.getDietType() == DietType.CARNIVORE && ownerAnimal.getDietType() == DietType.HERBIVORE) {
+                if (other.isAliveState() && other.getDietType() == DietType.CARNIVORE) {
                     predators.add(other);
                 }
             } else if (neighbor instanceof Bush) {
                 Bush bush = (Bush) neighbor;
-                if (!bush.isOccupied() || (ownerAnimal.getPosition().distanceTo(bush.getPosition()) <= bush.getRadius())) {
+                if (!bush.isOccupied() || bush == ownerAnimal.getHiddenInBush()) {
                     bushes.add(bush);
                 }
             }
         }
 
+        // Không có kẻ thù → Animal.decideActiveStrategy() sẽ thoát Strategy này
         if (predators.isEmpty()) {
-            if (ownerAnimal.isHidden()) {
-                safeTimer += deltaTime;
-                if (safeTimer < 3.0f) {
-                    // Chưa đủ an toàn, tiếp tục trốn
-                    return;
-                }
-                ownerAnimal.exitBush();
-                safeTimer = 0f;
-            }
-            if (ownerAnimal.getSpeed() != ownerAnimal.getBaseSpeed()) {
-                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
-            }
-
-            if (ownerAnimal.canReproduce()) {
-                matingDelegate.execute(owner, world, deltaTime);
-            } else if (ownerAnimal.getHunger() < ownerAnimal.getMaxHunger() * Animal.HUNGER_WARNING_THRESHOLD || 
-                       ownerAnimal.getThirst() < ownerAnimal.getMaxThirst() * Animal.THIRST_WARNING_THRESHOLD) {
-                forageDelegate.execute(owner, world, deltaTime);
-            } else {
-                ownerAnimal.setActionState("idle");
-                wanderDelegate.execute(owner, world, deltaTime);
-            }
+            shelterNavigator.clear();
+            ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
+            ownerAnimal.setActionState("idle");
             return;
         }
 
-        // Có thú ăn thịt ở gần -> reset safe timer
-        safeTimer = 0f;
-
-        // Không tiêu hao stamina nếu đang ẩn nấp
-        if (!ownerAnimal.isHidden()) {
-            double extraHunger = ownerAnimal.getHungerDecayRate() * (RUN_COST_MULTIPLIER - 1) * deltaTime;
-            double extraThirst = ownerAnimal.getThirstDecayRate() * (RUN_COST_MULTIPLIER - 1) * deltaTime;
-            ownerAnimal.setHunger(ownerAnimal.getHunger() - extraHunger);
-            ownerAnimal.setThirst(ownerAnimal.getThirst() - extraThirst);
-        }
-
+        // Có kẻ thù → Tìm bụi cỏ tốt nhất để trốn
         Bush bestBush = null;
         float maxScore = -999999.0f;
 
         for (Bush bush : bushes) {
-            // Nếu bụi cỏ đã có thú trốn bên trong (và đó không phải là chính mình) -> bỏ qua
-            if (bush.isOccupied() && bush != ownerAnimal.getHiddenInBush()) {
-                continue;
-            }
+            if (bush.isOccupied() && bush != ownerAnimal.getHiddenInBush()) continue;
 
-            float distToPredatorsForBush = 0;
+            float distToPredators = 0;
             for (Animal predator : predators) {
-                distToPredatorsForBush += bush.getPosition().distanceTo(predator.getPosition());
+                distToPredators += bush.getPosition().distanceTo(predator.getPosition());
             }
-            
             float distToOwner = bush.getPosition().distanceTo(ownerAnimal.getPosition());
-            float score = distToPredatorsForBush - distToOwner * 2.0f; // Trừ điểm nặng nếu bụi ở xa
+            // Ưu tiên bụi gần mình + xa kẻ thù
+            float score = distToPredators - distToOwner * 2.0f;
 
             if (score > maxScore) {
                 maxScore = score;
@@ -108,87 +79,66 @@ public class ScaredStrategy implements IStrategy {
         if (bestBush != null) {
             float distToBush = ownerAnimal.getPosition().distanceTo(bestBush.getPosition());
             if (distToBush <= bestBush.getRadius()) {
-                if (!ownerAnimal.isHidden()) {
-                    ownerAnimal.hideInBush(bestBush);
-                }
-                ownerAnimal.setActionState("idle"); 
-                ownerAnimal.setSpeed(0); 
+                // Đã vào trong bụi → ẩn nấp
+                if (!ownerAnimal.isHidden()) ownerAnimal.hideInBush(bestBush);
+                shelterNavigator.clear();
+                ownerAnimal.setActionState("idle");
+                ownerAnimal.setSpeed(0);
             } else {
-                if (ownerAnimal.isHidden()) {
-                    ownerAnimal.exitBush();
-                }
+                // Chạy tới bụi
+                if (ownerAnimal.isHidden()) ownerAnimal.exitBush();
                 ownerAnimal.setActionState("run");
-                ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.5f));
-                
-                Vector2 dirToBush = bestBush.getPosition().copy().subtract(ownerAnimal.getPosition());
-                if (dirToBush.lengthSquared() > 0) dirToBush.normalize();
+                ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * RUN_SPEED_MULTIPLIER);
 
-                Vector2 finalDir = dirToBush.copy();
-                // Né đá/cây: truyền hướng đi để chọn hướng trượt thông minh
-                Vector2 avoidance = AvoidanceStrategy.getSolidObstacleForce(ownerAnimal, world, finalDir);
-                avoidance.add(AvoidanceStrategy.getLargeAnimalAvoidanceForce(ownerAnimal, world));
-                if (avoidance.lengthSquared() > 0) {
-                    finalDir.add(avoidance);
-                    if (finalDir.lengthSquared() > 0) finalDir.normalize();
+                shelterNavigator.moveTo(ownerAnimal, world, bestBush.getPosition(), deltaTime,
+                        bestBush.getRadius(), 0.5f);
+                if (shelterNavigator.isBlocked()) {
+                    fleeFromPredators(ownerAnimal, predators, world, deltaTime);
                 }
-
-                if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-                else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
-                
-                ownerAnimal.move(finalDir, deltaTime);
             }
         } else {
-            if (ownerAnimal.isHidden()) {
-                ownerAnimal.exitBush();
-            }
-            ownerAnimal.setActionState("run");
-            ownerAnimal.setSpeed((float) (ownerAnimal.getBaseSpeed() * 1.5f));
-
-            Vector2 fleeDir = new Vector2();
-            for (Animal predator : predators) {
-                Vector2 diff = ownerAnimal.getPosition().copy().subtract(predator.getPosition());
-                if (diff.lengthSquared() > 0) {
-                    diff.normalize();
-                    fleeDir.add(diff);
-                }
-            }
-            if (fleeDir.lengthSquared() > 0) fleeDir.normalize();
-            else fleeDir.set(1, 0); 
-
-            Vector2 finalDir = fleeDir.copy();
-            // Né đá/cây: truyền hướng chạy trốn để chọn hướng trượt thông minh
-            Vector2 avoidance = AvoidanceStrategy.getSolidObstacleForce(ownerAnimal, world, fleeDir);
-            avoidance.add(AvoidanceStrategy.getLargeAnimalAvoidanceForce(ownerAnimal, world));
-            if (avoidance.lengthSquared() > 0) {
-                float avoidMag = avoidance.length();
-                if (avoidMag > 1.5f) {
-                    // Đá quá gần → ưu tiên né đá trước
-                    finalDir = avoidance.copy();
-                } else {
-                    finalDir.add(avoidance.scale(2.0f));
-                }
-                if (finalDir.lengthSquared() > 0) finalDir.normalize();
-            }
-
-            if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
-            else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
-            
-            ownerAnimal.move(finalDir, deltaTime);
+            // Không có bụi → bỏ chạy ngược hướng kẻ thù
+            fleeFromPredators(ownerAnimal, predators, world, deltaTime);
         }
     }
 
-    @Override
-    public boolean shouldInterrupt(LivingBeing owner, World world) {
-        return false;
+    private void fleeFromPredators(Animal ownerAnimal, List<Animal> predators, World world, float deltaTime) {
+        shelterNavigator.clear();
+        if (ownerAnimal.isHidden()) ownerAnimal.exitBush();
+        ownerAnimal.setActionState("run");
+        ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed() * RUN_SPEED_MULTIPLIER);
+
+        Vector2 fleeDir = new Vector2();
+        for (Animal predator : predators) {
+            Vector2 diff = ownerAnimal.getPosition().copy().subtract(predator.getPosition());
+            if (diff.lengthSquared() > 0) {
+                diff.normalize();
+                fleeDir.add(diff);
+            }
+        }
+        if (fleeDir.lengthSquared() > 0) fleeDir.normalize();
+        else fleeDir.set(1, 0);
+
+        Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(ownerAnimal, world, fleeDir);
+        Vector2 finalDir = fleeDir.copy();
+        if (avoidance.lengthSquared() > 0) {
+            float avoidMag = avoidance.length();
+            if (avoidMag > 1.5f) finalDir = avoidance.copy();
+            else finalDir.add(avoidance.scale(2.0f));
+            if (finalDir.lengthSquared() > 0) finalDir.normalize();
+        }
+
+        if (finalDir.x > 0) ownerAnimal.setFacingRight(true);
+        else if (finalDir.x < 0) ownerAnimal.setFacingRight(false);
+        ownerAnimal.move(finalDir, deltaTime);
     }
 
     @Override
-    public int getPriority() {
-        return 4;
-    }
+    public boolean shouldInterrupt(LivingBeing owner, World world) { return false; }
 
     @Override
-    public String getName() {
-        return "Scared";
-    }
+    public int getPriority() { return 4; }
+
+    @Override
+    public String getName() { return "Scared"; }
 }

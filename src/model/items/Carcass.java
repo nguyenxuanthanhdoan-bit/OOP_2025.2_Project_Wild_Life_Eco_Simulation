@@ -12,6 +12,7 @@ public class Carcass extends FoodSource {
     protected float decayTimer;
     protected float currentMass;
     protected float initialMass;
+    protected float initialSize;
     protected String sourceSpecies;
     
     private World world; // Cần để rớt xương khi phân hủy
@@ -22,6 +23,7 @@ public class Carcass extends FoodSource {
         this.decayTimer = decayTime;
         this.currentMass = initialMass;
         this.initialMass = initialMass;
+        this.initialSize = size;
         this.sourceSpecies = sourceSpecies;
         this.imageVariant = "Meat";
     }
@@ -48,6 +50,9 @@ public class Carcass extends FoodSource {
 
         if (currentMass <= 0) {
             this.isAlive = false; // Bị ăn hết, xóa khỏi thế giới
+        } else {
+            float massRatio = currentMass / initialMass;
+            this.size = Math.max(initialSize * 0.35f, initialSize * (float) Math.sqrt(massRatio));
         }
 
         return consumed * (nutritionValue / initialMass);

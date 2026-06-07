@@ -6,6 +6,7 @@ import model.map.GameMap.MapPolygonObject;
 import model.plants.FruitTree;
 import model.plants.Grass;
 import model.plants.Mushroom;
+import model.living_beings.Animal;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;
@@ -23,6 +24,8 @@ import java.util.Random;
  * Lớp chuyên tạo và phân bố các vùng sinh thái (Biomes).
  */
 public class BiomeGenerator {
+    private static final int INITIAL_GRASS_COUNT = 320;
+    private static final float GRASS_PLAIN_SPAWN_CHANCE = 0.9f;
 
     public enum ZoneType {
         FOREST_ZONE, GRASSLAND_ZONE, RANDOM_ZONE
@@ -88,7 +91,7 @@ public class BiomeGenerator {
         for (int i = 0; i < 60; i++) {
             boolean inPlain = rand.nextFloat() < 0.8f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
-            if (pos != null) world.addEntity(new Rabbit(pos));
+            if (pos != null) addSpawnedAnimal(world, new Rabbit(pos), rand);
         }
 
         // Hươu (Grassland)
@@ -96,35 +99,42 @@ public class BiomeGenerator {
             boolean inPlain = rand.nextFloat() < 0.7f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             int herdId = (i < 20) ? 1 : 2; 
-            if (pos != null) world.addEntity(new Deer(pos, herdId));
+            if (pos != null) addSpawnedAnimal(world, new Deer(pos, herdId), rand);
         }
 
         // Voi (Forest và Grassland)
         for (int i = 0; i < 15; i++) {
             boolean inPlain = rand.nextFloat() < 0.5f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
-            if (pos != null) world.addEntity(new Elephant(pos, 1));
+            if (pos != null) addSpawnedAnimal(world, new Elephant(pos, 1), rand);
         }
 
         // Hổ (Nhiều ở Forest)
         for (int i = 0; i < 12; i++) {
             boolean inPlain = rand.nextFloat() < 0.2f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
-            if (pos != null) world.addEntity(new Tiger(pos));
+            if (pos != null) addSpawnedAnimal(world, new Tiger(pos), rand);
         }
 
         // Sói (Phân bố đều)
         for (int i = 0; i < 20; i++) {
             boolean inPlain = rand.nextFloat() < 0.5f;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
-            if (pos != null) world.addEntity(new Wolf(pos));
+            if (pos != null) addSpawnedAnimal(world, new Wolf(pos), rand);
         }
+    }
+
+    private static void addSpawnedAnimal(World world, Animal animal, Random rand) {
+        double ageRatio = 0.25 + rand.nextDouble() * 0.4; // 25% - 65% vòng đời
+        animal.setAge(animal.getMaxAge() * ageRatio);
+        animal.setAdult(true);
+        world.addEntity(animal);
     }
 
     private static void spawnVegetation(World world, GameMap gameMap, List<MapPolygonObject> plain, List<MapPolygonObject> forest, List<MapPolygonObject> village, Random rand) {
         // Grass (Rất nhiều ở Grassland)
-        for (int i = 0; i < 150; i++) {
-            boolean inPlain = rand.nextFloat() < 0.9f;
+        for (int i = 0; i < INITIAL_GRASS_COUNT; i++) {
+            boolean inPlain = rand.nextFloat() < GRASS_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Grass(pos));
         }
@@ -185,16 +195,7 @@ public class BiomeGenerator {
             if (selectedPoly.polygonPath.contains(x, y)) {
                 if (gameMap != null) {
                     float m = 32.0f; // Khoảng cách an toàn tới mép nước (32px = 1 tile)
-                    boolean isSafe = !gameMap.isPositionInWater(x, y) &&
-                                     !gameMap.isPositionInWater(x - m, y) &&
-                                     !gameMap.isPositionInWater(x + m, y) &&
-                                     !gameMap.isPositionInWater(x, y - m) &&
-                                     !gameMap.isPositionInWater(x, y + m) &&
-                                     !gameMap.isPositionInWater(x - m, y - m) &&
-                                     !gameMap.isPositionInWater(x + m, y - m) &&
-                                     !gameMap.isPositionInWater(x - m, y + m) &&
-                                     !gameMap.isPositionInWater(x + m, y + m);
-                    if (isSafe) {
+                    if (gameMap.isValidGroundSpawnPosition(x, y, m)) {
                         return new Vector2(x, y);
                     }
                 } else {
