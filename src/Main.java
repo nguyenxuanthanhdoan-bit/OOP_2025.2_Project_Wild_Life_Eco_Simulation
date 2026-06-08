@@ -6,12 +6,6 @@ import core.GameConfig;
 import model.world.World;
 import view.systems.Camera;
 import view.systems.RenderSystem;
-import model.living_beings.Rabbit;
-import model.living_beings.Tiger;
-import model.living_beings.Wolf;
-import model.plants.Grass;
-import model.plants.FruitTree;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;

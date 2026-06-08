@@ -37,6 +37,7 @@ public class RenderSystem {
     private static final int MINIMAP_MARGIN = 14;
     private static final int MINIMAP_SIZE = 190;
     private static final float STATUS_BAR_MIN_ZOOM = 0.65f;
+    private BufferedImage miniMapCache;
 
     public RenderSystem(Camera camera) {
         this.camera = camera;
@@ -48,6 +49,7 @@ public class RenderSystem {
 
     public void setGameMap(GameMap map) {
         this.gameMap = map;
+        rebuildMiniMapCache();
     }
 
     private void loadAssets() {
@@ -331,9 +333,11 @@ public class RenderSystem {
         float worldW = gameMap.getCols() * TILE_SIZE;
         float worldH = gameMap.getRows() * TILE_SIZE;
         if (worldW <= 0 || worldH <= 0) return;
+        if (miniMapCache == null) rebuildMiniMapCache();
+        if (miniMapCache == null) return;
 
-        int mapW = MINIMAP_SIZE;
-        int mapH = Math.max(80, Math.round(MINIMAP_SIZE * (worldH / worldW)));
+        int mapW = miniMapCache.getWidth();
+        int mapH = miniMapCache.getHeight();
         int x0 = MINIMAP_MARGIN;
         int y0 = MINIMAP_MARGIN;
 
@@ -342,7 +346,36 @@ public class RenderSystem {
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.88f));
         g.setColor(new Color(18, 24, 28, 215));
         g.fillRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
+        g.drawImage(miniMapCache, x0, y0, null);
 
+        drawMiniMapCameraFrame(g, x0, y0, mapW, mapH, worldW, worldH, screenW, screenH);
+
+        g.setComposite(oldComposite);
+        g.setColor(new Color(235, 245, 250, 220));
+        g.drawRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
+        g.dispose();
+    }
+
+    private void rebuildMiniMapCache() {
+        if (gameMap == null) {
+            miniMapCache = null;
+            return;
+        }
+
+        float worldW = gameMap.getCols() * TILE_SIZE;
+        float worldH = gameMap.getRows() * TILE_SIZE;
+        if (worldW <= 0 || worldH <= 0) {
+            miniMapCache = null;
+            return;
+        }
+
+        int mapW = MINIMAP_SIZE;
+        int mapH = Math.max(80, Math.round(MINIMAP_SIZE * (worldH / worldW)));
+        BufferedImage cache = new BufferedImage(mapW, mapH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = cache.createGraphics();
+
+        int tilePixelW = Math.max(1, (int) Math.ceil(mapW / (float) gameMap.getCols()));
+        int tilePixelH = Math.max(1, (int) Math.ceil(mapH / (float) gameMap.getRows()));
         for (int tx = 0; tx < gameMap.getCols(); tx++) {
             for (int ty = 0; ty < gameMap.getRows(); ty++) {
                 float wx = tx * TILE_SIZE + TILE_SIZE / 2.0f;
@@ -357,20 +390,14 @@ public class RenderSystem {
                     g.setColor(new Color(184, 148, 96));
                 }
 
-                int px = x0 + Math.round((tx / (float) gameMap.getCols()) * mapW);
-                int py = y0 + Math.round((ty / (float) gameMap.getRows()) * mapH);
-                int pw = Math.max(1, (int) Math.ceil(mapW / (float) gameMap.getCols()));
-                int ph = Math.max(1, (int) Math.ceil(mapH / (float) gameMap.getRows()));
-                g.fillRect(px, py, pw, ph);
+                int px = Math.round((tx / (float) gameMap.getCols()) * mapW);
+                int py = Math.round((ty / (float) gameMap.getRows()) * mapH);
+                g.fillRect(px, py, tilePixelW, tilePixelH);
             }
         }
 
-        drawMiniMapCameraFrame(g, x0, y0, mapW, mapH, worldW, worldH, screenW, screenH);
-
-        g.setComposite(oldComposite);
-        g.setColor(new Color(235, 245, 250, 220));
-        g.drawRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
         g.dispose();
+        miniMapCache = cache;
     }
 
     private void drawMiniMapCameraFrame(Graphics2D g, int x0, int y0, int mapW, int mapH,

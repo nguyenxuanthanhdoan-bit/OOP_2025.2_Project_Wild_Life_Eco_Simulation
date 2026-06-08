@@ -25,6 +25,7 @@ public class ScaredStrategy implements IStrategy {
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
+        if (!ownerAnimal.canUseStrategy(ScaredStrategy.class)) return;
         if (world == null || world.getSpatialGrid() == null) return;
 
         List<Entity> neighbors = world.getSpatialGrid().getNeighbors(
@@ -36,10 +37,10 @@ public class ScaredStrategy implements IStrategy {
         for (Entity neighbor : neighbors) {
             if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                 Animal other = (Animal) neighbor;
-                if (other.isAliveState() && other.getDietType() == DietType.CARNIVORE) {
+                if (ownerAnimal.isThreatenedBy(other)) {
                     predators.add(other);
                 }
-            } else if (neighbor instanceof Bush) {
+            } else if (ownerAnimal.getProfile().canHide() && neighbor instanceof Bush) {
                 Bush bush = (Bush) neighbor;
                 if (!bush.isOccupied() || bush == ownerAnimal.getHiddenInBush()) {
                     bushes.add(bush);

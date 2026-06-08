@@ -3,7 +3,7 @@ package model.strategies;
 import core.Vector2;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
-import model.living_beings.DietType;
+import model.living_beings.FlockingMode;
 import model.navigation.PathNavigator;
 import model.world.World;
 import model.entity.Entity;
@@ -113,7 +113,56 @@ public class FlockingStrategy extends PassiveStrategy {
 
     /** Subclasses override this to react to predators */
     protected boolean handlePredators(Animal owner, List<Entity> neighbors, World world, float deltaTime) {
+        if (owner.getProfile().getFlockingMode() == FlockingMode.GUARDIAN) {
+            return handleGuardianThreats(owner, neighbors, world, deltaTime);
+        }
+
+        for (Entity e : neighbors) {
+            if (e instanceof Animal && owner.isThreatenedBy((Animal) e)) {
+                owner.setStrategy(new ScaredStrategy());
+                return true;
+            }
+        }
         return false;
+    }
+
+    private boolean handleGuardianThreats(Animal owner, List<Entity> neighbors, World world, float deltaTime) {
+        List<Animal> predators = new ArrayList<>();
+        for (Entity e : neighbors) {
+            if (e instanceof Animal && e != owner) {
+                Animal other = (Animal) e;
+                if (other.isAliveState()
+                        && other.canUseStrategy(HunterStrategy.class)
+                        && owner.getEntityLevel() > other.getEntityLevel()) {
+                    predators.add(other);
+                }
+            }
+        }
+
+        if (predators.isEmpty()) return false;
+
+        Vector2 predatorCenter = new Vector2();
+        for (Animal predator : predators) predatorCenter.add(predator.getPosition());
+        predatorCenter.scale(1.0f / predators.size());
+
+        Vector2 dir = owner.isAdult()
+                ? predatorCenter.copy().subtract(owner.getPosition())
+                : owner.getPosition().copy().subtract(predatorCenter);
+        if (dir.lengthSquared() <= 0) return true;
+
+        dir.normalize();
+        Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(owner, world, dir);
+        if (avoidance.lengthSquared() > 0) {
+            dir.add(avoidance);
+            if (dir.lengthSquared() > 0) dir.normalize();
+        }
+
+        owner.setActionState("idle");
+        owner.setSpeed(owner.getBaseSpeed());
+        Vector2 target = owner.getPosition().copy().add(dir.copy().scale(160.0f));
+        clampToWorld(target, owner, world);
+        flockNavigator.moveTo(owner, world, target, deltaTime, 18.0f, 1.0f);
+        return true;
     }
 
     @Override
@@ -144,77 +193,21 @@ public class FlockingStrategy extends PassiveStrategy {
     public static class DeerFlock extends FlockingStrategy {
         @Override
         protected boolean handlePredators(Animal owner, List<Entity> neighbors, World world, float deltaTime) {
-            for (Entity e : neighbors) {
-                if (e instanceof Animal && ((Animal)e).getDietType() == DietType.CARNIVORE) {
-                    // Đàn giải tán, chuyển sang ScaredStrategy
-                    owner.setStrategy(new ScaredStrategy());
-                    return true;
-                }
-            }
-            return false;
+            return super.handlePredators(owner, neighbors, world, deltaTime);
         }
     }
 
     public static class WolfFlock extends FlockingStrategy {
         @Override
         protected boolean handlePredators(Animal owner, List<Entity> neighbors, World world, float deltaTime) {
-            for (Entity e : neighbors) {
-                if (e instanceof Animal && ((Animal)e).getDietType() == DietType.CARNIVORE) {
-                    Animal predator = (Animal) e;
-                    if (predator.getSize() > owner.getSize()) {
-                        // Kẻ địch mạnh hơn -> rã đàn, chạy trốn
-                        owner.setStrategy(new ScaredStrategy());
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return super.handlePredators(owner, neighbors, world, deltaTime);
         }
     }
 
     public static class ElephantFlock extends FlockingStrategy {
         @Override
         protected boolean handlePredators(Animal owner, List<Entity> neighbors, World world, float deltaTime) {
-            List<Animal> predators = new ArrayList<>();
-            for (Entity e : neighbors) {
-                if (e instanceof Animal && ((Animal)e).getDietType() == DietType.CARNIVORE) {
-                    predators.add((Animal) e);
-                }
-            }
-
-            if (!predators.isEmpty()) {
-                // Không bỏ chạy, giữ đội hình
-                Vector2 predatorCenter = new Vector2();
-                for (Animal p : predators) predatorCenter.add(p.getPosition());
-                predatorCenter.scale(1.0f / predators.size());
-
-                Vector2 dir = new Vector2();
-                if (owner.isAdult()) {
-                    // Trưởng thành tiến về phía kẻ thù để chắn
-                    dir = predatorCenter.copy().subtract(owner.getPosition());
-                } else {
-                    // Con non lùi lại hoặc đứng yên
-                    dir = owner.getPosition().copy().subtract(predatorCenter);
-                }
-
-                if (dir.lengthSquared() > 0) {
-                    dir.normalize();
-                    
-                    Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce(owner, world, dir);
-                    if (avoidance.lengthSquared() > 0) {
-                        dir.add(avoidance);
-                        if (dir.lengthSquared() > 0) dir.normalize();
-                    }
-                    
-                    owner.setActionState("idle");
-                    owner.setSpeed(owner.getBaseSpeed());
-                    Vector2 target = owner.getPosition().copy().add(dir.copy().scale(160.0f));
-                    clampToWorld(target, owner, world);
-                    flockNavigator.moveTo(owner, world, target, deltaTime, 18.0f, 1.0f);
-                }
-                return true; // handled
-            }
-            return false;
+            return super.handlePredators(owner, neighbors, world, deltaTime);
         }
     }
 

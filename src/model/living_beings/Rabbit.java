@@ -3,11 +3,8 @@ package model.living_beings;
 import core.DisplayMode;
 import core.GameConfig;
 import core.Vector2;
-import model.entity.Entity;
 import model.plants.Grass;
 import model.plants.Plant;
-import model.strategies.ScaredStrategy;
-import java.util.List;
 import java.util.Random;
 
 public class Rabbit extends HerbivoreAnimal {
@@ -20,6 +17,14 @@ public class Rabbit extends HerbivoreAnimal {
     private static final double THIRST_DECAY_RATE = 0.8;
     private static final double MAX_AGE           = 900.0; // 20% = 180s = 3 phút để trưởng thành
     private static final double VISION_RANGE      = 200.0;
+    private static final AnimalProfile PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_HERBIVORE)
+            .ediblePlants(Grass.class)
+            .canFlock(true)
+            .flockingMode(FlockingMode.BASIC)
+            .canHide(true)
+            .canBeScared(true)
+            .build();
 
     private final Random random = new Random();
 
@@ -36,12 +41,8 @@ public class Rabbit extends HerbivoreAnimal {
         this.thirstDecayRate  = THIRST_DECAY_RATE;
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
+        this.profile          = PROFILE;
         // Không set cứng Strategy — để decideActiveStrategy tự quyết định
-    }
-
-    @Override
-    protected boolean useFlocking() {
-        return true; // Thỏ đi theo bầy khi rảnh rỗi
     }
 
     @Override
@@ -68,7 +69,7 @@ public class Rabbit extends HerbivoreAnimal {
 
     @Override
     public boolean canEatPlant(Plant food) {
-        return food instanceof Grass;
+        return super.canEatPlant(food);
     }
 
     @Override

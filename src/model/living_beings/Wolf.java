@@ -7,6 +7,13 @@ import core.DisplayMode;
 public class Wolf extends CarnivoreAnimal {
     private static final float SIZE = 28.0f;
     private static final float BASE_SPEED = GameConfig.getInstance().WOLF_BASE_SPEED;
+    private static final AnimalProfile PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_CARNIVORE)
+            .canHunt(true)
+            .canEatMeat(true)
+            .attackDamagePerSecond(80.0f)
+            .maxPreySizeMultiplier(1.5f)
+            .build();
 
     public Wolf(Vector2 position) {
         super(position, SIZE, BASE_SPEED);
@@ -22,6 +29,7 @@ public class Wolf extends CarnivoreAnimal {
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 0.6f;
         this.maxAge = 450.0f;
+        this.profile = PROFILE;
 
         // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định
         // Sói đi săn khi đói (HunterStrategy), đi dạo/bầy đàn khi no

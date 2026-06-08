@@ -1,7 +1,10 @@
 package model.living_beings;
 
 import core.Vector2;
+import model.items.Carcass;
+import model.items.FoodSource;
 import model.plants.Plant;
+import model.strategies.StrategySelector;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -54,6 +57,7 @@ public abstract class Animal extends LivingBeing {
     protected boolean hidden = false;
     protected model.structures.Bush hiddenInBush = null;
     protected String actionState = "idle";
+    protected AnimalProfile profile;
     private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
 
     /** Tham chiếu tới World hiện tại — được World.update() gán trước mỗi frame. */
@@ -99,6 +103,7 @@ public abstract class Animal extends LivingBeing {
         this.dietType = dietType;
         this.adult = false;
         this.alive = true;
+        this.profile = AnimalProfile.defaultFor(dietType);
     }
 
     /** Constructor rút gọn — lớp con tự gán chỉ số sau khi gọi super(). */
@@ -107,6 +112,7 @@ public abstract class Animal extends LivingBeing {
         this.dietType = dietType;
         this.age = 0.0;
         this.alive = true;
+        this.profile = AnimalProfile.defaultFor(dietType);
     }
 
     // =========================================================
@@ -263,79 +269,9 @@ public abstract class Animal extends LivingBeing {
      * Hoạt động cho TẤT CẢ các loài — không lock cứng bất kỳ Strategy nào.
      */
     protected void decideActiveStrategy() {
-        // === CẤP 5 (TUYỆT ĐỐI): Sinh tồn cấp cứu ===
-        // Nếu đói hoặc khát cạn kiệt → bất chấp nguy hiểm, lao ra kiếm đồ ăn/nước
-        boolean criticalHunger = this.hunger < this.maxHunger * CRITICAL_SURVIVAL_THRESHOLD;
-        boolean criticalThirst = this.thirst < this.maxThirst * CRITICAL_SURVIVAL_THRESHOLD;
-        if (criticalHunger || criticalThirst) {
-            if (this.hidden) exitBush(); // Thoát bụi bất chấp
-            if (!(currentStrategy instanceof model.strategies.ForageStrategy)) {
-                setStrategy(new model.strategies.ForageStrategy());
-            }
-            return;
-        }
-
-        // === CẤP 4: Bỏ chạy / Ẩn nấp (chỉ thú ăn cỏ) ===
-        if (detectDangerousThreats()) {
-            if (!(currentStrategy instanceof model.strategies.ScaredStrategy)) {
-                setStrategy(new model.strategies.ScaredStrategy());
-            }
-            return;
-        }
-        // Nếu đang chạy trốn nhưng không còn kẻ thù → thoát ScaredStrategy ngay
-        if (currentStrategy instanceof model.strategies.ScaredStrategy) {
-            if (this.hidden) exitBush();
-            setStrategy(new model.strategies.PassiveStrategy());
-        }
-
-        // === CẤP 3: Săn mồi (chỉ thú ăn thịt + đói) ===
-        if (dietType == DietType.CARNIVORE &&
-                this.hunger < this.maxHunger * HUNGER_WARNING_THRESHOLD) {
-            if (!(currentStrategy instanceof model.strategies.HunterStrategy)) {
-                setStrategy(new model.strategies.HunterStrategy());
-            }
-            return;
-        }
-        // Thú ăn thịt no → thoát HunterStrategy
-        if (currentStrategy instanceof model.strategies.HunterStrategy &&
-                this.hunger >= this.maxHunger * 0.95) {
-            setStrategy(new model.strategies.PassiveStrategy());
-        }
-
-        // === CẤP 2: Tìm thức ăn & nước uống ===
-        if (this.hunger < this.maxHunger * HUNGER_WARNING_THRESHOLD ||
-                this.thirst < this.maxThirst * THIRST_WARNING_THRESHOLD) {
-            if (!(currentStrategy instanceof model.strategies.ForageStrategy) &&
-                    !(currentStrategy instanceof model.strategies.HunterStrategy)) {
-                setStrategy(new model.strategies.ForageStrategy());
-            }
-            return;
-        }
-        // Thoát ForageStrategy khi no và không khát
-        if (currentStrategy instanceof model.strategies.ForageStrategy) {
-            setStrategy(new model.strategies.PassiveStrategy());
-        }
-
-        // === CẤP 1: Sinh sản ===
-        if (canReproduce()) {
-            if (!(currentStrategy instanceof model.strategies.MatingStrategy)) {
-                setStrategy(new model.strategies.MatingStrategy());
-            }
-            return;
-        }
-
-        // === CẤP 0.5: Đi theo bầy đàn (Voi, Thỏ) ===
-        // Lớp con ghi đè useFlocking() để bật tính năng này
-        if (useFlocking()) {
-            if (!(currentStrategy instanceof model.strategies.FlockingStrategy)) {
-                setStrategy(createFlockingStrategy());
-            }
-            return;
-        }
-
-        // === CẤP 0: Mặc định — đi dạo ===
-        if (!(currentStrategy instanceof model.strategies.PassiveStrategy)) {
-            setStrategy(new model.strategies.PassiveStrategy());
+        model.strategies.IStrategy selected = StrategySelector.select(this);
+        if (selected != null && selected != currentStrategy) {
+            setStrategy(selected);
         }
     }
 
@@ -344,7 +280,7 @@ public abstract class Animal extends LivingBeing {
      * khi không có việc gì khác để làm (ví dụ: Rabbit, Elephant).
      */
     protected boolean useFlocking() {
-        return false;
+        return getProfile().canFlock();
     }
 
     /**
@@ -361,7 +297,7 @@ public abstract class Animal extends LivingBeing {
      * Thú ăn thịt không cần bỏ chạy.
      */
     protected boolean detectDangerousThreats() {
-        if (dietType != DietType.HERBIVORE) return false;
+        if (!getProfile().canBeScared()) return false;
         if (worldRef == null || worldRef.getSpatialGrid() == null) return false;
 
         java.util.List<model.entity.Entity> neighbors =
@@ -370,13 +306,15 @@ public abstract class Animal extends LivingBeing {
         for (model.entity.Entity e : neighbors) {
             if (!(e instanceof Animal) || e == this || !e.isAlive()) continue;
             Animal other = (Animal) e;
-            if (other.getDietType() == DietType.CARNIVORE
-                    && other.getEntityLevel() > this.getEntityLevel()
-                    && other.isAliveState()) {
+            if (isThreatenedBy(other)) {
                 return true; // Chỉ sợ thú ăn thịt ở cấp cao hơn
             }
         }
         return false;
+    }
+
+    public boolean hasDangerousThreats() {
+        return detectDangerousThreats();
     }
 
     // =========================================================
@@ -398,7 +336,45 @@ public abstract class Animal extends LivingBeing {
     }
 
     public boolean canEatPlant(Plant food) {
-        return false;
+        return getProfile().canEatPlant(food);
+    }
+
+    public boolean canEatFoodSource(FoodSource food) {
+        if (!alive || food == null || !food.isAlive()) return false;
+        if (!getProfile().canEatMeat()) return false;
+        if (food instanceof Carcass) {
+            Carcass carcass = (Carcass) food;
+            return getProfile().canEatOwnSpecies() || !carcass.getSourceSpecies().equals(this.getSpeciesName());
+        }
+        return true;
+    }
+
+    public boolean canHunt(Animal prey) {
+        if (!alive || prey == null || prey == this || !prey.isAliveState()) return false;
+        if (!getProfile().canHunt()) return false;
+        if (prey.isHidden()) return false;
+        if (!getProfile().canEatOwnSpecies() && prey.getSpeciesName().equals(this.getSpeciesName())) return false;
+        if (prey.getEntityLevel() >= this.getEntityLevel()) return false;
+        return prey.getSize() <= this.getSize() * getProfile().getMaxPreySizeMultiplier();
+    }
+
+    public boolean isThreatenedBy(Animal other) {
+        if (!getProfile().canBeScared()) return false;
+        if (other == null || other == this || !other.isAliveState()) return false;
+        return other.getEntityLevel() > this.getEntityLevel();
+    }
+
+    public boolean canUseStrategy(Class<?> strategyType) {
+        if (strategyType == null) return false;
+        if (strategyType == model.strategies.HunterStrategy.class) return getProfile().canHunt();
+        if (strategyType == model.strategies.ForageStrategy.class) return true; // Mọi loài đều có thể dùng để đi uống nước.
+        if (strategyType == model.strategies.ScaredStrategy.class) return getProfile().canBeScared();
+        if (strategyType == model.strategies.FlockingStrategy.class) return getProfile().canFlock();
+        return true;
+    }
+
+    public boolean canForageForFood() {
+        return getProfile().canEatPlants() || (getProfile().canEatMeat() && !getProfile().canHunt());
     }
 
     /** Ăn thịt (FoodSource chung) — dành cho động vật ăn thịt. */
@@ -604,11 +580,16 @@ public abstract class Animal extends LivingBeing {
     public DietType getDietType() { return dietType; }
     public void setDietType(DietType dietType) { this.dietType = dietType; }
 
+    public AnimalProfile getProfile() {
+        if (profile == null) {
+            profile = AnimalProfile.defaultFor(dietType);
+        }
+        return profile;
+    }
+
     @Override
     public int getEntityLevel() {
-        if (dietType == DietType.CARNIVORE) return LEVEL_CARNIVORE;
-        if (dietType == DietType.HERBIVORE) return LEVEL_HERBIVORE;
-        return LEVEL_UNCLASSIFIED;
+        return getProfile().getEntityLevel();
     }
 
     // =========================================================

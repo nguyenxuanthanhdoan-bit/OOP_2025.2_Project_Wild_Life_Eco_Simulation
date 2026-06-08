@@ -129,6 +129,10 @@ public abstract class LivingBeing extends Entity {
         this.currentStrategy = strategy;
     }
 
+    public model.strategies.IStrategy getCurrentStrategy() {
+        return this.currentStrategy;
+    }
+
 
     // Thêm hàm Getter để RenderSystem đọc được
     public boolean isFacingRight() {

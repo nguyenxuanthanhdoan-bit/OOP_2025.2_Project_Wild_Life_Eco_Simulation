@@ -21,6 +21,10 @@ public class HunterStrategy implements IStrategy {
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
+        if (!ownerAnimal.canUseStrategy(HunterStrategy.class)) {
+            wanderDelegate.execute(owner, world, deltaTime);
+            return;
+        }
 
         // Bỏ qua nếu đã no
         if (ownerAnimal.getHunger() >= ownerAnimal.getMaxHunger() * 0.95) {
@@ -71,10 +75,7 @@ public class HunterStrategy implements IStrategy {
 
                 if (neighbor instanceof FoodSource) {
                     FoodSource foodSource = (FoodSource) neighbor;
-                    // Tránh ăn thịt đồng loại
-                    if (!canEatMeatSource(ownerAnimal, foodSource)) {
-                        continue;
-                    }
+                    if (!ownerAnimal.canEatFoodSource(foodSource)) continue;
                     
                     // Điểm cơ bản cho nguồn thịt
                     score = 1000.0f - dist;
@@ -85,20 +86,15 @@ public class HunterStrategy implements IStrategy {
                 } else if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
                     
-                    // Không săn đồng loại, con cùng/cao cấp hơn, con mồi quá to, hoặc đang trốn
-                    if (other.isHidden() || other.getSize() > ownerAnimal.getSize() * 1.5f 
-                            || other.getSpeciesName().equals(ownerAnimal.getSpeciesName())
-                            || other.getEntityLevel() >= ownerAnimal.getEntityLevel()) {
-                        continue;
-                    }
+                    if (!ownerAnimal.canHunt(other)) continue;
 
                     // Hạn chế săn thú ăn thịt khác trừ khi cực kỳ đói
-                    if (other.getDietType() == model.living_beings.DietType.CARNIVORE && !isVeryHungry) {
+                    if (other.canUseStrategy(HunterStrategy.class) && !isVeryHungry) {
                         continue;
                     }
 
                     score = 500.0f - dist;
-                    if (other.getDietType() == model.living_beings.DietType.CARNIVORE) {
+                    if (other.canUseStrategy(HunterStrategy.class)) {
                         score -= 300.0f; // Trừ điểm để ưu tiên săn thú ăn cỏ hơn nếu có cả hai
                     }
                     
@@ -167,9 +163,7 @@ public class HunterStrategy implements IStrategy {
                     // Tấn công con mồi
                     ownerAnimal.setActionState("attack");
                     Animal prey = (Animal) targetFood;
-                    // Tăng sát thương để bắt mồi nhanh hơn (Sói 80/s, Hổ 100/s)
-                    float damage = (ownerAnimal.getSpeciesName().equals("Hổ")) ? 100.0f : 80.0f;
-                    prey.takeDamage(damage * deltaTime);
+                    prey.takeDamage(ownerAnimal.getProfile().getAttackDamagePerSecond() * deltaTime);
 
                     if (!prey.isAlive()) {
                         // Trả về null để lần sau quét trúng Carcass vừa rơi ra
@@ -227,11 +221,4 @@ public class HunterStrategy implements IStrategy {
         return "Hunter";
     }
 
-    private boolean canEatMeatSource(Animal animal, FoodSource foodSource) {
-        if (foodSource instanceof Carcass) {
-            Carcass carcass = (Carcass) foodSource;
-            return !carcass.getSourceSpecies().equals(animal.getSpeciesName());
-        }
-        return true;
-    }
 }

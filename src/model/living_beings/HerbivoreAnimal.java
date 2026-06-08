@@ -59,7 +59,7 @@ public abstract class HerbivoreAnimal extends Animal {
 
     @Override
     public boolean canEatPlant(Plant food) {
-        return food instanceof Grass || food instanceof Fruit || food instanceof Mushroom;
+        return getProfile().canEatPlant(food);
     }
 
     /**

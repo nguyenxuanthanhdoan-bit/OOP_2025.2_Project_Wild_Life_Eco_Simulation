@@ -14,6 +14,7 @@ import model.plants.Fruit;
 import model.plants.Mushroom;
 import model.items.Carcass;
 import model.items.FoodSource;
+import model.plants.Plant;
 import java.util.List;
 
 public class ForageStrategy implements IStrategy {
@@ -37,7 +38,9 @@ public class ForageStrategy implements IStrategy {
         double thirstRatio = ownerAnimal.getThirst() / ownerAnimal.getMaxThirst();
         double hungerRatio = ownerAnimal.getHunger() / ownerAnimal.getMaxHunger();
 
-        if (needsWater && needsFood) {
+        if (needsWater && ownerAnimal.canUseStrategy(HunterStrategy.class)) {
+            needsFood = false; // Carnivore đang khát thì uống trước; cơn đói do HunterStrategy xử lý sau.
+        } else if (needsWater && needsFood) {
             if (hungerRatio < thirstRatio) {
                 needsWater = false; // Đói hơn khát -> Đi ăn trước
             } else {
@@ -91,21 +94,7 @@ public class ForageStrategy implements IStrategy {
                 if (!neighbor.isAlive()) continue;
                 if (ownerAnimal.isFoodMarkedUnsafe(neighbor)) continue;
 
-                int priority = 0;
-                if (ownerAnimal.getDietType() == DietType.HERBIVORE) {
-                    if (neighbor instanceof Fruit && ownerAnimal.canEatPlant((Fruit) neighbor)) priority = 3;
-                    else if (neighbor instanceof Mushroom && ownerAnimal.canEatPlant((Mushroom) neighbor)) priority = 2;
-                    else if (neighbor instanceof Grass && ownerAnimal.canEatPlant((Grass) neighbor)) priority = 1;
-                } else if (ownerAnimal.getDietType() == DietType.CARNIVORE) {
-                    // Thú ăn thịt CHỈ ăn thịt — ForageStrategy không tìm con mồi sống
-                    // (việc đó là của HunterStrategy)
-                    if (neighbor instanceof FoodSource && canEatMeatSource(ownerAnimal, (FoodSource) neighbor)) priority = 1;
-                } else if (ownerAnimal.getDietType() == DietType.OMNIVORE) {
-                    if (neighbor instanceof FoodSource && canEatMeatSource(ownerAnimal, (FoodSource) neighbor)) priority = 4;
-                    else if (neighbor instanceof Fruit && ownerAnimal.canEatPlant((Fruit) neighbor)) priority = 3;
-                    else if (neighbor instanceof Mushroom && ownerAnimal.canEatPlant((Mushroom) neighbor)) priority = 2;
-                    else if (neighbor instanceof Grass && ownerAnimal.canEatPlant((Grass) neighbor)) priority = 1;
-                }
+                int priority = getStaticFoodPriority(ownerAnimal, neighbor);
 
                 if (priority > 0) {
                     if (isFoodLocationDangerous(ownerAnimal, world, neighbor)) {
@@ -127,8 +116,8 @@ public class ForageStrategy implements IStrategy {
                 if (ownerAnimal.getPosition().distanceTo(targetFood.getPosition()) <= eatRange) {
                     ownerAnimal.setSpeed(0);
                     ownerAnimal.setActionState("eat");
-                    if (targetFood instanceof model.plants.Plant) {
-                        ownerAnimal.eat((model.plants.Plant) targetFood);
+                    if (targetFood instanceof Plant) {
+                        ownerAnimal.eat((Plant) targetFood);
                     } else if (targetFood instanceof FoodSource) {
                         ownerAnimal.eatMeat((model.items.FoodSource) targetFood);
                     }
@@ -164,16 +153,17 @@ public class ForageStrategy implements IStrategy {
         return "Forage";
     }
 
-    private boolean canEatMeatSource(Animal animal, FoodSource food) {
-        if (food instanceof Carcass) {
-            Carcass carcass = (Carcass) food;
-            return !carcass.getSourceSpecies().equals(animal.getSpeciesName());
-        }
-        return true;
+    private int getStaticFoodPriority(Animal animal, Entity entity) {
+        if (entity instanceof FoodSource && animal.canEatFoodSource((FoodSource) entity)) return 4;
+        if (entity instanceof Fruit && animal.canEatPlant((Fruit) entity)) return 3;
+        if (entity instanceof Mushroom && animal.canEatPlant((Mushroom) entity)) return 2;
+        if (entity instanceof Grass && animal.canEatPlant((Grass) entity)) return 1;
+        if (entity instanceof Plant && animal.canEatPlant((Plant) entity)) return 1;
+        return 0;
     }
 
     private boolean isFoodLocationDangerous(Animal ownerAnimal, World world, Entity food) {
-        if (ownerAnimal.getDietType() != DietType.HERBIVORE || world.getSpatialGrid() == null) {
+        if (!ownerAnimal.getProfile().canBeScared() || world.getSpatialGrid() == null) {
             return false;
         }
 
@@ -182,9 +172,7 @@ public class ForageStrategy implements IStrategy {
             if (!(entity instanceof Animal) || entity == ownerAnimal || !entity.isAlive()) continue;
 
             Animal other = (Animal) entity;
-            if (other.getDietType() == DietType.CARNIVORE
-                    && other.getEntityLevel() > ownerAnimal.getEntityLevel()
-                    && other.isAliveState()) {
+            if (ownerAnimal.isThreatenedBy(other)) {
                 return true;
             }
         }

@@ -7,6 +7,13 @@ import core.DisplayMode;
 public class Tiger extends CarnivoreAnimal {
     private static final float SIZE = 35.0f;
     private static final float BASE_SPEED = GameConfig.getInstance().TIGER_BASE_SPEED;
+    private static final AnimalProfile PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_CARNIVORE)
+            .canHunt(true)
+            .canEatMeat(true)
+            .attackDamagePerSecond(100.0f)
+            .maxPreySizeMultiplier(1.5f)
+            .build();
 
     public Tiger(Vector2 position) {
         super(position, SIZE, BASE_SPEED);
@@ -22,6 +29,7 @@ public class Tiger extends CarnivoreAnimal {
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 0.5f; 
         this.maxAge = 600.0f; 
+        this.profile = PROFILE;
 
         // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định
     }

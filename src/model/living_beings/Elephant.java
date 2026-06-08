@@ -6,7 +6,6 @@ import model.plants.Fruit;
 import model.plants.Grass;
 import model.plants.Mushroom;
 import model.plants.Plant;
-import model.strategies.FlockingStrategy;
 
 public class Elephant extends HerbivoreAnimal {
     private static final float  SIZE               = 50.0f;
@@ -19,6 +18,13 @@ public class Elephant extends HerbivoreAnimal {
     private static final double THIRST_DECAY_RATE  = 0.6;
     private static final double MAX_AGE            = 3600.0;
     private static final double VISION_RANGE       = 350.0;
+    private static final AnimalProfile PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_APEX_ANIMAL)
+            .ediblePlants(Grass.class, Fruit.class, Mushroom.class)
+            .canFlock(true)
+            .flockingMode(FlockingMode.GUARDIAN)
+            .canBeScared(false)
+            .build();
 
     public Elephant(Vector2 position, int herdId) {
         this(position);
@@ -38,17 +44,8 @@ public class Elephant extends HerbivoreAnimal {
         this.thirstDecayRate  = THIRST_DECAY_RATE;
         this.maxAge           = MAX_AGE;
         this.visionRange      = VISION_RANGE;
+        this.profile          = PROFILE;
         // Không set cứng Strategy — để decideActiveStrategy tự quyết định
-    }
-
-    @Override
-    protected boolean useFlocking() {
-        return true; // Voi đi theo bầy
-    }
-
-    @Override
-    protected FlockingStrategy createFlockingStrategy() {
-        return new FlockingStrategy.ElephantFlock();
     }
 
     @Override
@@ -79,7 +76,7 @@ public class Elephant extends HerbivoreAnimal {
 
     @Override
     public boolean canEatPlant(Plant food) {
-        return food instanceof Grass || food instanceof Fruit || food instanceof Mushroom;
+        return super.canEatPlant(food);
     }
 
     @Override
