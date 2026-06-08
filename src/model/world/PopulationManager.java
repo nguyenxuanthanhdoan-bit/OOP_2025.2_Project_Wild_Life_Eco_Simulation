@@ -1,6 +1,7 @@
 package model.world;
 
 import core.Vector2;
+import core.GameConfig;
 import model.entity.Entity;
 import model.living_beings.*;
 import java.util.List;
@@ -10,9 +11,6 @@ import java.util.Random;
  * Quản lý quần thể để tránh tuyệt chủng.
  */
 public class PopulationManager {
-    public static final int MIN_SPECIES_POPULATION = 15;
-    public static final int MAX_SPECIES_POPULATION = 100;
-
     /** Cho phép bật/tắt auto-spawn (hữu ích khi test). */
     private static boolean enabled = true;
     public static void setEnabled(boolean value) { enabled = value; }
@@ -22,6 +20,7 @@ public class PopulationManager {
      */
     public static void onAnimalDeath(Animal animal, World world) {
         if (!enabled || world == null) return;
+        GameConfig config = GameConfig.getInstance();
         
         int currentPop = countSpecies(animal.getSpeciesName(), world);
         // Trừ đi 1 vì con hiện tại đang chết nhưng có thể chưa bị xóa khỏi list
@@ -29,7 +28,7 @@ public class PopulationManager {
             // Nên không cần trừ, countSpecies đã kiểm tra isAliveState()
         }
 
-        if (currentPop < MIN_SPECIES_POPULATION) {
+        if (currentPop < config.MIN_SPECIES_POPULATION && currentPop < config.MAX_SPECIES_POPULATION) {
             spawnAnimal(world, animal.getSpeciesName());
         }
     }
@@ -48,19 +47,25 @@ public class PopulationManager {
     }
 
     private static void spawnAnimal(World world, String species) {
+        if (!EntityFactory.canCreateAnimal(species)) return;
+
+        GameConfig config = GameConfig.getInstance();
         Random rand = new Random();
         Vector2 pos = null;
         
         // Cố gắng tìm vị trí xa kẻ săn mồi
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < config.POPULATION_RESPAWN_ATTEMPTS; i++) {
             float x = 200 + rand.nextFloat() * (world.getWidth() - 400);
             float y = 200 + rand.nextFloat() * (world.getHeight() - 400);
             
-            if (!world.isValidGroundSpawnPosition(x, y, 32.0f)) continue;
+            if (!world.isValidGroundSpawnPosition(x, y, config.GROUND_SPAWN_MARGIN)) continue;
             
             boolean safe = true;
             if (world.getSpatialGrid() != null) {
-                List<Entity> neighbors = world.getSpatialGrid().getNeighbors(new Vector2(x, y), 500.0f);
+                List<Entity> neighbors = world.getSpatialGrid().getNeighbors(
+                        new Vector2(x, y),
+                        config.POPULATION_SAFE_SPAWN_PREDATOR_RADIUS
+                );
                 for (Entity n : neighbors) {
                     if (n instanceof CarnivoreAnimal && n.isAlive()) {
                         safe = false; 
@@ -78,17 +83,11 @@ public class PopulationManager {
             pos = new Vector2(world.getWidth() / 2, world.getHeight() / 2);
         }
         
-        Animal animal = null;
-        switch (species) {
-            case "Thỏ": animal = new Rabbit(pos); break;
-            case "Hươu": animal = new Deer(pos); break;
-            case "Voi": animal = new Elephant(pos); break;
-            case "Sói": animal = new Wolf(pos); break;
-            case "Hổ": animal = new Tiger(pos); break;
-        }
+        Animal animal = EntityFactory.createAnimal(species, pos);
 
         if (animal != null) {
-            double ageRatio = 0.25 + rand.nextDouble() * 0.4; // 25% - 65% vòng đời
+            double ageRatio = config.INITIAL_SPAWN_MIN_AGE_RATIO
+                    + rand.nextDouble() * (config.INITIAL_SPAWN_MAX_AGE_RATIO - config.INITIAL_SPAWN_MIN_AGE_RATIO);
             animal.setAge(animal.getMaxAge() * ageRatio);
             animal.setAdult(true);
             world.addEntity(animal);

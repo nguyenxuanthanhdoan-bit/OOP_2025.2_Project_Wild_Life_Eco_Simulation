@@ -1,15 +1,14 @@
 import controller.GameLoop;
 import controller.Simulation;
 import controller.InputProcessor;
-import core.Vector2;
-import core.GameConfig;
 import model.world.World;
 import view.systems.Camera;
 import view.systems.RenderSystem;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.util.Random;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class Main extends JPanel {
     private Simulation simulation;
@@ -28,10 +27,8 @@ public class Main extends JPanel {
     }
 
     public static void main(String[] args) {
-        GameConfig config = GameConfig.getInstance();
         Camera camera = new Camera(800, 600);
         World world = new World();
-        Random rand = new Random();
 
         RenderSystem renderSystem = new RenderSystem(camera);
         Simulation simulation = new Simulation(camera, world, renderSystem);
@@ -48,35 +45,27 @@ public class Main extends JPanel {
         Main gamePanel = new Main(simulation);
         final InputProcessor input = new InputProcessor(simulation, camera);
         gamePanel.addKeyListener(input);
+        GameLoop gameLoop = new GameLoop(simulation);
+        gameLoop.setBeforeUpdate(input::updateCameraMovement);
+        gameLoop.setAfterUpdate(gamePanel::repaint);
 
         // Gắn sự kiện chuyển màn hình vào nút bấm ở Menu
         JPanel menuPanel = createMenuPanel(e -> {
             cardLayout.show(rootPanel, "GAME");
             gamePanel.requestFocusInWindow();
-
-            GameLoop gameLoop = new GameLoop(simulation) {
-                @Override
-                public void run() {
-                    long lastTime = System.nanoTime();
-                    while (true) {
-                        long now = System.nanoTime();
-                        float deltaTime = (now - lastTime) / 1000000000f;
-                        lastTime = now;
-                        input.updateCameraMovement(deltaTime);
-                        simulation.update(deltaTime);
-                        gamePanel.repaint();
-                        try { Thread.sleep(16); }
-                        catch (InterruptedException ex) { break; }
-                    }
-                }
-            };
-            new Thread(gameLoop).start();
+            gameLoop.start();
         });
 
         rootPanel.add(menuPanel, "MENU");
         rootPanel.add(gamePanel, "GAME");
 
         frame.add(rootPanel);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                gameLoop.stop();
+            }
+        });
         frame.setVisible(true);
     }
 

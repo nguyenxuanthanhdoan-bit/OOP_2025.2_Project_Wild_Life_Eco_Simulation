@@ -2,6 +2,8 @@ package model.world;
 
 import model.entity.Entity;
 import core.GameConfig;
+import model.living_beings.Animal;
+
 import java.util.ArrayList;
 import java.util.List;
 import core.Vector2;
@@ -23,17 +25,28 @@ public class World {
 
     // [MỚI] Tham chiếu đến GameMap
     private model.map.GameMap gameMap;
+    private final WorldEventSystem eventSystem;
 
     public World() {
         this.entities = new ArrayList<>();
+        this.eventSystem = new WorldEventSystem();
         this.width = GameConfig.getInstance().WORLD_WIDTH;
         this.height = GameConfig.getInstance().WORLD_HEIGHT;
+        registerDefaultEventListeners();
 
         // Khởi tạo nền cỏ xanh bao phủ toàn bộ thế giới
         this.currentBiome = new Grassland(new core.Vector2(width/2, height/2), Math.max(width, height));
 
         // [MỚI] Khởi tạo lưới ngay từ đầu nếu đã có kích thước từ Config
         checkAndInitGrid();
+    }
+
+    private void registerDefaultEventListeners() {
+        eventSystem.subscribe(WorldEventType.ANIMAL_DIED, event -> {
+            if (event.getEntity() instanceof Animal) {
+                PopulationManager.onAnimalDeath((Animal) event.getEntity(), this);
+            }
+        });
     }
 
     // [MỚI] Hàm khởi tạo Lưới (Dùng chung cho Constructor và Setters)
@@ -99,6 +112,7 @@ public class World {
             if (this.spatialGrid != null) {
                 this.spatialGrid.add(e);
             }
+            publishEvent(WorldEventType.ENTITY_ADDED, e, "addEntity");
         }
     }
 
@@ -112,7 +126,12 @@ public class World {
             if (this.spatialGrid != null) {
                 this.spatialGrid.remove(e);
             }
+            publishEvent(WorldEventType.ENTITY_REMOVED, e, "removeEntity");
         }
+    }
+
+    public void publishEvent(WorldEventType type, Entity entity, String reason) {
+        eventSystem.emit(new WorldEvent(type, entity, this, reason));
     }
 
     private void keepInBounds(Entity e) {
@@ -192,6 +211,10 @@ public class World {
     // [MỚI] Getter cho Lưới Không Gian (Để RenderSystem gọi tới)
     public SpatialGrid getSpatialGrid() {
         return spatialGrid;
+    }
+
+    public WorldEventSystem getEventSystem() {
+        return eventSystem;
     }
 
     public Biome getCurrentBiome() {

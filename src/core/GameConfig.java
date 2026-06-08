@@ -31,6 +31,59 @@ public class GameConfig {
     public final float TIGER_BASE_SPEED = 130.0f;  // Tốc độ chạy của hổ (pixels/giây)
     public final float WOLF_BASE_SPEED = 140.0f;   // Tốc độ chạy của sói (pixels/giây)
 
+    // ==========================================
+    // CẤU HÌNH GAME LOOP
+    // ==========================================
+    public final int TARGET_FPS = 60;
+    public final float MAX_DELTA_TIME = 0.05f;
+
+    // ==========================================
+    // CẤU HÌNH MAP / TILE
+    // ==========================================
+    public final String DEFAULT_MAP_PATH = "resources/map/map2.tmx";
+    public final int TILE_SIZE = 32;
+    public final float GROUND_SPAWN_MARGIN = 32.0f;
+
+    // ==========================================
+    // CẤU HÌNH SPAWN BAN ĐẦU
+    // ==========================================
+    public final int INITIAL_GRASS_COUNT = 320;
+    public final float GRASS_PLAIN_SPAWN_CHANCE = 0.9f;
+    public final int INITIAL_MUSHROOM_COUNT = 60;
+    public final float MUSHROOM_PLAIN_SPAWN_CHANCE = 0.2f;
+    public final int INITIAL_PLAIN_TREE_COUNT = 30;
+    public final int INITIAL_FOREST_TREE_COUNT = 400;
+    public final int INITIAL_BUSH_COUNT = 80;
+    public final float BUSH_PLAIN_SPAWN_CHANCE = 0.3f;
+    public final int INITIAL_ROCK_COUNT = 30;
+    public final float ROCK_PLAIN_SPAWN_CHANCE = 0.5f;
+    public final int MAX_INITIAL_ANIMAL_COUNT = 250;
+    public final int SPAWN_ATTEMPTS_PER_POINT = 180;
+    public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
+    public final double INITIAL_SPAWN_MIN_AGE_RATIO = 0.25;
+    public final double INITIAL_SPAWN_MAX_AGE_RATIO = 0.65;
+
+    // ==========================================
+    // CẤU HÌNH QUẦN THỂ / SINH SẢN
+    // ==========================================
+    public final int MIN_SPECIES_POPULATION = 15;
+    public final int MAX_SPECIES_POPULATION = 100;
+    public final int MAX_ANIMAL_POPULATION = 200;
+    public final int POPULATION_RESPAWN_ATTEMPTS = 30;
+    public final float POPULATION_SAFE_SPAWN_PREDATOR_RADIUS = 500.0f;
+    public final float MATING_DURATION_SECONDS = 2.0f;
+    public final float REPRODUCTION_COOLDOWN_SECONDS = 60.0f;
+    public final double REPRODUCTION_ENERGY_COST = 50.0;
+
+    // ==========================================
+    // CẤU HÌNH RENDER / HUD
+    // ==========================================
+    public final float ANIMATION_FRAME_DURATION = 0.15f;
+    public final int MINIMAP_MARGIN = 14;
+    public final int MINIMAP_SIZE = 190;
+    public final int MINIMAP_MIN_HEIGHT = 80;
+    public final float STATUS_BAR_MIN_ZOOM = 0.65f;
+
     // Constructor private để cấm dùng từ khóa 'new' từ bên ngoài
     private GameConfig() {}
 

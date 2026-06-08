@@ -1,17 +1,19 @@
 package model.strategies;
 
 import core.Vector2;
+import core.GameConfig;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
 import model.navigation.PathNavigator;
 import model.world.World;
+import model.world.WorldEventType;
 import model.entity.Entity;
 import java.util.List;
 
 public class MatingStrategy extends PassiveStrategy {
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
     private final PathNavigator mateNavigator = new PathNavigator();
-    private static final int MAX_POPULATION = 200;
+    private final GameConfig config = GameConfig.getInstance();
     private Animal targetMate = null;
     private float cooldownTimer = 0.0f;
     private float matingTimer = 0.0f;
@@ -30,7 +32,7 @@ public class MatingStrategy extends PassiveStrategy {
         }
 
         // Check if ecosystem reached limit
-        if (getAnimalCount(world) >= MAX_POPULATION) {
+        if (getAnimalCount(world) >= config.MAX_ANIMAL_POPULATION) {
             mateNavigator.clear();
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
@@ -82,19 +84,20 @@ public class MatingStrategy extends PassiveStrategy {
                 ownerAnimal.setSpeed(0);
 
                 matingTimer += deltaTime;
-                if (matingTimer >= 2.0f) {
+                if (matingTimer >= config.MATING_DURATION_SECONDS) {
                     // Mate!
                     Animal child = ownerAnimal.reproduce();
                     if (child != null) {
                         world.addEntity(child);
+                        world.publishEvent(WorldEventType.ANIMAL_BORN, child, ownerAnimal.getSpeciesName());
                         // Consume energy for both parents
-                        ownerAnimal.setHunger(Math.max(0, ownerAnimal.getHunger() - 50));
-                        ownerAnimal.setThirst(Math.max(0, ownerAnimal.getThirst() - 50));
-                        targetMate.setHunger(Math.max(0, targetMate.getHunger() - 50));
-                        targetMate.setThirst(Math.max(0, targetMate.getThirst() - 50));
+                        ownerAnimal.setHunger(Math.max(0, ownerAnimal.getHunger() - config.REPRODUCTION_ENERGY_COST));
+                        ownerAnimal.setThirst(Math.max(0, ownerAnimal.getThirst() - config.REPRODUCTION_ENERGY_COST));
+                        targetMate.setHunger(Math.max(0, targetMate.getHunger() - config.REPRODUCTION_ENERGY_COST));
+                        targetMate.setThirst(Math.max(0, targetMate.getThirst() - config.REPRODUCTION_ENERGY_COST));
                         
                         // Start cooldown
-                        cooldownTimer = 60.0f; // 60 seconds cooldown
+                        cooldownTimer = config.REPRODUCTION_COOLDOWN_SECONDS;
                         targetMate = null;
                         mateNavigator.clear();
                     }

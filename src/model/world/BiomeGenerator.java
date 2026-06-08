@@ -1,5 +1,6 @@
 package model.world;
 
+import core.GameConfig;
 import core.Vector2;
 import model.map.GameMap;
 import model.map.GameMap.MapPolygonObject;
@@ -24,11 +25,6 @@ import java.util.Random;
  * Lớp chuyên tạo và phân bố các vùng sinh thái (Biomes).
  */
 public class BiomeGenerator {
-    private static final int INITIAL_GRASS_COUNT = 320;
-    private static final float GRASS_PLAIN_SPAWN_CHANCE = 0.9f;
-    private static final int MAX_INITIAL_ANIMAL_COUNT = 250;
-    private static final int SPAWN_ATTEMPTS_PER_POINT = 180;
-
     public enum ZoneType {
         FOREST_ZONE, GRASSLAND_ZONE, RANDOM_ZONE
     }
@@ -104,7 +100,7 @@ public class BiomeGenerator {
         spawnSpecies(world, gameMap, plain, 10, 1, rand, (pos, index) -> new Wolf(pos));
         spawnSpecies(world, gameMap, forest, 18, 3, rand, (pos, index) -> new Wolf(pos));
 
-        spawnMapWideWildlife(world, gameMap, rand, MAX_INITIAL_ANIMAL_COUNT);
+        spawnMapWideWildlife(world, gameMap, rand, GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT);
     }
 
     private static void spawnSpecies(World world, GameMap gameMap, List<MapPolygonObject> zones,
@@ -134,30 +130,36 @@ public class BiomeGenerator {
     }
 
     private static void addSpawnedAnimal(World world, Animal animal, Random rand) {
-        double ageRatio = 0.25 + rand.nextDouble() * 0.4; // 25% - 65% vòng đời
+        GameConfig config = GameConfig.getInstance();
+        double ageRatio = config.INITIAL_SPAWN_MIN_AGE_RATIO
+                + rand.nextDouble() * (config.INITIAL_SPAWN_MAX_AGE_RATIO - config.INITIAL_SPAWN_MIN_AGE_RATIO);
         animal.setAge(animal.getMaxAge() * ageRatio);
         animal.setAdult(true);
         world.addEntity(animal);
     }
 
     private static void spawnMapWideWildlife(World world, GameMap gameMap, Random rand, int targetAnimalCount) {
+        GameConfig config = GameConfig.getInstance();
         int attempts = 0;
-        int maxAttempts = targetAnimalCount * 30;
+        int maxAttempts = targetAnimalCount * config.SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER;
         while (countAnimals(world) < targetAnimalCount && attempts < maxAttempts) {
             attempts++;
             Vector2 pos = getRandomGroundPoint(world, gameMap, rand);
             if (pos == null) break;
-            addSpawnedAnimal(world, createSupplementalAnimal(pos, rand), rand);
+            Animal animal = createSupplementalAnimal(pos, rand);
+            if (animal != null) {
+                addSpawnedAnimal(world, animal, rand);
+            }
         }
     }
 
     private static Animal createSupplementalAnimal(Vector2 pos, Random rand) {
         float roll = rand.nextFloat();
-        if (roll < 0.36f) return new Rabbit(pos);
+        if (roll < 0.36f) return EntityFactory.createAnimal("Thỏ", pos, 0, rand);
         if (roll < 0.68f) return new Deer(pos, 10 + rand.nextInt(4));
-        if (roll < 0.84f) return new Wolf(pos);
+        if (roll < 0.84f) return EntityFactory.createAnimal("Sói", pos, 0, rand);
         if (roll < 0.94f) return new Elephant(pos, 20 + rand.nextInt(3));
-        return new Tiger(pos);
+        return EntityFactory.createAnimal("Hổ", pos, 0, rand);
     }
 
     private static int countAnimals(World world) {
@@ -171,16 +173,18 @@ public class BiomeGenerator {
     }
 
     private static void spawnVegetation(World world, GameMap gameMap, List<MapPolygonObject> plain, List<MapPolygonObject> forest, List<MapPolygonObject> village, Random rand) {
+        GameConfig config = GameConfig.getInstance();
+
         // Grass (Rất nhiều ở Grassland)
-        for (int i = 0; i < INITIAL_GRASS_COUNT; i++) {
-            boolean inPlain = rand.nextFloat() < GRASS_PLAIN_SPAWN_CHANCE;
+        for (int i = 0; i < config.INITIAL_GRASS_COUNT; i++) {
+            boolean inPlain = rand.nextFloat() < config.GRASS_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Grass(pos));
         }
 
         // Mushroom (Rất nhiều ở Forest)
-        for (int i = 0; i < 60; i++) {
-            boolean inPlain = rand.nextFloat() < 0.2f;
+        for (int i = 0; i < config.INITIAL_MUSHROOM_COUNT; i++) {
+            boolean inPlain = rand.nextFloat() < config.MUSHROOM_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Mushroom(pos));
         }
@@ -189,7 +193,7 @@ public class BiomeGenerator {
         int[] normalTrees = {1, 5, 6, 7, 8, 9, 10, 11, 12, 13};
         
         // Đồng cỏ: Cây mọc thưa
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < config.INITIAL_PLAIN_TREE_COUNT; i++) {
             Vector2 pos = getRandomPointInPolygons(plain, gameMap, rand);
             if (pos != null) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
@@ -198,7 +202,7 @@ public class BiomeGenerator {
         }
 
         // Rừng: Mọc thành cụm rậm rạp
-        for (int i = 0; i < 400; i++) {
+        for (int i = 0; i < config.INITIAL_FOREST_TREE_COUNT; i++) {
             Vector2 pos = getRandomPointInPolygons(forest, gameMap, rand);
             if (pos != null) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
@@ -208,16 +212,18 @@ public class BiomeGenerator {
     }
 
     private static void spawnStructures(World world, GameMap gameMap, List<MapPolygonObject> plain, List<MapPolygonObject> forest, Random rand) {
+        GameConfig config = GameConfig.getInstance();
+
         // Bush (Nhiều ở Forest để động vật nhỏ trốn)
-        for (int i = 0; i < 80; i++) {
-            boolean inPlain = rand.nextFloat() < 0.3f;
+        for (int i = 0; i < config.INITIAL_BUSH_COUNT; i++) {
+            boolean inPlain = rand.nextFloat() < config.BUSH_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Bush(pos));
         }
 
         // Rock (Hỗn hợp)
-        for (int i = 0; i < 30; i++) {
-            boolean inPlain = rand.nextFloat() < 0.5f;
+        for (int i = 0; i < config.INITIAL_ROCK_COUNT; i++) {
+            boolean inPlain = rand.nextFloat() < config.ROCK_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Rock(pos));
         }
@@ -237,13 +243,13 @@ public class BiomeGenerator {
         Rectangle2D bounds = selectedPoly.polygonPath.getBounds2D();
         if (bounds.getWidth() <= 0 || bounds.getHeight() <= 0) return null;
 
-        for (int attempt = 0; attempt < SPAWN_ATTEMPTS_PER_POINT; attempt++) {
+        GameConfig config = GameConfig.getInstance();
+        for (int attempt = 0; attempt < config.SPAWN_ATTEMPTS_PER_POINT; attempt++) {
             float x = (float) (bounds.getX() + rand.nextDouble() * bounds.getWidth());
             float y = (float) (bounds.getY() + rand.nextDouble() * bounds.getHeight());
             if (selectedPoly.polygonPath.contains(x, y)) {
                 if (gameMap != null) {
-                    float m = 32.0f; // Khoảng cách an toàn tới mép nước (32px = 1 tile)
-                    if (gameMap.isValidGroundSpawnPosition(x, y, m)) {
+                    if (gameMap.isValidGroundSpawnPosition(x, y, config.GROUND_SPAWN_MARGIN)) {
                         return new Vector2(x, y);
                     }
                 } else {
@@ -256,10 +262,11 @@ public class BiomeGenerator {
 
     private static Vector2 getRandomGroundPoint(World world, GameMap gameMap, Random rand) {
         if (world == null) return null;
-        for (int attempt = 0; attempt < SPAWN_ATTEMPTS_PER_POINT; attempt++) {
+        GameConfig config = GameConfig.getInstance();
+        for (int attempt = 0; attempt < config.SPAWN_ATTEMPTS_PER_POINT; attempt++) {
             float x = rand.nextFloat() * world.getWidth();
             float y = rand.nextFloat() * world.getHeight();
-            if (gameMap == null || gameMap.isValidGroundSpawnPosition(x, y, 32.0f)) {
+            if (gameMap == null || gameMap.isValidGroundSpawnPosition(x, y, config.GROUND_SPAWN_MARGIN)) {
                 return new Vector2(x, y);
             }
         }

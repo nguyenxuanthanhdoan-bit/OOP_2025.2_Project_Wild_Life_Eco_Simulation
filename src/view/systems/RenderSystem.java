@@ -3,6 +3,7 @@ package view.systems;
 import core.Vector2;
 import core.DisplayMode;
 import core.TileType;
+import core.GameConfig;
 import model.entity.Entity;
 import model.world.World;
 import model.plants.Grass;
@@ -29,14 +30,16 @@ public class RenderSystem {
     private DisplayMode displayMode;
     private Map<String, BufferedImage> assetMap;
     private float animationTimer = 0;
-    private final float FRAME_DURATION = 0.15f;
+    private final GameConfig config = GameConfig.getInstance();
+    private final float FRAME_DURATION = config.ANIMATION_FRAME_DURATION;
     private MinimalRenderer minimalRenderer;
 
     private GameMap gameMap;
-    private final int TILE_SIZE = 32;
-    private static final int MINIMAP_MARGIN = 14;
-    private static final int MINIMAP_SIZE = 190;
-    private static final float STATUS_BAR_MIN_ZOOM = 0.65f;
+    private final int TILE_SIZE = config.TILE_SIZE;
+    private final int MINIMAP_MARGIN = config.MINIMAP_MARGIN;
+    private final int MINIMAP_SIZE = config.MINIMAP_SIZE;
+    private final int MINIMAP_MIN_HEIGHT = config.MINIMAP_MIN_HEIGHT;
+    private final float STATUS_BAR_MIN_ZOOM = config.STATUS_BAR_MIN_ZOOM;
     private BufferedImage miniMapCache;
 
     public RenderSystem(Camera camera) {
@@ -370,7 +373,7 @@ public class RenderSystem {
         }
 
         int mapW = MINIMAP_SIZE;
-        int mapH = Math.max(80, Math.round(MINIMAP_SIZE * (worldH / worldW)));
+        int mapH = Math.max(MINIMAP_MIN_HEIGHT, Math.round(MINIMAP_SIZE * (worldH / worldW)));
         BufferedImage cache = new BufferedImage(mapW, mapH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = cache.createGraphics();
 

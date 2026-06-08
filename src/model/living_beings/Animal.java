@@ -5,6 +5,8 @@ import model.items.Carcass;
 import model.items.FoodSource;
 import model.plants.Plant;
 import model.strategies.StrategySelector;
+import model.world.WorldEventType;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -427,8 +429,7 @@ public abstract class Animal extends LivingBeing {
             model.items.Carcass carcass = createCarcass();
             carcass.setWorld(world); // Gắn world để Carcass rớt xương khi phân hủy
             world.addEntity(carcass);
-            
-            model.world.PopulationManager.onAnimalDeath(this, world);
+            world.publishEvent(WorldEventType.ANIMAL_DIED, this, reason);
         }
     }
 
