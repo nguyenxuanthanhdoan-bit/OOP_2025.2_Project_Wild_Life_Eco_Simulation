@@ -46,10 +46,13 @@ public class GameMap {
 
     // Danh sách các đa giác Biome
     public static class MapPolygonObject {
+        public String name;
         public String type; // FOREST, PLAIN, OCEAN...
         public Path2D.Float polygonPath;
     }
     private List<MapPolygonObject> biomePolygons = new ArrayList<>();
+    private List<MapPolygonObject> bridgePolygons = new ArrayList<>();
+    private List<MapPolygonObject> villagePolygons = new ArrayList<>();
 
     // [MỚI] Lưu tên của từng tile layer theo thứ tự để nhận biết loại địa hình
     private List<String> layerNames = new ArrayList<>();
@@ -132,69 +135,104 @@ public class GameMap {
                 }
             }
 
-            // Đọc các Object từ ObjectGroup (hỗ trợ cả tên "Biomes" và "Biome")
-            NodeList objectGroupNodes = doc.getElementsByTagName("objectgroup");
-            for (int i = 0; i < objectGroupNodes.getLength(); i++) {
-                Element groupElement = (Element) objectGroupNodes.item(i);
-                String groupName = groupElement.getAttribute("name");
-                if ("Biomes".equalsIgnoreCase(groupName) || "Biome".equalsIgnoreCase(groupName)) {
-                    NodeList objectNodes = groupElement.getElementsByTagName("object");
-                    for (int j = 0; j < objectNodes.getLength(); j++) {
-                        Element objElement = (Element) objectNodes.item(j);
-                        String type = objElement.getAttribute("type");
-                        if (type == null || type.isEmpty()) {
-                            type = objElement.getAttribute("class"); // Tiled mới dùng 'class' thay 'type'
-                        }
-                        float scaleX = 32.0f / mapTileWidth;
-                        float scaleY = 32.0f / mapTileHeight;
-                        float x = 0, y = 0;
-                        if (!objElement.getAttribute("x").isEmpty()) x = Float.parseFloat(objElement.getAttribute("x")) * scaleX;
-                        if (!objElement.getAttribute("y").isEmpty()) y = Float.parseFloat(objElement.getAttribute("y")) * scaleY;
-
-                        NodeList polygonNodes = objElement.getElementsByTagName("polygon");
-                        Path2D.Float polyPath = new Path2D.Float();
-
-                        if (polygonNodes.getLength() > 0) {
-                            // Dạng đa giác (polygon)
-                            Element polygonElement = (Element) polygonNodes.item(0);
-                            String pointsStr = polygonElement.getAttribute("points");
-                            String[] pointPairs = pointsStr.split(" ");
-                            boolean first = true;
-                            for (String pair : pointPairs) {
-                                String[] coords = pair.split(",");
-                                if (coords.length == 2) {
-                                    float px = x + Float.parseFloat(coords[0]) * scaleX;
-                                    float py = y + Float.parseFloat(coords[1]) * scaleY;
-                                    if (first) { polyPath.moveTo(px, py); first = false; }
-                                    else { polyPath.lineTo(px, py); }
-                                }
-                            }
-                            polyPath.closePath();
-                        } else {
-                            // Dạng hình chữ nhật (rectangle) - map2.tmx dùng loại này
-                            float w = 0, h = 0;
-                            if (!objElement.getAttribute("width").isEmpty()) w = Float.parseFloat(objElement.getAttribute("width")) * scaleX;
-                            if (!objElement.getAttribute("height").isEmpty()) h = Float.parseFloat(objElement.getAttribute("height")) * scaleY;
-                            polyPath.moveTo(x, y);
-                            polyPath.lineTo(x + w, y);
-                            polyPath.lineTo(x + w, y + h);
-                            polyPath.lineTo(x, y + h);
-                            polyPath.closePath();
-                        }
-
-                        MapPolygonObject polyObj = new MapPolygonObject();
-                        // Map class/type từ Tiled sang tên nội bộ của game
-                        polyObj.type = mapBiomeType(type);
-                        polyObj.polygonPath = polyPath;
-                        biomePolygons.add(polyObj);
-                    }
-                }
-            }
+            readObjectGroups(doc, mapTileWidth, mapTileHeight);
 
         } catch (Exception e) {
             System.err.println("Không thể tải map TMX: " + path);
             e.printStackTrace();
         }
+    }
+
+    private void readObjectGroups(Document doc, int mapTileWidth, int mapTileHeight) {
+        NodeList objectGroupNodes = doc.getElementsByTagName("objectgroup");
+        for (int i = 0; i < objectGroupNodes.getLength(); i++) {
+            Element groupElement = (Element) objectGroupNodes.item(i);
+            String groupName = groupElement.getAttribute("name");
+            List<MapPolygonObject> target = null;
+            boolean biomeType = false;
+
+            if ("Biomes".equalsIgnoreCase(groupName) || "Biome".equalsIgnoreCase(groupName)) {
+                target = biomePolygons;
+                biomeType = true;
+            } else if ("Bridge".equalsIgnoreCase(groupName)) {
+                target = bridgePolygons;
+            } else if ("Village".equalsIgnoreCase(groupName)) {
+                target = villagePolygons;
+            }
+
+            if (target == null) continue;
+
+            NodeList objectNodes = groupElement.getElementsByTagName("object");
+            for (int j = 0; j < objectNodes.getLength(); j++) {
+                Element objElement = (Element) objectNodes.item(j);
+                MapPolygonObject polyObj = parsePolygonObject(objElement, mapTileWidth, mapTileHeight, biomeType);
+                if (polyObj != null) {
+                    target.add(polyObj);
+                }
+            }
+        }
+    }
+
+    private MapPolygonObject parsePolygonObject(Element objElement, int mapTileWidth, int mapTileHeight, boolean biomeType) {
+        String type = objElement.getAttribute("type");
+        if (type == null || type.isEmpty()) {
+            type = objElement.getAttribute("class"); // Tiled mới dùng 'class' thay 'type'
+        }
+
+        float scaleX = 32.0f / mapTileWidth;
+        float scaleY = 32.0f / mapTileHeight;
+        float x = parseFloatAttribute(objElement, "x") * scaleX;
+        float y = parseFloatAttribute(objElement, "y") * scaleY;
+
+        NodeList polygonNodes = objElement.getElementsByTagName("polygon");
+        Path2D.Float polyPath = new Path2D.Float();
+
+        if (polygonNodes.getLength() > 0) {
+            Element polygonElement = (Element) polygonNodes.item(0);
+            String pointsStr = polygonElement.getAttribute("points");
+            String[] pointPairs = pointsStr.split(" ");
+            boolean first = true;
+            for (String pair : pointPairs) {
+                String[] coords = pair.split(",");
+                if (coords.length == 2) {
+                    float px = x + Float.parseFloat(coords[0]) * scaleX;
+                    float py = y + Float.parseFloat(coords[1]) * scaleY;
+                    if (first) {
+                        polyPath.moveTo(px, py);
+                        first = false;
+                    } else {
+                        polyPath.lineTo(px, py);
+                    }
+                }
+            }
+            polyPath.closePath();
+        } else {
+            float w = parseFloatAttribute(objElement, "width") * scaleX;
+            float h = parseFloatAttribute(objElement, "height") * scaleY;
+            if (w <= 0 || h <= 0) return null;
+            polyPath.moveTo(x, y);
+            polyPath.lineTo(x + w, y);
+            polyPath.lineTo(x + w, y + h);
+            polyPath.lineTo(x, y + h);
+            polyPath.closePath();
+        }
+
+        MapPolygonObject polyObj = new MapPolygonObject();
+        polyObj.name = objElement.getAttribute("name");
+        polyObj.type = biomeType ? mapBiomeType(type) : normalizeObjectType(type);
+        polyObj.polygonPath = polyPath;
+        return polyObj;
+    }
+
+    private float parseFloatAttribute(Element element, String attrName) {
+        String raw = element.getAttribute(attrName);
+        if (raw == null || raw.isEmpty()) return 0.0f;
+        return Float.parseFloat(raw);
+    }
+
+    private String normalizeObjectType(String rawType) {
+        if (rawType == null || rawType.isEmpty()) return "UNKNOWN";
+        return rawType.toUpperCase();
     }
 
     /**
@@ -226,15 +264,31 @@ public class GameMap {
         return biomePolygons;
     }
 
+    public List<MapPolygonObject> getBridgePolygons() {
+        return bridgePolygons;
+    }
+
+    public List<MapPolygonObject> getVillagePolygons() {
+        return villagePolygons;
+    }
+
     /**
      * Kiểm tra vị trí có phải là tile Cầu (Bridge) không.
      * Nếu đúng thì động vật được phép đi qua dù xung quanh là nước.
      */
     public boolean isBridgeTile(float worldX, float worldY) {
+        if (!bridgePolygons.isEmpty()) {
+            return isInsidePolygonList(bridgePolygons, worldX, worldY);
+        }
+
         int col = (int) (worldX / 32);
         int row = (int) (worldY / 32);
         if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
         return hasTileOnLayer(col, row, "bridge");
+    }
+
+    public boolean hasBridgePolygons() {
+        return !bridgePolygons.isEmpty();
     }
 
     public boolean isGroundTile(float worldX, float worldY) {
@@ -300,6 +354,9 @@ public class GameMap {
                 // Nếu layer Ground hoặc Sand hoặc Bridge có tile ở đây -> đây là đất
                 if (lName.contains("ground") || lName.contains("sand") || lName.contains("bridge")) {
                     if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
+                        if (lName.contains("bridge") && hasBridgePolygons()) {
+                            return !isBridgeTile(worldX, worldY);
+                        }
                         return false;
                     }
                 }
@@ -323,6 +380,15 @@ public class GameMap {
             }
         }
         return isWater;
+    }
+
+    private boolean isInsidePolygonList(List<MapPolygonObject> polygons, float worldX, float worldY) {
+        for (MapPolygonObject poly : polygons) {
+            if (poly != null && poly.polygonPath != null && poly.polygonPath.contains(worldX, worldY)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isPositionInWater(float worldX, float worldY) {

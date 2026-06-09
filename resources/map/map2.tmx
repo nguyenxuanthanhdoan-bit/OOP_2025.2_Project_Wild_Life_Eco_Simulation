@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="200" height="200" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="24">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="200" height="200" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="42">
  <tileset firstgid="1" source="../../../../Water_Middle.tsx"/>
  <tileset firstgid="2" source="../../../../Beach_Tile.tsx"/>
  <tileset firstgid="17" source="../../../../Grass_Middle.tsx"/>
@@ -823,7 +823,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="5" name="Biome">
+ <objectgroup id="5" name="Biome" visible="0">
   <object id="12" name="1" type="FOREST" x="1308.8" y="2086.4" width="1820.8" height="1068.8"/>
   <object id="16" name="3" type="FOREST" x="54.4" y="976" width="726.4" height="1241.6"/>
   <object id="17" x="726.4" y="2588.8"/>
@@ -832,5 +832,26 @@
   <object id="21" name="2" type="PLAIN" x="1161.16" y="1177.84" width="1721.72" height="817.484"/>
   <object id="22" name="3" type="PLAIN" x="1668.34" y="580.581" width="283.617" height="587.254"/>
   <object id="23" name="4" type="PLAIN" x="1955.29" y="920.921" width="1007.67" height="266.934"/>
+ </objectgroup>
+ <objectgroup id="7" name="Bridge">
+  <object id="30" name="1" type="BRIDGE" x="2221.91" y="1972.47">
+   <polygon points="0,0 1.94661,110.679 -0.556174,121.802 -27.5306,121.802 -29.7553,110.4 -29.4772,9.45495 -28.0868,-0.556174"/>
+  </object>
+  <object id="31" name="2" type="BRIDGE" x="1173.54" y="2782.79">
+   <polygon points="0,0 27.6345,-15.6595 169.031,-17.0413 196.665,0.92115 195.284,-16.5807 171.794,-29.4768 27.6345,-30.8585 0.460575,-17.0413"/>
+  </object>
+  <object id="32" name="3" type="BRIDGE" x="858.646" y="1344.02">
+   <polygon points="0,0 20.0413,4.38404 164.402,3.13146 178.18,0.313146 206.989,-2.50517 204.797,9.39438 158.452,16.9099 30.062,17.5362 0,10.3338"/>
+  </object>
+  <object id="33" name="4" type="BRIDGE" x="860.637" y="2092.74">
+   <polygon points="0,0 59.6178,1.52866 59.6178,12.7389 -3.05732,14.7771"/>
+  </object>
+  <object id="34" name="5" type="BRIDGE" x="1307.8" y="883.18">
+   <polygon points="0,0 91.1294,-2.90839 92.0989,9.69462 -0.969462,8.72516"/>
+  </object>
+ </objectgroup>
+ <objectgroup id="8" name="Village">
+  <object id="36" name="1" type="VILLAGE" x="2574.33" y="1302.14" width="398.709" height="440.194"/>
+  <object id="41" name="2" type="VILLAGE" x="855.746" y="654.034" width="385.086" height="488.998"/>
  </objectgroup>
 </map>

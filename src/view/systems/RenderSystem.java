@@ -109,6 +109,7 @@ public class RenderSystem {
         // Structures
         for (int i = 1; i <= 2; i++) tryLoadAsset("bush_" + i, path + "Structures/Bush/Bush_" + i + ".png");
         for (int i = 1; i <= 3; i++) tryLoadAsset("rock_" + i, path + "Structures/Rock/Rock_" + i + ".png");
+        loadAssetsFromDirectory(path + "village/");
 
         // Items
         for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
@@ -124,6 +125,20 @@ public class RenderSystem {
             }
         } catch (IOException e) {
             System.err.println("Không thể nạp: " + path);
+        }
+    }
+
+    private void loadAssetsFromDirectory(String dirPath) {
+        File dir = new File(dirPath);
+        File[] files = dir.listFiles((parent, name) -> name.toLowerCase().endsWith(".png"));
+        if (files == null) return;
+
+        for (File file : files) {
+            String name = file.getName();
+            int dotIndex = name.lastIndexOf('.');
+            if (dotIndex <= 0) continue;
+            String key = name.substring(0, dotIndex).toLowerCase();
+            tryLoadAsset(key, file.getPath());
         }
     }
 
@@ -163,7 +178,9 @@ public class RenderSystem {
 
         for (Entity e : entitiesToRender) {
             if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
-                if (e instanceof model.structures.Bush || e instanceof model.plants.FruitTree) {
+                if (e instanceof model.structures.Bush ||
+                        e instanceof model.plants.FruitTree ||
+                        e instanceof model.entity.Structure) {
                     topLayer.add(e);
                 } else if (e instanceof model.living_beings.Animal) {
                     model.living_beings.Animal a = (model.living_beings.Animal) e;

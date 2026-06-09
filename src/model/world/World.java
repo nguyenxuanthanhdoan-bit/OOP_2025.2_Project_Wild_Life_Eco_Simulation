@@ -1,6 +1,7 @@
 package model.world;
 
 import model.entity.Entity;
+import model.entity.Structure;
 import core.GameConfig;
 import model.living_beings.Animal;
 
@@ -178,6 +179,10 @@ public class World {
             return false;
         }
 
+        if (collidesWithSolidStructure(entity, pos)) {
+            return false;
+        }
+
         // Kiểm tra địa hình nước đối với động vật trên cạn
         if (gameMap != null) {
             // Nếu động vật đứng trên cầu -> luôn cho phép, dù xung quanh là nước
@@ -198,6 +203,28 @@ public class World {
 
 
         return true;
+    }
+
+    private boolean collidesWithSolidStructure(model.living_beings.LivingBeing entity, Vector2 pos) {
+        if (entity == null || pos == null || spatialGrid == null) return false;
+
+        float entityRadius = entity.getCollider() != null
+                ? entity.getCollider().getRadius()
+                : entity.getSize() * 0.35f;
+        List<Entity> nearby = spatialGrid.getNeighbors(pos, entityRadius + 80.0f);
+
+        for (Entity other : nearby) {
+            if (other == entity || !(other instanceof Structure) || !other.isSolid() || !other.isAlive()) {
+                continue;
+            }
+            float otherRadius = other.getCollider() != null
+                    ? other.getCollider().getRadius()
+                    : other.getSize() * 0.35f;
+            if (pos.distanceTo(other.getPosition()) < entityRadius + otherRadius) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // =========================================================

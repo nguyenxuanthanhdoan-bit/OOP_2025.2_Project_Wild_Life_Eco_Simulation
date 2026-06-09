@@ -57,6 +57,16 @@ public class GameConfig {
     public final float BUSH_PLAIN_SPAWN_CHANCE = 0.3f;
     public final int INITIAL_ROCK_COUNT = 30;
     public final float ROCK_PLAIN_SPAWN_CHANCE = 0.5f;
+    public final int MIN_HOUSES_PER_VILLAGE = 5;
+    public final int MAX_HOUSES_PER_VILLAGE = 6;
+    public final int WELLS_PER_VILLAGE = 1;
+    public final int DECORATIONS_PER_VILLAGE = 10;
+    public final int HOUSE_CAPACITY = 6;
+    public final float HOUSE_SIZE = 64.0f;
+    public final float WELL_SIZE = 54.0f;
+    public final float DECORATIVE_STRUCTURE_SIZE = 50.0f;
+    public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 58.0f;
+    public final float VILLAGE_STRUCTURE_CLUSTER_RADIUS = 200.0f;
     public final int MAX_INITIAL_ANIMAL_COUNT = 250;
     public final int SPAWN_ATTEMPTS_PER_POINT = 180;
     public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
