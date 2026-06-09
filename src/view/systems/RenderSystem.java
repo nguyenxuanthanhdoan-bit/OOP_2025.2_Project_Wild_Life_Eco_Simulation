@@ -101,6 +101,12 @@ public class RenderSystem {
             }
         }
 
+        loadHumanAssets("human_male", path + "Human/Male/");
+        loadHumanAssets("human_female", path + "Human/Female/");
+        loadHumanAssets("human_hunter", path + "Human/Hunter/");
+        tryLoadAsset("fireball", path + "Human/Hunter/fireball.png");
+        tryLoadAsset("dart", path + "Human/Hunter/dart.png");
+
         // Plants
         for (int i = 1; i <= 2; i++) tryLoadAsset("grass_" + i, path + "Plant/Grass/Grass_" + i + ".png");
         for (int i = 1; i <= 13; i++) tryLoadAsset("tree_" + i, path + "Plant/Tree/Tree_" + i + ".png");
@@ -142,6 +148,16 @@ public class RenderSystem {
         }
     }
 
+    private void loadHumanAssets(String keyPrefix, String dirPath) {
+        tryLoadAsset(keyPrefix + "_idle", dirPath + "idle.png");
+        tryLoadAsset(keyPrefix + "_west", dirPath + "idle.png");
+        tryLoadAsset(keyPrefix + "_walk", dirPath + "walk.png");
+        tryLoadAsset(keyPrefix + "_run", dirPath + "run.png");
+        tryLoadAsset(keyPrefix + "_eat", dirPath + "eat.png");
+        tryLoadAsset(keyPrefix + "_drink", dirPath + "eat.png");
+        tryLoadAsset(keyPrefix + "_attack", dirPath + "fireball.png");
+    }
+
     public void renderAll(World world, Graphics2D g2d, float deltaTime) {
         animationTimer += deltaTime;
 
@@ -178,7 +194,9 @@ public class RenderSystem {
 
         for (Entity e : entitiesToRender) {
             if (camera.isVisible(e.getPosition(), e.getSize() * 3)) {
-                if (e instanceof model.structures.Bush ||
+                if (e instanceof model.items.FireballProjectile) {
+                    topLayer.add(e);
+                } else if (e instanceof model.structures.Bush ||
                         e instanceof model.plants.FruitTree ||
                         e instanceof model.entity.Structure) {
                     topLayer.add(e);
@@ -306,25 +324,15 @@ public class RenderSystem {
                     int barX = (int)screenPos.x - barW / 2;
                     int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
 
-                    // Thanh Đói (Đỏ)
-                    g2d.setColor(java.awt.Color.BLACK);
-                    g2d.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
-                    g2d.setColor(new java.awt.Color(50, 50, 50));
-                    g2d.fillRect(barX, barY, barW, barH);
-                    g2d.setColor(new java.awt.Color(220, 60, 60));
-                    int hungerFill = (int)(barW * (animal.getHunger() / animal.getMaxHunger()));
-                    if (hungerFill > 0) g2d.fillRect(barX, barY, hungerFill, barH);
-
-                    // Thanh Khát (Xanh) — ngay dưới thanh đói
-                    int thirstY = barY + barH + 1;
-                    g2d.setColor(java.awt.Color.BLACK);
-                    g2d.fillRect(barX - 1, thirstY - 1, barW + 2, barH + 2);
-                    g2d.setColor(new java.awt.Color(50, 50, 50));
-                    g2d.fillRect(barX, thirstY, barW, barH);
-                    g2d.setColor(new java.awt.Color(60, 140, 240));
-                    int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
-                    if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
+                    drawStatusBar(g2d, barX, barY, barW, barH,
+                            animal.getHunger() / animal.getMaxHunger(),
+                            new java.awt.Color(220, 60, 60));
+                    drawStatusBar(g2d, barX, barY + barH + 1, barW, barH,
+                            animal.getThirst() / animal.getMaxThirst(),
+                            new java.awt.Color(60, 140, 240));
                 }
+            } else if (e instanceof model.items.FireballProjectile) {
+                drawHunterProjectile((model.items.FireballProjectile) e, g2d, screenPos, zoom);
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
@@ -342,6 +350,52 @@ public class RenderSystem {
         } else {
             minimalRenderer.renderEntity(e, g2d);
         }
+    }
+
+    private void drawStatusBar(Graphics2D g2d, int x, int y, int width, int height,
+                               double ratio, java.awt.Color fillColor) {
+        double clamped = Math.max(0.0, Math.min(1.0, ratio));
+        g2d.setColor(java.awt.Color.BLACK);
+        g2d.fillRect(x - 1, y - 1, width + 2, height + 2);
+        g2d.setColor(new java.awt.Color(50, 50, 50));
+        g2d.fillRect(x, y, width, height);
+        g2d.setColor(fillColor);
+        int fill = (int) (width * clamped);
+        if (fill > 0) {
+            g2d.fillRect(x, y, fill, height);
+        }
+    }
+
+    private void drawHunterProjectile(model.items.FireballProjectile projectile,
+                                      Graphics2D g2d, Vector2 screenPos, float zoom) {
+        BufferedImage dart = assetMap.get("dart");
+        if (dart != null) {
+            int drawSize = Math.max(8, Math.round(projectile.getSize() * zoom));
+            java.awt.geom.AffineTransform oldTransform = g2d.getTransform();
+            g2d.translate(screenPos.x, screenPos.y);
+            g2d.rotate(projectile.getRotationRadians());
+            g2d.drawImage(dart, -drawSize / 2, -drawSize / 2, drawSize, drawSize, null);
+            g2d.setTransform(oldTransform);
+            return;
+        }
+
+        Entity e = projectile;
+        int size = Math.max(8, Math.round(e.getSize() * zoom));
+        int glow = Math.max(size + 8, Math.round(size * 1.8f));
+
+        Composite oldComposite = g2d.getComposite();
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+        g2d.setColor(new Color(255, 80, 25));
+        g2d.fillOval((int) screenPos.x - glow / 2, (int) screenPos.y - glow / 2, glow, glow);
+
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.95f));
+        g2d.setColor(new Color(220, 20, 20));
+        g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+
+        int core = Math.max(3, size / 2);
+        g2d.setColor(new Color(255, 210, 80));
+        g2d.fillOval((int) screenPos.x - core / 2, (int) screenPos.y - core / 2, core, core);
+        g2d.setComposite(oldComposite);
     }
 
     private void renderMiniMap(World world, Graphics2D g2d) {
@@ -452,7 +506,7 @@ public class RenderSystem {
                                            Graphics2D g2d, Vector2 screenPos,
                                            float zoom) {
         // Xác định loại động vật (tên class)
-        String species = animal.getClass().getSimpleName().toLowerCase();
+        String species = animal.getSpriteKey();
         
         // Suy diễn trạng thái
         String state = animal.getActionState();
@@ -466,7 +520,7 @@ public class RenderSystem {
                 state = "walk";
             }
         } else {
-            state = "west";
+            state = "idle";
         }
         
         // [CÓ THỂ MỞ RỘNG] Nếu animal có thuộc tính isEating() hay isSleeping() thì gắn state tương ứng ở đây
@@ -476,10 +530,14 @@ public class RenderSystem {
                 ? getEatDrinkSheet(species)
                 : assetMap.get(species + "_" + state);
         if (sheet == null) {
-            if (state.equals("attack")) {
+            if (state.equals("attack") && "human_hunter".equals(species)) {
+                sheet = assetMap.get(species + "_idle");
+            }
+            if (sheet == null && state.equals("attack")) {
                 // Fallback: dùng "run" khi attack (trông chân thực hơn "west" đứng yên)
                 sheet = assetMap.get(species + "_run");
             }
+            if (sheet == null && state.equals("idle")) sheet = assetMap.get(species + "_west");
             if (sheet == null) sheet = assetMap.get(species + "_walk");
             if (sheet == null) sheet = assetMap.get(species + "_west");
         }
@@ -489,10 +547,12 @@ public class RenderSystem {
         BufferedImage base = assetMap.get(species + "_west");
         if (base == null) base = sheet; // Dự phòng
         
-        int frameW = base.getWidth();
-        int frameH = base.getHeight();
-        int cols = sheet.getWidth() / frameW;
-        int rows = sheet.getHeight() / frameH;
+        int baseFrameW = Math.max(1, base.getWidth());
+        int baseFrameH = Math.max(1, base.getHeight());
+        int cols = Math.max(1, Math.round(sheet.getWidth() / (float) baseFrameW));
+        int rows = Math.max(1, Math.round(sheet.getHeight() / (float) baseFrameH));
+        int frameW = Math.max(1, sheet.getWidth() / cols);
+        int frameH = Math.max(1, sheet.getHeight() / rows);
         int totalFrames = cols * rows;
         if (totalFrames <= 0) totalFrames = 1;
         
@@ -510,7 +570,8 @@ public class RenderSystem {
         int dstX2 = (int) screenPos.x + drawSize / 2;
         int dstY2 = (int) screenPos.y + drawSize / 2;
 
-        if (animal.isFacingRight()) {
+        boolean shouldFlip = animal.isFacingRight() != animal.isSpriteFacingRightByDefault();
+        if (shouldFlip) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;

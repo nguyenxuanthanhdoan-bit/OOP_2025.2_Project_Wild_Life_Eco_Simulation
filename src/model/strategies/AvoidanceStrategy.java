@@ -152,6 +152,19 @@ public class AvoidanceStrategy {
         return total;
     }
 
+    public static Vector2 getPathFollowingAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
+        Vector2 total = getPathFollowingNonWaterAvoidanceForce(owner, world);
+        total.add(getWaterAvoidanceForce(owner, world, moveDir));
+        return total;
+    }
+
+    public static Vector2 getPathFollowingNonWaterAvoidanceForce(Animal owner, World world) {
+        Vector2 total = new Vector2();
+        total.add(getLargeAnimalAvoidanceForce(owner, world));
+        total.add(getBoundaryAvoidanceForce(owner, world));
+        return total;
+    }
+
     public static Vector2 getWaterAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
         Vector2 force = new Vector2();
         if (owner == null || world == null || moveDir == null || moveDir.lengthSquared() < 0.001f) return force;
@@ -164,7 +177,7 @@ public class AvoidanceStrategy {
             for (float angle : angles) {
                 Vector2 probeDir = rotate(dir, angle);
                 Vector2 probe = owner.getPosition().copy().add(probeDir.scale(distance));
-                if (world.isPositionInWater(probe.x, probe.y) || !world.isValidPositionFor(owner, probe)) {
+                if (world.isPositionInWater(probe.x, probe.y) && !world.isBridgeTile(probe.x, probe.y)) {
                     Vector2 away = owner.getPosition().copy().subtract(probe);
                     if (away.lengthSquared() > 0) {
                         away.normalize();

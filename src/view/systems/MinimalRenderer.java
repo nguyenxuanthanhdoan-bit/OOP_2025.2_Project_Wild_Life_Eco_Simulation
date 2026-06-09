@@ -10,6 +10,7 @@ import model.living_beings.Tiger;
 import model.living_beings.Wolf;
 import model.plants.Grass;
 import model.plants.FruitTree;
+import model.items.FireballProjectile;
 
 import java.awt.*;
 
@@ -38,7 +39,11 @@ public class MinimalRenderer {
         int size = (int) (e.getSize() * zoom);
 
         // Thiết lập màu sắc và hình dáng dựa trên loại thực thể
-        if (e instanceof Rabbit) {
+        if (e instanceof FireballProjectile) {
+            g2d.setColor(new Color(230, 35, 20));
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Rabbit) {
             g2d.setColor(new Color(100, 149, 237)); // Màu lam cho Thỏ
             g2d.fillRect((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
         }

@@ -163,6 +163,13 @@ public class World {
         return false;
     }
 
+    public boolean isBridgeTile(float x, float y) {
+        if (this.gameMap != null) {
+            return this.gameMap.isBridgeTile(x, y);
+        }
+        return false;
+    }
+
     public boolean isValidGroundSpawnPosition(float x, float y, float margin) {
         if (this.gameMap != null) {
             return this.gameMap.isValidGroundSpawnPosition(x, y, margin);

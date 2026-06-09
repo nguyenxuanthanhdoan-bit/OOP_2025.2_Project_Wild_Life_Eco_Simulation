@@ -57,21 +57,39 @@ public class GameConfig {
     public final float BUSH_PLAIN_SPAWN_CHANCE = 0.3f;
     public final int INITIAL_ROCK_COUNT = 30;
     public final float ROCK_PLAIN_SPAWN_CHANCE = 0.5f;
-    public final int MIN_HOUSES_PER_VILLAGE = 5;
-    public final int MAX_HOUSES_PER_VILLAGE = 6;
-    public final int WELLS_PER_VILLAGE = 1;
+    public final int MIN_HOUSES_PER_VILLAGE = 7;
+    public final int MAX_HOUSES_PER_VILLAGE = 7;
+    public final int WELLS_PER_VILLAGE = 2;
+    public final int FOOD_STORAGES_PER_VILLAGE = 1;
     public final int DECORATIONS_PER_VILLAGE = 10;
     public final int HOUSE_CAPACITY = 6;
     public final float HOUSE_SIZE = 64.0f;
     public final float WELL_SIZE = 54.0f;
+    public final float FOOD_STORAGE_SIZE = 58.0f;
+    public final float FOOD_STORAGE_CAPACITY = 600.0f;
     public final float DECORATIVE_STRUCTURE_SIZE = 50.0f;
-    public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 58.0f;
+    public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 70.0f;
     public final float VILLAGE_STRUCTURE_CLUSTER_RADIUS = 200.0f;
+    public final int HUMANS_PER_VILLAGE = 8;
+    public final int HUNTERS_PER_VILLAGE = 2;
+    public final float HUMAN_CARRY_CAPACITY = 45.0f;
+    public final float HUNTER_CARRY_CAPACITY = 180.0f;
+    public final float VILLAGE_HOME_RADIUS_PADDING = 80.0f;
     public final int MAX_INITIAL_ANIMAL_COUNT = 250;
     public final int SPAWN_ATTEMPTS_PER_POINT = 180;
     public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
     public final double INITIAL_SPAWN_MIN_AGE_RATIO = 0.25;
     public final double INITIAL_SPAWN_MAX_AGE_RATIO = 0.65;
+    public final float HUMAN_BASE_SPEED = 85.0f;
+    public final float HUNTER_BASE_SPEED = 95.0f;
+    public final int HUNTER_MAX_AMMO = 8;
+    public final float HUNTER_SHOOT_RANGE = 240.0f;
+    public final float HUNTER_FIRE_COOLDOWN_SECONDS = 0.75f;
+    public final float HUNTER_RELOAD_SECONDS = 2.0f;
+    public final float HUNTER_PROJECTILE_SPEED = 430.0f;
+    public final float HUNTER_PROJECTILE_SIZE = 12.0f;
+    public final float HUNTER_PROJECTILE_DAMAGE = 45.0f;
+    public final float HUNTER_RETURN_FOOD_RATIO = 0.75f;
 
     // ==========================================
     // CẤU HÌNH QUẦN THỂ / SINH SẢN

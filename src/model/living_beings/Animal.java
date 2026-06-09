@@ -355,9 +355,14 @@ public abstract class Animal extends LivingBeing {
         if (!alive || prey == null || prey == this || !prey.isAliveState()) return false;
         if (!getProfile().canHunt()) return false;
         if (prey.isHidden()) return false;
+        if (!prey.canBeHuntedBy(this)) return false;
         if (!getProfile().canEatOwnSpecies() && prey.getSpeciesName().equals(this.getSpeciesName())) return false;
         if (prey.getEntityLevel() >= this.getEntityLevel()) return false;
         return prey.getSize() <= this.getSize() * getProfile().getMaxPreySizeMultiplier();
+    }
+
+    public boolean canBeHuntedBy(Animal predator) {
+        return predator != null;
     }
 
     public boolean isThreatenedBy(Animal other) {
@@ -586,6 +591,14 @@ public abstract class Animal extends LivingBeing {
             profile = AnimalProfile.defaultFor(dietType);
         }
         return profile;
+    }
+
+    public String getSpriteKey() {
+        return getClass().getSimpleName().toLowerCase();
+    }
+
+    public boolean isSpriteFacingRightByDefault() {
+        return false;
     }
 
     @Override

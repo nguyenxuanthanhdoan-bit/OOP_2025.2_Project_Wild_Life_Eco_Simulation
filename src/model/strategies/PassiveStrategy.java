@@ -1,12 +1,15 @@
 package model.strategies;
 
 import core.Vector2;
+import model.living_beings.Human;
 import model.living_beings.LivingBeing;
 import model.navigation.PathNavigator;
 import model.world.World;
 import java.util.Random;
 
 public class PassiveStrategy implements IStrategy {
+    private static final float WALK_SPEED_MULTIPLIER = 0.45f;
+
     private Vector2 wanderDirection = new Vector2();
     private Vector2 wanderTarget = null;
     private final PathNavigator wanderNavigator = new PathNavigator();
@@ -16,8 +19,9 @@ public class PassiveStrategy implements IStrategy {
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
-        if (owner instanceof model.living_beings.Animal) {
-            ((model.living_beings.Animal) owner).setActionState("idle");
+        if (owner instanceof Human) {
+            executeHumanPassive((Human) owner, world, deltaTime);
+            return;
         }
 
         stateTimer -= deltaTime;
@@ -36,6 +40,17 @@ public class PassiveStrategy implements IStrategy {
                 wanderTarget = owner.getPosition().copy().add(wanderDirection.copy().scale(distance));
                 if (world != null) clampToWorld(wanderTarget, owner, world);
                 stateTimer = 2.0f + random.nextFloat() * 2.0f;
+            }
+        }
+
+        if (owner instanceof model.living_beings.Animal) {
+            model.living_beings.Animal animal = (model.living_beings.Animal) owner;
+            if (isIdling) {
+                animal.setActionState("idle");
+                animal.setSpeed(0);
+            } else {
+                animal.setActionState("walk");
+                animal.setSpeed(animal.getBaseSpeed() * WALK_SPEED_MULTIPLIER);
             }
         }
 
@@ -72,6 +87,69 @@ public class PassiveStrategy implements IStrategy {
                 else if (actualMove.x < 0) owner.setFacingRight(false);
             }
         }
+    }
+
+    private void executeHumanPassive(Human human, World world, float deltaTime) {
+        if (human.isHidden()) {
+            human.setActionState("idle");
+            human.setSpeed(0);
+            return;
+        }
+
+        stateTimer -= deltaTime;
+        boolean outsideHome = !human.isInHomeArea();
+
+        if (stateTimer <= 0) {
+            if (outsideHome) {
+                isIdling = false;
+                wanderTarget = randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.25f);
+                stateTimer = 2.0f + random.nextFloat();
+            } else {
+                isIdling = random.nextFloat() < 0.45f;
+                if (isIdling) {
+                    wanderTarget = null;
+                    wanderNavigator.clear();
+                    stateTimer = 1.0f + random.nextFloat() * 1.5f;
+                } else {
+                    wanderTarget = randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.65f);
+                    stateTimer = 2.0f + random.nextFloat() * 2.0f;
+                }
+            }
+            if (wanderTarget != null && world != null) clampToWorld(wanderTarget, human, world);
+        }
+
+        if (isIdling) {
+            human.setActionState("idle");
+            human.setSpeed(0);
+            return;
+        }
+
+        if (wanderTarget == null) {
+            stateTimer = 0;
+            human.setActionState("idle");
+            human.setSpeed(0);
+            return;
+        }
+
+        human.setActionState("walk");
+        human.setSpeed(human.getBaseSpeed() * WALK_SPEED_MULTIPLIER);
+        if (world != null) {
+            boolean reached = wanderNavigator.moveTo(human, world, wanderTarget, deltaTime, 18.0f, 1.5f);
+            if (reached || wanderNavigator.isBlocked()) {
+                stateTimer = 0;
+                wanderTarget = null;
+                wanderNavigator.clear();
+            }
+        }
+    }
+
+    private Vector2 randomPointAround(Vector2 center, float radius) {
+        double angle = random.nextDouble() * Math.PI * 2.0;
+        double distance = Math.sqrt(random.nextDouble()) * Math.max(16.0f, radius);
+        return new Vector2(
+                (float) (center.x + Math.cos(angle) * distance),
+                (float) (center.y + Math.sin(angle) * distance)
+        );
     }
 
     public void forceStateChange() {

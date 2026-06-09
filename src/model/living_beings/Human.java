@@ -1,0 +1,314 @@
+package model.living_beings;
+
+import core.DisplayMode;
+import core.GameConfig;
+import core.Vector2;
+import model.items.Carcass;
+import model.items.FoodSource;
+import model.entity.Entity;
+import model.plants.Fruit;
+import model.plants.Mushroom;
+import model.structures.FoodStorage;
+import model.structures.House;
+import model.strategies.PassiveStrategy;
+
+public class Human extends Animal {
+    public enum Variant {
+        MALE("human_male"),
+        FEMALE("human_female");
+
+        private final String spriteKey;
+
+        Variant(String spriteKey) {
+            this.spriteKey = spriteKey;
+        }
+    }
+
+    private static final float SIZE = 32.0f;
+    protected static final AnimalProfile VILLAGER_PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_HERBIVORE)
+            .canEatPlants(true)
+            .canBeScared(true)
+            .canHide(true)
+            .ediblePlants(Fruit.class, Mushroom.class)
+            .build();
+    protected static final AnimalProfile HUNTER_PROFILE = AnimalProfile.builder()
+            .entityLevel(LEVEL_APEX_ANIMAL)
+            .canHunt(true)
+            .canEatMeat(true)
+            .attackDamagePerSecond(90.0f)
+            .maxPreySizeMultiplier(2.0f)
+            .build();
+
+    private final String spriteKey;
+    private final HumanRole role;
+    private final Vector2 homeCenter;
+    private final float homeRadius;
+    private final float carryCapacity;
+    private float carriedFood;
+    private House hiddenInHouse = null;
+
+    public Human(Vector2 position) {
+        this(position, Variant.MALE);
+    }
+
+    public Human(Vector2 position, Variant variant) {
+        this(position, variant, position, GameConfig.getInstance().VILLAGE_STRUCTURE_CLUSTER_RADIUS);
+    }
+
+    public Human(Vector2 position, Variant variant, Vector2 homeCenter, float homeRadius) {
+        this(position, SIZE, GameConfig.getInstance().HUMAN_BASE_SPEED, "Dân làng",
+                variant == null ? Variant.MALE.spriteKey : variant.spriteKey,
+                HumanRole.VILLAGER, homeCenter, homeRadius,
+                GameConfig.getInstance().HUMAN_CARRY_CAPACITY);
+    }
+
+    protected Human(Vector2 position, float size, float baseSpeed, String speciesName, String spriteKey,
+                    HumanRole role, Vector2 homeCenter, float homeRadius, float carryCapacity) {
+        super(position, size, baseSpeed, DietType.OMNIVORE);
+        this.speciesName = speciesName;
+        this.spriteKey = spriteKey;
+        this.role = role == null ? HumanRole.VILLAGER : role;
+        this.homeCenter = homeCenter == null ? position.copy() : homeCenter.copy();
+        this.homeRadius = Math.max(80.0f, homeRadius);
+        this.carryCapacity = Math.max(0.0f, carryCapacity);
+        this.carriedFood = 0.0f;
+        this.maxHealth = 120.0f;
+        this.health = this.maxHealth;
+        this.maxHunger = 120.0f;
+        this.hunger = this.maxHunger;
+        this.hungerDecayRate = 0.08f;
+        this.maxThirst = 120.0f;
+        this.thirst = this.maxThirst;
+        this.thirstDecayRate = 0.12f;
+        this.maxAge = 10000.0f;
+        this.visionRange = 260.0f;
+        this.adult = true;
+        this.profile = this.role == HumanRole.HUNTER ? HUNTER_PROFILE : VILLAGER_PROFILE;
+        setStrategy(new PassiveStrategy());
+    }
+
+    @Override
+    public boolean canReproduce() {
+        return false;
+    }
+
+    @Override
+    public String getSpriteKey() {
+        return spriteKey;
+    }
+
+    @Override
+    public boolean isSpriteFacingRightByDefault() {
+        return true;
+    }
+
+    public HumanRole getRole() {
+        return role;
+    }
+
+    public boolean isVillager() {
+        return role == HumanRole.VILLAGER;
+    }
+
+    public boolean isHunter() {
+        return role == HumanRole.HUNTER;
+    }
+
+    public Vector2 getHomeCenter() {
+        return homeCenter.copy();
+    }
+
+    public float getHomeRadius() {
+        return homeRadius;
+    }
+
+    public boolean isInHomeArea() {
+        return isInHomeArea(getPosition());
+    }
+
+    public boolean isInHomeArea(Vector2 pos) {
+        return pos != null && pos.distanceTo(homeCenter) <= homeRadius;
+    }
+
+    public float getCarriedFood() {
+        return carriedFood;
+    }
+
+    public float getCarryCapacity() {
+        return carryCapacity;
+    }
+
+    public boolean hasCarriedFood() {
+        return carriedFood > 0.01f;
+    }
+
+    public boolean isCarryingFoodAtLeast(float ratio) {
+        if (carryCapacity <= 0) return false;
+        float clampedRatio = Math.max(0.0f, Math.min(1.0f, ratio));
+        return carriedFood >= carryCapacity * clampedRatio;
+    }
+
+    public float addCarriedFood(float amount) {
+        if (amount <= 0 || carryCapacity <= 0) return 0.0f;
+        float accepted = Math.min(amount, carryCapacity - carriedFood);
+        carriedFood += accepted;
+        return accepted;
+    }
+
+    public float consumeCarriedFood(float amount) {
+        if (amount <= 0 || carriedFood <= 0) return 0.0f;
+        float consumed = Math.min(amount, carriedFood);
+        carriedFood -= consumed;
+        return consumed;
+    }
+
+    public float depositFood(FoodStorage storage) {
+        if (storage == null || carriedFood <= 0 || !isNearStructure(storage, 20.0f)) return 0.0f;
+        float deposited = storage.addFood(carriedFood);
+        carriedFood -= deposited;
+        return deposited;
+    }
+
+    public float eatFromStorage(FoodStorage storage, float amount) {
+        if (storage == null || amount <= 0 || !storage.hasFood() || !isNearStructure(storage, 18.0f)) {
+            return 0.0f;
+        }
+        float consumed = storage.consumeFood(amount);
+        this.hunger = Math.min(this.maxHunger, this.hunger + consumed);
+        return consumed;
+    }
+
+    public void eatCarriedFood(float amount) {
+        float consumed = consumeCarriedFood(amount);
+        if (consumed > 0) {
+            this.hunger = Math.min(this.maxHunger, this.hunger + consumed);
+        }
+    }
+
+    public boolean shouldHuntForVillage() {
+        if (!isHunter() || carriedFood > 0.01f) return false;
+        if (hunger < maxHunger * 0.95) return true;
+        FoodStorage storage = findHomeFoodStorage();
+        return storage != null && storage.getStoredFood() < storage.getCapacity() * 0.35f;
+    }
+
+    private FoodStorage findHomeFoodStorage() {
+        if (worldRef == null) return null;
+        Iterable<Entity> candidates = worldRef.getSpatialGrid() != null
+                ? worldRef.getSpatialGrid().getNeighbors(homeCenter, homeRadius)
+                : worldRef.getEntities();
+        FoodStorage best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (Entity entity : candidates) {
+            if (!(entity instanceof FoodStorage) || !entity.isAlive()) continue;
+            if (!isInHomeArea(entity.getPosition())) continue;
+            float dist = homeCenter.distanceTo(entity.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = (FoodStorage) entity;
+            }
+        }
+        return best;
+    }
+
+    public boolean enterHouse(House house) {
+        if (house == null || !house.hasSpace() || !isNearStructure(house, house.getSize() * 0.2f)) {
+            return false;
+        }
+        if (!house.enter(this)) return false;
+        this.hidden = true;
+        this.hiddenInHouse = house;
+        this.isMoving = false;
+        this.actionState = "idle";
+        this.speed = 0;
+        this.currentVelocity.set(0, 0);
+        this.setPosition(house.getPosition());
+        return true;
+    }
+
+    public void exitHouse() {
+        if (hiddenInHouse != null) {
+            hiddenInHouse.exit(this);
+            hiddenInHouse = null;
+        }
+        this.hidden = false;
+        this.setSpeed(this.baseSpeed);
+    }
+
+    public House getHiddenInHouse() {
+        return hiddenInHouse;
+    }
+
+    private boolean isNearStructure(model.entity.Structure structure, float padding) {
+        if (structure == null) return false;
+        float range = this.getSize() / 2 + structure.getSize() / 2 + padding;
+        return this.getPosition().distanceTo(structure.getPosition()) <= range;
+    }
+
+    @Override
+    public Animal reproduce() {
+        return new Human(getPosition().copy());
+    }
+
+    @Override
+    protected model.items.Carcass createCarcass() {
+        return new model.items.Carcass(position.copy(), 24.0f, 80.0f, 120.0f, 80.0f, speciesName);
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        if (hiddenInHouse != null && !hasDangerousThreats()) {
+            exitHouse();
+        }
+        super.update(deltaTime);
+        updateAnimation();
+    }
+
+    @Override
+    public boolean canHunt(Animal prey) {
+        if (prey instanceof Human) return false;
+        return super.canHunt(prey);
+    }
+
+    @Override
+    public boolean canBeHuntedBy(Animal predator) {
+        return isVillager() && predator != null && predator.getEntityLevel() > getEntityLevel();
+    }
+
+    @Override
+    public boolean canEatFoodSource(FoodSource food) {
+        if (food instanceof Carcass) {
+            String sourceSpecies = ((Carcass) food).getSourceSpecies();
+            if ("Dân làng".equals(sourceSpecies) || "Thợ săn".equals(sourceSpecies)) {
+                return false;
+            }
+        }
+        return super.canEatFoodSource(food);
+    }
+
+    @Override
+    public void die(String reason) {
+        exitHouse();
+        super.die(reason);
+    }
+
+    private void updateAnimation() {
+        if ("attack".equals(actionState) || "eat".equals(actionState) || "drink".equals(actionState)) {
+            imageVariant = actionState + ".png";
+            return;
+        }
+        if (isMoving && ("run".equals(actionState) || speed > baseSpeed * 1.1f)) {
+            imageVariant = "run.png";
+        } else if (isMoving) {
+            imageVariant = "walk.png";
+        } else {
+            imageVariant = "idle.png";
+            actionState = "idle";
+        }
+    }
+
+    @Override
+    public void render(DisplayMode mode) {
+    }
+}

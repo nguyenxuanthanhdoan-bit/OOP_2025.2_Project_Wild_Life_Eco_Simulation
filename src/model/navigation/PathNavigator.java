@@ -1,6 +1,7 @@
 package model.navigation;
 
 import core.Vector2;
+import model.entity.Entity;
 import model.living_beings.Animal;
 import model.strategies.AvoidanceStrategy;
 import model.world.World;
@@ -11,7 +12,8 @@ import java.util.List;
 public class PathNavigator {
     public enum MovementContext {
         NORMAL,
-        SEEKING_WATER
+        SEEKING_WATER,
+        SEEKING_STRUCTURE
     }
 
     private final List<Vector2> path = new ArrayList<>();
@@ -101,9 +103,7 @@ public class PathNavigator {
         desiredDir.normalize();
 
         Vector2 finalDir = desiredDir.copy();
-        Vector2 avoidance = (context == MovementContext.SEEKING_WATER)
-                ? AvoidanceStrategy.getNonWaterAvoidanceForce(animal, world, desiredDir)
-                : AvoidanceStrategy.getAvoidanceForce(animal, world, desiredDir);
+        Vector2 avoidance = getPathAvoidance(animal, world, desiredDir, context);
         if (avoidance.lengthSquared() > 0) {
             finalDir.add(avoidance);
             if (finalDir.lengthSquared() > 0) finalDir.normalize();
@@ -117,5 +117,48 @@ public class PathNavigator {
             if (actualMove.x > 0) animal.setFacingRight(true);
             else if (actualMove.x < 0) animal.setFacingRight(false);
         }
+    }
+
+    private Vector2 getPathAvoidance(Animal animal, World world, Vector2 desiredDir, MovementContext context) {
+        if (context == MovementContext.SEEKING_WATER) {
+            return AvoidanceStrategy.getPathFollowingNonWaterAvoidanceForce(animal, world);
+        }
+        return AvoidanceStrategy.getPathFollowingAvoidanceForce(animal, world, desiredDir);
+    }
+
+    public static Vector2 findInteractionPoint(Animal actor, World world, Entity target, float interactionRange) {
+        if (actor == null || world == null || target == null) return null;
+
+        Vector2 baseDir = actor.getPosition().copy().subtract(target.getPosition());
+        if (baseDir.lengthSquared() <= 0.001f) baseDir.set(1, 0);
+        baseDir.normalize();
+
+        float actorRadius = actor.getCollider() != null ? actor.getCollider().getRadius() : actor.getSize() * 0.4f;
+        float targetRadius = target.getCollider() != null ? target.getCollider().getRadius() : target.getSize() * 0.4f;
+        float minDistance = actorRadius + targetRadius + 0.75f;
+        float desiredDistance = Math.max(minDistance, Math.min(interactionRange - 1.0f, minDistance + 12.0f));
+        if (desiredDistance < minDistance) desiredDistance = minDistance;
+
+        float[] radii = {desiredDistance, desiredDistance + 12.0f, desiredDistance + 24.0f};
+        float[] angles = {0, 30, -30, 60, -60, 90, -90, 135, -135, 180};
+
+        for (float radius : radii) {
+            for (float angle : angles) {
+                Vector2 dir = rotate(baseDir, angle);
+                Vector2 candidate = target.getPosition().copy().add(dir.scale(radius));
+                if (world.isValidPositionFor(actor, candidate)) {
+                    return candidate;
+                }
+            }
+        }
+
+        return target.getPosition();
+    }
+
+    private static Vector2 rotate(Vector2 v, float degrees) {
+        double rad = Math.toRadians(degrees);
+        float cos = (float) Math.cos(rad);
+        float sin = (float) Math.sin(rad);
+        return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
     }
 }

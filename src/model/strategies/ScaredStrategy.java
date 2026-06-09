@@ -3,10 +3,12 @@ package model.strategies;
 import core.Vector2;
 import model.living_beings.LivingBeing;
 import model.living_beings.Animal;
-import model.living_beings.DietType;
+import model.living_beings.Human;
 import model.navigation.PathNavigator;
+import model.navigation.PathNavigator.MovementContext;
 import model.world.World;
 import model.structures.Bush;
+import model.structures.House;
 import model.entity.Entity;
 import java.util.List;
 import java.util.ArrayList;
@@ -33,6 +35,8 @@ public class ScaredStrategy implements IStrategy {
 
         List<Animal> predators = new ArrayList<>();
         List<Bush> bushes = new ArrayList<>();
+        List<House> houses = new ArrayList<>();
+        Human human = ownerAnimal instanceof Human ? (Human) ownerAnimal : null;
 
         for (Entity neighbor : neighbors) {
             if (neighbor instanceof Animal && neighbor != ownerAnimal) {
@@ -45,14 +49,28 @@ public class ScaredStrategy implements IStrategy {
                 if (!bush.isOccupied() || bush == ownerAnimal.getHiddenInBush()) {
                     bushes.add(bush);
                 }
+            } else if (human != null && human.isVillager() && neighbor instanceof House) {
+                House house = (House) neighbor;
+                if ((house.hasSpace() || house == human.getHiddenInHouse()) && human.isInHomeArea(house.getPosition())) {
+                    houses.add(house);
+                }
             }
         }
 
         // Không có kẻ thù → Animal.decideActiveStrategy() sẽ thoát Strategy này
         if (predators.isEmpty()) {
+            if (human != null && human.getHiddenInHouse() != null) human.exitHouse();
             shelterNavigator.clear();
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             ownerAnimal.setActionState("idle");
+            return;
+        }
+
+        if (human != null && human.isVillager()) {
+            if (handleHouseShelter(human, houses, predators, world, deltaTime)) {
+                return;
+            }
+            fleeFromPredators(ownerAnimal, predators, world, deltaTime);
             return;
         }
 
@@ -101,6 +119,44 @@ public class ScaredStrategy implements IStrategy {
             // Không có bụi → bỏ chạy ngược hướng kẻ thù
             fleeFromPredators(ownerAnimal, predators, world, deltaTime);
         }
+    }
+
+    private boolean handleHouseShelter(Human human, List<House> houses, List<Animal> predators,
+                                       World world, float deltaTime) {
+        House bestHouse = null;
+        float maxScore = -999999.0f;
+
+        for (House house : houses) {
+            if (!house.hasSpace() && house != human.getHiddenInHouse()) continue;
+
+            float distToPredators = 0;
+            for (Animal predator : predators) {
+                distToPredators += house.getPosition().distanceTo(predator.getPosition());
+            }
+            float distToHuman = house.getPosition().distanceTo(human.getPosition());
+            float score = distToPredators - distToHuman * 2.0f;
+
+            if (score > maxScore) {
+                maxScore = score;
+                bestHouse = house;
+            }
+        }
+
+        if (bestHouse == null) return false;
+
+        float enterRange = human.getSize() / 2 + bestHouse.getSize() / 2 + 12.0f;
+        if (human.getPosition().distanceTo(bestHouse.getPosition()) <= enterRange) {
+            human.enterHouse(bestHouse);
+            shelterNavigator.clear();
+            return true;
+        }
+
+        if (human.getHiddenInHouse() != null) human.exitHouse();
+        human.setActionState("run");
+        human.setSpeed(human.getBaseSpeed() * RUN_SPEED_MULTIPLIER);
+        Vector2 target = PathNavigator.findInteractionPoint(human, world, bestHouse, enterRange);
+        shelterNavigator.moveTo(human, world, target, deltaTime, 8.0f, 0.5f, MovementContext.SEEKING_STRUCTURE);
+        return !shelterNavigator.isBlocked();
     }
 
     private void fleeFromPredators(Animal ownerAnimal, List<Animal> predators, World world, float deltaTime) {

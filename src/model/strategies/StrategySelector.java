@@ -1,6 +1,7 @@
 package model.strategies;
 
 import model.living_beings.Animal;
+import model.living_beings.Human;
 
 public final class StrategySelector {
     private StrategySelector() {}
@@ -19,6 +20,16 @@ public final class StrategySelector {
 
         if (animal.hasDangerousThreats() && animal.canUseStrategy(ScaredStrategy.class)) {
             return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
+        }
+
+        if (animal instanceof Human) {
+            Human human = (Human) animal;
+            if (human.isHunter() && shouldHunterReturnFood(human)) {
+                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+            }
+            if (human.isHunter() && (criticalHunger || hungry || human.shouldHuntForVillage())) {
+                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+            }
         }
 
         if ((criticalHunger || hungry) && animal.canUseStrategy(HunterStrategy.class)) {
@@ -50,5 +61,14 @@ public final class StrategySelector {
             return current;
         }
         return fallback;
+    }
+
+    private static boolean shouldHunterReturnFood(Human human) {
+        if (!human.hasCarriedFood()) return false;
+        if (human instanceof model.living_beings.Hunter
+                && ((model.living_beings.Hunter) human).needsAmmoReload()) {
+            return true;
+        }
+        return human.isCarryingFoodAtLeast(core.GameConfig.getInstance().HUNTER_RETURN_FOOD_RATIO);
     }
 }
