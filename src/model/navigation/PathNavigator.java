@@ -118,4 +118,12 @@ public class PathNavigator {
             else if (actualMove.x < 0) animal.setFacingRight(false);
         }
     }
+
+    public java.util.List<Vector2> getPath() {
+        return path;
+    }
+
+    public Vector2 getLastTarget() {
+        return lastTarget;
+    }
 }

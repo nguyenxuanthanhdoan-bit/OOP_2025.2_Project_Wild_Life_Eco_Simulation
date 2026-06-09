@@ -145,4 +145,16 @@ public class MatingStrategy extends PassiveStrategy {
     public String getName() {
         return "Mating";
     }
+
+    @Override
+    public core.Vector2 getTarget() {
+        if (targetMate != null) return targetMate.getPosition();
+        return wanderDelegate.getTarget();
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        if (targetMate != null) return mateNavigator.getPath();
+        return wanderDelegate.getPath();
+    }
 }

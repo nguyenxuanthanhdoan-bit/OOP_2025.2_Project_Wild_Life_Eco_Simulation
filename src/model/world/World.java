@@ -13,6 +13,26 @@ import core.Vector2;
  */
 public class World {
 
+    public enum Season {
+        SPRING("Xuân"), SUMMER("Hạ"), AUTUMN("Thu"), WINTER("Đông");
+        private final String name;
+        Season(String name) { this.name = name; }
+        public String getName() { return name; }
+    }
+
+    public enum Weather {
+        SUNNY("Nắng đẹp"), RAINY("Mưa rào"), SNOWY("Tuyết rơi"), STORMY("Bão bùng");
+        private final String name;
+        Weather(String name) { this.name = name; }
+        public String getName() { return name; }
+    }
+
+    private float dayTimer = 0.0f;
+    private int gameDay = 1;
+    private Season currentSeason = Season.SPRING;
+    private Weather currentWeather = Weather.SUNNY;
+    private float weatherTimer = 0.0f;
+
     private List<Entity> entities; // Danh sách các thực thể (Thỏ, Cây, Cỏ...)
     private Biome currentBiome;    // Địa hình hiện tại (Trong Phase 1 là Grassland)
 
@@ -66,6 +86,22 @@ public class World {
      * Cập nhật toàn bộ logic của thế giới.
      */
     public void update(float deltaTime) {
+        // Progress day/season/weather
+        dayTimer += deltaTime;
+        if (dayTimer >= 60.0f) { // 60 seconds per day
+            dayTimer = 0.0f;
+            gameDay++;
+            if (gameDay % 5 == 1) {
+                nextSeason();
+            }
+        }
+
+        weatherTimer += deltaTime;
+        if (weatherTimer >= 30.0f) { // Change weather every 30 seconds
+            weatherTimer = 0.0f;
+            changeRandomWeather();
+        }
+
         // [MỚI] Dùng vòng lặp ngược hoặc quản lý chỉ số cẩn thận khi có thể xóa phần tử
         for (int i = 0; i < entities.size(); i++) {
             Entity e = entities.get(i);
@@ -242,4 +278,54 @@ public class World {
         this.height = height;
         checkAndInitGrid(); // [MỚI]
     }
+
+    public void nextSeason() {
+        Season[] seasons = Season.values();
+        int nextIdx = (currentSeason.ordinal() + 1) % seasons.length;
+        setSeason(seasons[nextIdx]);
+    }
+
+    public void setSeason(Season season) {
+        this.currentSeason = season;
+        publishEvent(WorldEventType.SEASON_CHANGED, null, "manual_change");
+    }
+
+    public void changeRandomWeather() {
+        Weather[] weathers = Weather.values();
+        java.util.Random rand = new java.util.Random();
+        if (currentSeason == Season.WINTER) {
+            int r = rand.nextInt(10);
+            if (r < 6) this.currentWeather = Weather.SNOWY;
+            else if (r < 8) this.currentWeather = Weather.STORMY;
+            else this.currentWeather = Weather.RAINY;
+        } else if (currentSeason == Season.SUMMER) {
+            int r = rand.nextInt(10);
+            if (r < 7) this.currentWeather = Weather.SUNNY;
+            else if (r < 9) this.currentWeather = Weather.STORMY;
+            else this.currentWeather = Weather.RAINY;
+        } else {
+            this.currentWeather = weathers[rand.nextInt(weathers.length)];
+        }
+    }
+
+    public void setWeather(Weather weather) {
+        this.currentWeather = weather;
+    }
+
+    public void reset() {
+        this.entities.clear();
+        if (this.spatialGrid != null) {
+            this.spatialGrid.clear();
+        }
+        this.gameDay = 1;
+        this.dayTimer = 0.0f;
+        this.currentSeason = Season.SPRING;
+        this.currentWeather = Weather.SUNNY;
+        this.weatherTimer = 0.0f;
+    }
+
+    public float getDayTimer() { return dayTimer; }
+    public int getGameDay() { return gameDay; }
+    public Season getCurrentSeason() { return currentSeason; }
+    public Weather getCurrentWeather() { return currentWeather; }
 }

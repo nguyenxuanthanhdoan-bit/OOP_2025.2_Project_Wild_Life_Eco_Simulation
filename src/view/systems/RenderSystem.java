@@ -42,6 +42,15 @@ public class RenderSystem {
     private final float STATUS_BAR_MIN_ZOOM = config.STATUS_BAR_MIN_ZOOM;
     private BufferedImage miniMapCache;
 
+    private boolean showHungerBar = true;
+    private boolean showThirstBar = true;
+    private boolean showMiniMap = true;
+    private boolean showSpeciesName = false;
+    private boolean showDebugPath = false;
+    private boolean showAIVision = false;
+    private boolean showEntitiesOnMinimap = false;
+    private model.living_beings.Animal selectedAnimal = null;
+
     public RenderSystem(Camera camera) {
         this.camera = camera;
         this.displayMode = DisplayMode.REALISTIC;
@@ -283,30 +292,92 @@ public class RenderSystem {
 
                 drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
 
-                if (zoom >= STATUS_BAR_MIN_ZOOM) {
+                // Highlight selected animal
+                if (animal == selectedAnimal) {
+                    g2d.setColor(new Color(255, 235, 60, 200)); // Glowing gold
+                    g2d.setStroke(new BasicStroke(Math.max(2.0f, 3.0f * zoom), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1.0f, new float[]{6f, 6f}, (float)(animationTimer * 20.0f) % 12f));
+                    int selSize = (int) ((animal.getSize() + 10) * zoom);
+                    g2d.drawOval((int)screenPos.x - selSize/2, (int)screenPos.y - selSize/2, selSize, selSize);
+                }
+
+                // Draw AI Vision Range
+                if (showAIVision) {
+                    g2d.setColor(new Color(100, 255, 100, 20)); // Light transparent green
+                    int radius = (int)(animal.getVisionRange() * zoom);
+                    g2d.fillOval((int)screenPos.x - radius, (int)screenPos.y - radius, radius * 2, radius * 2);
+                    g2d.setColor(new Color(100, 255, 100, 90));
+                    g2d.setStroke(new BasicStroke(1.0f));
+                    g2d.drawOval((int)screenPos.x - radius, (int)screenPos.y - radius, radius * 2, radius * 2);
+                }
+
+                // Draw Debug Path
+                if (showDebugPath && animal.getCurrentStrategy() != null) {
+                    java.util.List<Vector2> path = animal.getCurrentStrategy().getPath();
+                    if (path != null && !path.isEmpty()) {
+                        g2d.setColor(new Color(255, 200, 0, 160)); // Orange path line
+                        g2d.setStroke(new BasicStroke(Math.max(1.5f, 2.0f * zoom)));
+                        Vector2 prev = camera.worldToScreen(animal.getPosition());
+                        for (Vector2 wp : path) {
+                            Vector2 scrWp = camera.worldToScreen(wp);
+                            g2d.drawLine((int)prev.x, (int)prev.y, (int)scrWp.x, (int)scrWp.y);
+                            g2d.fillOval((int)scrWp.x - 3, (int)scrWp.y - 3, 6, 6);
+                            prev = scrWp;
+                        }
+                        Vector2 targetPos = animal.getCurrentStrategy().getTarget();
+                        if (targetPos != null) {
+                            Vector2 scrTarget = camera.worldToScreen(targetPos);
+                            g2d.setColor(new Color(255, 50, 50, 160)); // Red target line
+                            g2d.drawLine((int)prev.x, (int)prev.y, (int)scrTarget.x, (int)scrTarget.y);
+                            g2d.fillRect((int)scrTarget.x - 4, (int)scrTarget.y - 4, 8, 8);
+                        }
+                    }
+                }
+
+                if (zoom >= STATUS_BAR_MIN_ZOOM && (showHungerBar || showThirstBar || showSpeciesName)) {
                     int barW = Math.max(30, (int)(42 * zoom));
                     int barH = Math.max(2, Math.min(5, Math.round(2.4f * zoom)));
                     int barX = (int)screenPos.x - barW / 2;
                     int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
 
-                    // Thanh Đói (Đỏ)
-                    g2d.setColor(java.awt.Color.BLACK);
-                    g2d.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
-                    g2d.setColor(new java.awt.Color(50, 50, 50));
-                    g2d.fillRect(barX, barY, barW, barH);
-                    g2d.setColor(new java.awt.Color(220, 60, 60));
-                    int hungerFill = (int)(barW * (animal.getHunger() / animal.getMaxHunger()));
-                    if (hungerFill > 0) g2d.fillRect(barX, barY, hungerFill, barH);
+                    int currentY = barY;
 
-                    // Thanh Khát (Xanh) — ngay dưới thanh đói
-                    int thirstY = barY + barH + 1;
-                    g2d.setColor(java.awt.Color.BLACK);
-                    g2d.fillRect(barX - 1, thirstY - 1, barW + 2, barH + 2);
-                    g2d.setColor(new java.awt.Color(50, 50, 50));
-                    g2d.fillRect(barX, thirstY, barW, barH);
-                    g2d.setColor(new java.awt.Color(60, 140, 240));
-                    int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
-                    if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
+                    // Species Name
+                    if (showSpeciesName) {
+                        g2d.setColor(Color.WHITE);
+                        g2d.setFont(new Font("SansSerif", Font.BOLD, (int)Math.max(10, 11 * zoom)));
+                        String text = animal.getSpeciesName() + (animal.isAdult() ? "" : " (Child)");
+                        FontMetrics fm = g2d.getFontMetrics();
+                        int textX = (int)screenPos.x - fm.stringWidth(text) / 2;
+                        int textY = currentY - 4;
+                        // Shadow
+                        g2d.setColor(Color.BLACK);
+                        g2d.drawString(text, textX + 1, textY + 1);
+                        g2d.setColor(new Color(230, 240, 255));
+                        g2d.drawString(text, textX, textY);
+                    }
+
+                    // Hunger Bar
+                    if (showHungerBar) {
+                        g2d.setColor(java.awt.Color.BLACK);
+                        g2d.fillRect(barX - 1, currentY - 1, barW + 2, barH + 2);
+                        g2d.setColor(new java.awt.Color(50, 50, 50));
+                        g2d.fillRect(barX, currentY, barW, barH);
+                        g2d.setColor(new java.awt.Color(220, 60, 60));
+                        int hungerFill = (int)(barW * (animal.getHunger() / animal.getMaxHunger()));
+                        if (hungerFill > 0) g2d.fillRect(barX, currentY, hungerFill, barH);
+                        currentY += barH + 2;
+                    }
+
+                    // Thirst Bar
+                    if (showThirstBar) {
+                        g2d.setColor(java.awt.Color.BLACK);
+                        g2d.fillRect(barX - 1, currentY - 1, barW + 2, barH + 2);
+                        g2d.setColor(new java.awt.Color(50, 50, 50));
+                        g2d.fillRect(barX, currentY, barW, barH);
+                        g2d.setColor(new java.awt.Color(60, 140, 240));
+                        int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
+                        if (thirstFill > 0) g2d.fillRect(barX, currentY, thirstFill, barH);
+                    }
                 }
             } else {
                 BufferedImage img = null;
@@ -328,7 +399,7 @@ public class RenderSystem {
     }
 
     private void renderMiniMap(World world, Graphics2D g2d) {
-        if (world == null || gameMap == null) return;
+        if (!showMiniMap || world == null || gameMap == null) return;
 
         Rectangle clip = g2d.getClipBounds();
         float screenW = (clip != null) ? clip.width : 800;
@@ -351,6 +422,31 @@ public class RenderSystem {
         g.fillRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
         g.drawImage(miniMapCache, x0, y0, null);
 
+        // Draw entities on minimap
+        if (showEntitiesOnMinimap) {
+            java.util.List<Entity> list = new java.util.ArrayList<>(world.getEntities());
+            for (Entity e : list) {
+                if (e == null || !e.isAlive()) continue;
+                Vector2 pos = e.getPosition();
+                if (pos == null) continue;
+                int ex = x0 + Math.round((pos.x / worldW) * mapW);
+                int ey = y0 + Math.round((pos.y / worldH) * mapH);
+
+                if (e instanceof model.living_beings.Animal) {
+                    model.living_beings.Animal a = (model.living_beings.Animal) e;
+                    if (a.getDietType() == model.living_beings.DietType.CARNIVORE) {
+                        g.setColor(new Color(255, 60, 60)); // Bright Red
+                    } else {
+                        g.setColor(new Color(60, 230, 255)); // Bright Sky Blue
+                    }
+                    g.fillOval(ex - 2, ey - 2, 4, 4);
+                } else if (e instanceof model.plants.Plant || e instanceof model.items.FoodSource) {
+                    g.setColor(new Color(240, 240, 50)); // Bright Yellow
+                    g.fillOval(ex - 1, ey - 1, 2, 2);
+                }
+            }
+        }
+
         drawMiniMapCameraFrame(g, x0, y0, mapW, mapH, worldW, worldH, screenW, screenH);
 
         g.setComposite(oldComposite);
@@ -359,7 +455,7 @@ public class RenderSystem {
         g.dispose();
     }
 
-    private void rebuildMiniMapCache() {
+    public void rebuildMiniMapCache() {
         if (gameMap == null) {
             miniMapCache = null;
             return;
@@ -379,12 +475,38 @@ public class RenderSystem {
 
         int tilePixelW = Math.max(1, (int) Math.ceil(mapW / (float) gameMap.getCols()));
         int tilePixelH = Math.max(1, (int) Math.ceil(mapH / (float) gameMap.getRows()));
+        
+        List<GameMap.MapPolygonObject> polygons = gameMap.getBiomePolygons();
+
         for (int tx = 0; tx < gameMap.getCols(); tx++) {
             for (int ty = 0; ty < gameMap.getRows(); ty++) {
                 float wx = tx * TILE_SIZE + TILE_SIZE / 2.0f;
                 float wy = ty * TILE_SIZE + TILE_SIZE / 2.0f;
-                if (gameMap.isBridgeTile(wx, wy)) {
-                    g.setColor(new Color(154, 105, 72));
+
+                String biomeType = null;
+                if (polygons != null) {
+                    for (GameMap.MapPolygonObject poly : polygons) {
+                        if (poly.polygonPath != null && poly.polygonPath.contains(wx, wy)) {
+                            biomeType = poly.type;
+                            break;
+                        }
+                    }
+                }
+
+                if (biomeType != null) {
+                    if ("FOREST".equalsIgnoreCase(biomeType)) {
+                        g.setColor(new Color(34, 100, 45)); // Deep Forest Green
+                    } else if ("PLAIN".equalsIgnoreCase(biomeType)) {
+                        g.setColor(new Color(105, 175, 75)); // Grassland light green
+                    } else if ("OCEAN".equalsIgnoreCase(biomeType)) {
+                        g.setColor(new Color(15, 60, 135)); // Deep blue
+                    } else if ("LAKE".equalsIgnoreCase(biomeType)) {
+                        g.setColor(new Color(35, 137, 218)); // Clear blue
+                    } else {
+                        g.setColor(new Color(150, 150, 150)); // Village or other biomes
+                    }
+                } else if (gameMap.isBridgeTile(wx, wy)) {
+                    g.setColor(new Color(140, 92, 50)); // Wooden bridge
                 } else if (gameMap.isPositionInWater(wx, wy)) {
                     g.setColor(new Color(18, 145, 207));
                 } else if (gameMap.isGroundTile(wx, wy)) {
@@ -747,4 +869,30 @@ public class RenderSystem {
     }
 
     public void setDisplayMode(DisplayMode mode) { this.displayMode = mode; }
+
+    // Getters and setters for settings toggles and selection
+    public boolean isShowHungerBar() { return showHungerBar; }
+    public void setShowHungerBar(boolean showHungerBar) { this.showHungerBar = showHungerBar; }
+
+    public boolean isShowThirstBar() { return showThirstBar; }
+    public void setShowThirstBar(boolean showThirstBar) { this.showThirstBar = showThirstBar; }
+
+    public boolean isShowMiniMap() { return showMiniMap; }
+    public void setShowMiniMap(boolean showMiniMap) { this.showMiniMap = showMiniMap; }
+
+    public boolean isShowSpeciesName() { return showSpeciesName; }
+    public void setShowSpeciesName(boolean showSpeciesName) { this.showSpeciesName = showSpeciesName; }
+
+    public boolean isShowDebugPath() { return showDebugPath; }
+    public void setShowDebugPath(boolean showDebugPath) { this.showDebugPath = showDebugPath; }
+
+    public boolean isShowAIVision() { return showAIVision; }
+    public void setShowAIVision(boolean showAIVision) { this.showAIVision = showAIVision; }
+
+    public boolean isShowEntitiesOnMinimap() { return showEntitiesOnMinimap; }
+    public void setShowEntitiesOnMinimap(boolean showEntitiesOnMinimap) { this.showEntitiesOnMinimap = showEntitiesOnMinimap; }
+
+    public model.living_beings.Animal getSelectedAnimal() { return selectedAnimal; }
+    public void setSelectedAnimal(model.living_beings.Animal selectedAnimal) { this.selectedAnimal = selectedAnimal; }
+
 }

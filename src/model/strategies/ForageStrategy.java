@@ -178,4 +178,18 @@ public class ForageStrategy implements IStrategy {
         }
         return false;
     }
+
+    @Override
+    public core.Vector2 getTarget() {
+        if (waterNavigator.getLastTarget() != null) return waterNavigator.getLastTarget();
+        if (foodNavigator.getLastTarget() != null) return foodNavigator.getLastTarget();
+        return wanderDelegate.getTarget();
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        if (waterNavigator.getLastTarget() != null) return waterNavigator.getPath();
+        if (foodNavigator.getLastTarget() != null) return foodNavigator.getPath();
+        return wanderDelegate.getPath();
+    }
 }

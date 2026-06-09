@@ -221,4 +221,15 @@ public class HunterStrategy implements IStrategy {
         return "Hunter";
     }
 
+    @Override
+    public core.Vector2 getTarget() {
+        if (targetFood != null) return targetFood.getPosition();
+        return wanderDelegate.getTarget();
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        if (targetFood != null) return targetNavigator.getPath();
+        return wanderDelegate.getPath();
+    }
 }

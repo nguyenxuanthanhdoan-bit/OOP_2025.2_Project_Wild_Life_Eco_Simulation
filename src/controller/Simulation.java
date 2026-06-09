@@ -65,4 +65,25 @@ public class Simulation {
         }
         renderSystem.setDisplayMode(currentDisplayMode);
     }
+
+    public void reset() {
+        world.reset();
+        spawnInitialEntities();
+        if (renderSystem != null) {
+            renderSystem.setSelectedAnimal(null);
+            renderSystem.rebuildMiniMapCache();
+        }
+    }
+
+    public World getWorld() {
+        return world;
+    }
+
+    public RenderSystem getRenderSystem() {
+        return renderSystem;
+    }
+
+    public Camera getCamera() {
+        return camera;
+    }
 }

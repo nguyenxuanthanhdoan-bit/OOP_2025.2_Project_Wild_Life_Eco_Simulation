@@ -142,4 +142,14 @@ public class ScaredStrategy implements IStrategy {
 
     @Override
     public String getName() { return "Scared"; }
+
+    @Override
+    public core.Vector2 getTarget() {
+        return shelterNavigator.getLastTarget();
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        return shelterNavigator.getPath();
+    }
 }
