@@ -483,6 +483,9 @@ public class RenderSystem {
         if (totalFrames > 1) {
             // Chỉnh tốc độ hoạt ảnh theo trạng thái
             float animSpeed = (state.equals("run")) ? FRAME_DURATION * 0.6f : FRAME_DURATION;
+            if ("elephant".equals(species)) {
+                animSpeed *= 1.5f;
+            }
             frameIdx = (int) (animationTimer / animSpeed) % totalFrames;
         }
 
