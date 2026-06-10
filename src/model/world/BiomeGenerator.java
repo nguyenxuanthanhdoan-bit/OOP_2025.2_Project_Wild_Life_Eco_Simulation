@@ -268,6 +268,9 @@ public class BiomeGenerator {
             int houseCount = config.MIN_HOUSES_PER_VILLAGE
                     + rand.nextInt(config.MAX_HOUSES_PER_VILLAGE - config.MIN_HOUSES_PER_VILLAGE + 1);
 
+            // Ghi nhớ số entity trước khi spawn để xác định nhà nào vừa được tạo
+            int entityCountBefore = world.getEntities().size();
+
             spawnVillageGroup(world, gameMap, village, clusterCenter, houseCount, rand,
                     (pos, index) -> new House(pos, 1 + index % houseVariants, config.HOUSE_CAPACITY));
             spawnVillageGroup(world, gameMap, village, clusterCenter, config.WELLS_PER_VILLAGE, rand,
@@ -277,6 +280,23 @@ public class BiomeGenerator {
             spawnVillageGroup(world, gameMap, village, clusterCenter, config.DECORATIONS_PER_VILLAGE, rand,
                     (pos, index) -> new DecorativeStructure(pos,
                             selectDecorativeVariant(index, decorativeVariants, marketVariants)));
+
+            // Đăng ký Settlement với SettlementManager
+            if (clusterCenter != null) {
+                float safeRadius = getVillageHomeRadius(village) + config.SETTLEMENT_SAFE_RADIUS_PADDING;
+                Settlement settlement = new Settlement(clusterCenter, safeRadius);
+
+                // Thu thập các House vừa được spawn vào dấu settlement
+                List<model.entity.Entity> allEntities = world.getEntities();
+                for (int i = entityCountBefore; i < allEntities.size(); i++) {
+                    model.entity.Entity e = allEntities.get(i);
+                    if (e instanceof House) {
+                        settlement.addHouse((House) e);
+                    }
+                }
+
+                world.getSettlementManager().addSettlement(settlement);
+            }
         }
     }
 

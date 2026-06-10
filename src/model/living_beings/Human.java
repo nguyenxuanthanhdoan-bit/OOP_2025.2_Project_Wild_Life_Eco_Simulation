@@ -12,6 +12,8 @@ import model.structures.FoodStorage;
 import model.structures.House;
 import model.strategies.PassiveStrategy;
 
+import java.util.Random;
+
 public class Human extends Animal {
     public enum Variant {
         MALE("human_male"),
@@ -28,8 +30,6 @@ public class Human extends Animal {
     protected static final AnimalProfile VILLAGER_PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_HERBIVORE)
             .canEatPlants(true)
-            .canBeScared(true)
-            .canHide(true)
             .ediblePlants(Fruit.class, Mushroom.class)
             .build();
     protected static final AnimalProfile HUNTER_PROFILE = AnimalProfile.builder()
@@ -245,11 +245,44 @@ public class Human extends Animal {
         return best;
     }
 
+    /**
+     * Vào nhà khi ở gần (dùng bởi ScaredStrategy khi bị đe dọa).
+     * Yêu cầu phải đứng gần nhà đủ để vào.
+     */
     public boolean enterHouse(House house) {
         if (house == null || !house.hasSpace() || !isNearStructure(house, house.getSize() * 0.2f)) {
             return false;
         }
         if (!house.enter(this)) return false;
+        applyHiddenInHouse(house);
+        return true;
+    }
+
+    /**
+     * Đi ngủ ban đêm — biến mất ngay khi chạm vào nhà.
+     * Không cần điều kiện khoảng cách nghiêm ngặt.
+     * Chỉ cần đang thực sự "chạm" (isTouchingHouse == true).
+     */
+    public boolean goSleep(House house) {
+        if (house == null || !house.isAlive()) return false;
+        if (!house.hasSpace() && house != hiddenInHouse) return false;
+        if (!isTouchingHouse(house)) return false;
+        if (!house.enter(this)) return false;
+        applyHiddenInHouse(house);
+        return true;
+    }
+
+    /**
+     * Kiểm tra Human có đang chạm vào nhà không
+     * (tâm human cách tâm nhà ≤ human.radius + house.radius).
+     */
+    public boolean isTouchingHouse(House house) {
+        if (house == null) return false;
+        float touchDist = this.getSize() / 2.0f + house.getSize() / 2.0f;
+        return this.getPosition().distanceTo(house.getPosition()) <= touchDist;
+    }
+
+    private void applyHiddenInHouse(House house) {
         this.hidden = true;
         this.hiddenInHouse = house;
         this.isMoving = false;
@@ -257,7 +290,6 @@ public class Human extends Animal {
         this.speed = 0;
         this.currentVelocity.set(0, 0);
         this.setPosition(house.getPosition());
-        return true;
     }
 
     public void exitHouse() {
@@ -294,13 +326,68 @@ public class Human extends Animal {
         return new model.items.Carcass(position.copy(), 24.0f, 80.0f, 120.0f, 80.0f, speciesName);
     }
 
+    /**
+     * Vòng cập nhật chính của Human.
+     *
+     * Logic thoát nhà (wake up):
+     *   - Trời sáng (!isNight) VÀ không có mối đe dọa → thoát nhà và spawn gần nhà.
+     *   - Nếu vẫn là ban đêm: không thoát (GoHomeStrategy giữ hidden = true).
+     *   - Nếu có mối đe dọa ban ngày: ScaredStrategy sẽ xử lý thoát nhà sau.
+     */
     @Override
     public void update(float deltaTime) {
-        if (hiddenInHouse != null && !hasDangerousThreats()) {
-            exitHouse();
+        if (hiddenInHouse != null) {
+            boolean isNight = worldRef != null &&
+                    (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
+            boolean threatened = hasDangerousThreats();
+
+            // Chỉ thoát nhà khi trời sáng VÀ an toàn
+            if (!isNight && !threatened) {
+                House wasIn = hiddenInHouse;
+                exitHouse();
+
+                // Spawn lại gần cửa nhà
+                Vector2 wakePos = findWakeupPosition(wasIn);
+                if (wakePos != null) {
+                    setPosition(wakePos);
+                }
+            }
         }
         super.update(deltaTime);
         updateAnimation();
+    }
+
+    /**
+     * Tìm vị trí xuất hiện sau khi ngủ dậy, ngắm quanh nhà trong bán kính nhỏ.
+     * Đảm bảo vị trí là mặt đất hợp lệ (không nước, không thoát bản đồ).
+     */
+    private Vector2 findWakeupPosition(House house) {
+        if (house == null) return null;
+        Vector2 housePos = house.getPosition();
+        if (worldRef == null) return housePos.copy();
+
+        Random rng = new Random();
+        float spawnRadius = house.getSize() + this.size + 20.0f;
+
+        for (int attempt = 0; attempt < 12; attempt++) {
+            double angle = rng.nextDouble() * Math.PI * 2.0;
+            double dist  = spawnRadius * (0.6 + rng.nextDouble() * 0.6);
+            float cx = (float) (housePos.x + Math.cos(angle) * dist);
+            float cy = (float) (housePos.y + Math.sin(angle) * dist);
+            Vector2 candidate = new Vector2(cx, cy);
+            if (worldRef.isValidPositionFor(this, candidate)) {
+                return candidate;
+            }
+        }
+        // Fallback: spawn ngay tại vị trí nhà
+        return housePos.copy();
+    }
+
+    /**
+     * Kiểm tra Human có đang ngủ trong nhà hay không.
+     */
+    public boolean isSleeping() {
+        return hidden && hiddenInHouse != null;
     }
 
     @Override
@@ -309,9 +396,12 @@ public class Human extends Animal {
         return super.canHunt(prey);
     }
 
+    /**
+     * Con người là thực thể tối cao — không loài động vật nào có thể săn được.
+     */
     @Override
     public boolean canBeHuntedBy(Animal predator) {
-        return isVillager() && predator != null && predator.getEntityLevel() > getEntityLevel();
+        return false;
     }
 
     @Override

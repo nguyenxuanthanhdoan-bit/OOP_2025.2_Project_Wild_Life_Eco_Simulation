@@ -29,13 +29,55 @@ public final class StrategySelector {
 
         if (animal instanceof Human) {
             Human human = (Human) animal;
+
+            // =============================================
+            // AI GOAL SYSTEM CHO HUMAN
+            // Con người là thực thể tối cao — không có kẻ thù.
+            // Priority: GO_HOME (ban đêm) > WANDER (ban ngày)
+            // =============================================
+
+            // 1. GO_HOME / SLEEP: Ban đêm → về nhà ngủ
+            if (isNight && !isAquatic) {
+                if (human.isVillager()) {
+                    return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
+                }
+                // Hunter ban đêm: săn nếu cần, còn không thì về nhà
+                if (human.isHunter()) {
+                    if (criticalHunger || hungry || human.shouldHuntForVillage()) {
+                        return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+                    }
+                    return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
+                }
+            }
+
+
+            // 3. Logic Hunter ban ngày
             if (human.isHunter() && shouldHunterReturnFood(human)) {
                 return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
             }
             if (human.isHunter() && (criticalHunger || hungry || human.shouldHuntForVillage())) {
                 return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
             }
+
+            // 4. WANDER: Ban ngày → lang thang trong homeArea
+            if (criticalThirst) {
+                return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
+            }
+            if (hungry && human.canForageForFood()) {
+                return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
+            }
+            if (thirsty) {
+                return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
+            }
+            if (human.canReproduce()) {
+                return currentOrNew(animal, MatingStrategy.class, new MatingStrategy());
+            }
+            return currentOrNew(animal, PassiveStrategy.class, new PassiveStrategy());
         }
+
+        // =============================================
+        // AI CHO CÁC LOÀI ĐỘNG VẬT KHÁC (không phải Human)
+        // =============================================
 
         boolean predatorHungry = animal.getDietType() == model.living_beings.DietType.CARNIVORE &&
                                  animal.getHunger() < animal.getMaxHunger() * 0.90;
@@ -44,7 +86,7 @@ public final class StrategySelector {
             return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
         }
 
-        if (isNight && !isNocturnal && !isAquatic && !(animal instanceof Human) && !criticalHunger) {
+        if (isNight && !isNocturnal && !isAquatic && !criticalHunger) {
             return currentOrNew(animal, SleepStrategy.class, new SleepStrategy());
         }
 

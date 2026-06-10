@@ -54,6 +54,9 @@ public class World {
     private final WorldEventSystem eventSystem;
     private final FishPopulationManager fishPopulationManager;
 
+    // Quản lý khu dân cư (Settlement System)
+    private final SettlementManager settlementManager = new SettlementManager();
+
     public World() {
         this.entities = new ArrayList<>();
         this.eventSystem = new WorldEventSystem();
@@ -241,6 +244,11 @@ public class World {
             return false;
         }
 
+        // Chặn động vật nguy hiểm vào vùng dân cư (Settlement Safe Zone)
+        if (isAnimalBlockedFromSettlement(entity) && settlementManager.isInsideSettlement(pos)) {
+            return false;
+        }
+
         // Phân loại logic cho động vật dưới nước và trên cạn
         if (gameMap != null) {
             if (entity instanceof model.living_beings.Fish) {
@@ -270,6 +278,31 @@ public class World {
             }
         }
         return true;
+    }
+
+    /**
+     * Kiểm tra xem entity có phải là loài bị chặn khỏi khu dân cư không.
+     *
+     * Các loài bị chặn:
+     *   - Wolf, Tiger (LEVEL_APEX_ANIMAL / LEVEL_CARNIVORE)
+     *   - Elephant (entityLevel >= LEVEL_CARNIVORE)
+     *   - Deer (entityLevel LEVEL_HERBIVORE nhưng không phải Human)
+     *
+     * Thiết kế không hard-code tên loài:
+     *   - Human (và subclass) luôn được phép đi vào làng.
+     *   - Các loài thủy sinh (Fish) không liên quan đến settlement.
+     *   - Mọi Animal trên cạn không phải Human đều bị chặn nếu entityLevel >= LEVEL_HERBIVORE.
+     */
+    private boolean isAnimalBlockedFromSettlement(model.living_beings.LivingBeing entity) {
+        if (entity instanceof model.living_beings.Human) return false; // Human luôn được vào
+        if (entity instanceof model.living_beings.Fish)  return false; // Cá không liên quan
+        if (entity instanceof model.living_beings.Animal) {
+            // Tất cả Animal trên cạn không phải Human đều bị chặn
+            // (Wolf/Tiger/Elephant: CARNIVORE/APEX; Deer: HERBIVORE)
+            int level = entity.getEntityLevel();
+            return level >= model.entity.Entity.LEVEL_HERBIVORE;
+        }
+        return false;
     }
 
     private boolean collidesWithSolidStructure(model.living_beings.LivingBeing entity, Vector2 pos) {
@@ -305,6 +338,11 @@ public class World {
     // [MỚI] Getter cho Lưới Không Gian (Để RenderSystem gọi tới)
     public SpatialGrid getSpatialGrid() {
         return spatialGrid;
+    }
+
+    /** Getter cho SettlementManager — dùng bởi GoHomeStrategy và BiomeGenerator. */
+    public SettlementManager getSettlementManager() {
+        return settlementManager;
     }
 
     public WorldEventSystem getEventSystem() {
@@ -387,6 +425,7 @@ public class World {
         if (this.spatialGrid != null) {
             this.spatialGrid.clear();
         }
+        this.settlementManager.clear();
         this.gameDay = 1;
         this.dayTimer = 0.0f;
         this.currentSeason = Season.SPRING;

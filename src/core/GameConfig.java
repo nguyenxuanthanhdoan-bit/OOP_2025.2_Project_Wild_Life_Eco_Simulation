@@ -92,6 +92,19 @@ public class GameConfig {
     public final float HUNTER_RETURN_FOOD_RATIO = 0.75f;
 
     // ==========================================
+    // CẤU HÌNH KHU DÂN CƯ & NGỦ (SETTLEMENT & SLEEP)
+    // ==========================================
+    /** Khoảng cách tối đa để Human có thể bước vào nhà (pixels). */
+    public final float HOUSE_ENTER_DISTANCE = 72.0f;
+    /** Bán kính phát hiện mối đe dọa của Human (pixels). */
+    public final float THREAT_RADIUS = 300.0f;
+    /**
+     * Padding thêm vào homeRadius khi tính vùng Safe Zone của Settlement.
+     * safeRadius = villagePolygonRadius + SETTLEMENT_SAFE_RADIUS_PADDING
+     */
+    public final float SETTLEMENT_SAFE_RADIUS_PADDING = 100.0f;
+
+    // ==========================================
     // CẤU HÌNH QUẦN THỂ / SINH SẢN
     // ==========================================
     public final int MIN_SPECIES_POPULATION = 15;
