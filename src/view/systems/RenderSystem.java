@@ -89,6 +89,8 @@ public class RenderSystem {
         // Plants
         for (int i = 1; i <= 2; i++) tryLoadAsset("grass_" + i, path + "Plant/Grass/Grass_" + i + ".png");
         for (int i = 1; i <= 13; i++) tryLoadAsset("tree_" + i, path + "Plant/Tree/Tree_" + i + ".png");
+        tryLoadAsset("tree_winter_1", path + "Plant/Tree/tree_winter_1.png");
+        tryLoadAsset("tree_winter_2", path + "Plant/Tree/tree_winter_2.png");
         for (int i = 1; i <= 8; i++) tryLoadAsset("mushroom_" + i, path + "Plant/Mushrooms/Mushroom_" + i + ".png");
 
         // Structures
@@ -193,6 +195,9 @@ public class RenderSystem {
         // Luôn luôn vẽ map dù ở chế độ REALISTIC hay MINIMAL
         tileMapRenderer.render(g2d, gameMap, camera);
 
+        // [MỚI] Vẽ lớp tuyết nếu đang vào mùa đông
+        renderSnow(world, g2d);
+
         // =========================================================
         // [MỚI] TỐI ƯU HÓA VẼ THỰC THỂ BẰNG SPATIAL GRID VÀ LAYERS
         // =========================================================
@@ -268,6 +273,45 @@ public class RenderSystem {
             darknessAlpha = 0.75f * (1.0f - ((timeOfDay - 4.0f) / 2.0f));
         }
         return darknessAlpha;
+    }
+
+    private void renderSnow(World world, Graphics2D g2d) {
+        float winterProgress = world.getWinterProgress();
+        if (winterProgress <= 0.0f) return;
+
+        Rectangle clip = g2d.getClipBounds();
+        if (clip == null) clip = new Rectangle(0, 0, 800, 600);
+        
+        Vector2 camPos = camera.getPosition();
+        float zoom = camera.getZoomLevel();
+
+        float startX = camPos.x;
+        float startY = camPos.y;
+        float endX = startX + clip.width / zoom;
+        float endY = startY + clip.height / zoom;
+
+        // Tăng step lên và vẽ khối vuông (pixel lớn) để giảm tối đa chi phí render
+        float step = 20.0f; 
+        Graphics2D g = (Graphics2D) g2d.create();
+        
+        // Sử dụng màu trắng tuyệt đối, không dùng Alpha (trong suốt) để Fix Lag triệt để
+        g.setColor(Color.WHITE);
+        int size = Math.max(2, (int)(step * zoom)); 
+
+        for (float x = startX - (startX % step); x < endX; x += step) {
+            for (float y = startY - (startY % step); y < endY; y += step) {
+                Vector2 pos = new Vector2(x, y);
+                if (world.isPositionInWater(pos.x, pos.y)) continue; // Không có tuyết trên mặt nước
+
+                // getSnowDensity() giờ chỉ trả về 1.0 hoặc 0.0
+                if (world.getSnowDensity(pos) > 0) {
+                    Vector2 screenPos = camera.worldToScreen(pos);
+                    // Dùng fillRect (khối vuông) nhanh hơn fillOval rất nhiều
+                    g.fillRect((int) screenPos.x, (int) screenPos.y, size, size);
+                }
+            }
+        }
+        g.dispose();
     }
 
     private void renderNightOverlay(World world, Graphics2D g2d, List<Entity> entities) {
@@ -414,6 +458,17 @@ public class RenderSystem {
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
+                
+                // Mùa đông đổi variant của cây
+                if (e instanceof model.plants.FruitTree && e.getWorld() != null && e.getWorld().getWinterProgress() > 0.5f) {
+                    // Tree_1 đến Tree_6 dùng winter_1, còn lại dùng winter_2 cho đa dạng
+                    if (variant.matches("(?i)Tree_[1-6]")) {
+                        variant = "tree_winter_1";
+                    } else {
+                        variant = "tree_winter_2";
+                    }
+                }
+
                 if (variant != null && !variant.isEmpty()) {
                     img = assetMap.get(variant.toLowerCase());
                 }

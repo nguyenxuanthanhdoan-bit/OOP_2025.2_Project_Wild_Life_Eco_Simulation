@@ -13,6 +13,7 @@ src/controller/InputProcessor.java
 src/controller/GameLoop.java
 src/map/TileMapRenderer.java
 src/screen/GameScreen.java
+src/screen/MenuScreen.java
 src/Main.java
 src/model/living_beings/Rabbit.java
 src/model/living_beings/FishFactory.java

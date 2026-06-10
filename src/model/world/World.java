@@ -15,7 +15,7 @@ import core.Vector2;
 public class World {
 
     public enum Season {
-        SPRING("Xuân"), SUMMER("Hạ"), AUTUMN("Thu"), WINTER("Đông");
+        GROWING("Sinh Trưởng"), WINTER("Khắc Nghiệt");
         private final String name;
         Season(String name) { this.name = name; }
         public String getName() { return name; }
@@ -30,7 +30,8 @@ public class World {
 
     private float dayTimer = 0.0f;
     private int gameDay = 1;
-    private Season currentSeason = Season.SPRING;
+    private Season currentSeason = Season.GROWING;
+    private float winterProgress = 0.0f; // 0.0 -> Sinh Trưởng, 1.0 -> Mùa đông hoàn toàn
     private Weather currentWeather = Weather.SUNNY;
     private float weatherTimer = 0.0f;
 
@@ -154,7 +155,7 @@ public class World {
         }
 
         // Cập nhật cây trồng trong vườn
-        cropManager.update(deltaTime);
+        cropManager.update(deltaTime, this);
 
         fishPopulationManager.update(deltaTime);
 
@@ -162,6 +163,19 @@ public class World {
         timeOfDay += deltaTime * timeScale;
         if (timeOfDay >= 24.0f) {
             timeOfDay -= 24.0f;
+        }
+
+        // Cập nhật tiến trình mùa đông
+        if (currentSeason == Season.WINTER) {
+            if (winterProgress < 1.0f) {
+                winterProgress += deltaTime * 0.005f; // Lan chậm hơn (mất ~200s để phủ kín)
+                if (winterProgress > 1.0f) winterProgress = 1.0f;
+            }
+        } else {
+            if (winterProgress > 0.0f) {
+                winterProgress -= deltaTime * 0.005f;
+                if (winterProgress < 0.0f) winterProgress = 0.0f;
+            }
         }
 
         // Trong Phase 1, Biome chưa cần cập nhật logic
@@ -419,7 +433,7 @@ public class World {
             if (r < 6) this.currentWeather = Weather.SNOWY;
             else if (r < 8) this.currentWeather = Weather.STORMY;
             else this.currentWeather = Weather.RAINY;
-        } else if (currentSeason == Season.SUMMER) {
+        } else if (currentSeason == Season.GROWING) {
             int r = rand.nextInt(10);
             if (r < 7) this.currentWeather = Weather.SUNNY;
             else if (r < 9) this.currentWeather = Weather.STORMY;
@@ -444,7 +458,8 @@ public class World {
 
         this.gameDay = 1;
         this.dayTimer = 0.0f;
-        this.currentSeason = Season.SPRING;
+        this.currentSeason = Season.GROWING;
+        this.winterProgress = 0.0f;
         this.currentWeather = Weather.SUNNY;
         this.weatherTimer = 0.0f;
     }
@@ -452,5 +467,69 @@ public class World {
     public float getDayTimer() { return dayTimer; }
     public int getGameDay() { return gameDay; }
     public Season getCurrentSeason() { return currentSeason; }
+    public float getWinterProgress() { return winterProgress; }
     public Weather getCurrentWeather() { return currentWeather; }
+
+    // --- VALUE NOISE METHODS FOR SNOW ---
+    private float hash(int x, int y) {
+        int h = x * 374761393 + y * 668265263;
+        h = (h ^ (h >> 13)) * 1274126177;
+        return ((h ^ (h >> 16)) & 0x7FFFFFFF) / (float) 0x7FFFFFFF;
+    }
+
+    private float smoothNoise(float x, float y) {
+        int ix = (int) Math.floor(x);
+        int iy = (int) Math.floor(y);
+        float fx = x - ix;
+        float fy = y - iy;
+
+        float h00 = hash(ix, iy);
+        float h10 = hash(ix + 1, iy);
+        float h01 = hash(ix, iy + 1);
+        float h11 = hash(ix + 1, iy + 1);
+
+        float sx = fx * fx * (3.0f - 2.0f * fx);
+        float sy = fy * fy * (3.0f - 2.0f * fy);
+
+        float top = h00 + sx * (h10 - h00);
+        float bottom = h01 + sx * (h11 - h01);
+
+        return top + sy * (bottom - top);
+    }
+
+    /**
+     * Lấy mật độ tuyết tại một vị trí, dùng chung cho hình ảnh và logic di chuyển.
+     * @param pos Tọa độ cần kiểm tra
+     * @return Giá trị từ 0.0 (không có tuyết) đến 1.0 (tuyết dày đặc)
+     */
+    public float getSnowDensity(Vector2 pos) {
+        if (winterProgress <= 0.0f) return 0.0f;
+        if (isPositionInWater(pos.x, pos.y)) return 0.0f;
+
+        // Kiểm tra mép bờ nước (Shoreline Avoidance) - Quét bán kính xung quanh 40px
+        float checkDist = 40.0f;
+        if (isPositionInWater(pos.x - checkDist, pos.y) ||
+            isPositionInWater(pos.x + checkDist, pos.y) ||
+            isPositionInWater(pos.x, pos.y - checkDist) ||
+            isPositionInWater(pos.x, pos.y + checkDist)) {
+            return 0.0f; // Sát mép nước -> Không đọng tuyết
+        }
+
+        // Tạo Value Noise hữu cơ (Organic)
+        float scale1 = 0.004f;
+        float scale2 = 0.01f;
+        
+        // Kết hợp 2 lớp noise (Octaves) để tuyết có độ chi tiết
+        float noise = smoothNoise(pos.x * scale1, pos.y * scale1) * 0.7f +
+                      smoothNoise(pos.x * scale2, pos.y * scale2) * 0.3f;
+        
+        // Ngưỡng tạo tuyết: Mùa đông càng sâu (winterProgress cao), threshold càng nhỏ -> tuyết càng nhiều
+        // (0.8 -> 0.3) để đảm bảo lúc đạt 1.0 vẫn có chỗ không có tuyết (tự nhiên)
+        float threshold = 0.8f - (winterProgress * 0.5f); 
+        
+        if (noise > threshold) {
+            return 1.0f; // Trả về 1.0 luôn để tăng tốc xử lý
+        }
+        return 0.0f;
+    }
 }

@@ -66,33 +66,6 @@ public class HUD {
         int y = 25;
 
         // Draw debug info if needed (e.g. Inspector from Main.java)
-        model.living_beings.Animal animal = simulation.getRenderSystem().getSelectedAnimal();
-        if (animal != null && animal.isAliveState()) {
-            y += lineHeight; // Add some spacing
-            
-            g2d.setColor(new Color(255, 235, 60)); // Gold for selected
-            g2d.drawString("Đang chọn:", x, y);
-            y += lineHeight;
-            
-            g2d.setColor(Color.WHITE);
-            String[] infoTexts = {
-                "Loài: " + animal.getSpeciesName(),
-                String.format("Tuổi: %.1f / %.1f (%s)", animal.getAge(), animal.getMaxAge(), animal.isAdult() ? "Trưởng thành" : "Trẻ con"),
-                String.format("Máu: %.1f%%", (animal.getHealth() / animal.getMaxHealth()) * 100.0),
-                String.format("Đói: %.1f%%", (animal.getHunger() / animal.getMaxHunger()) * 100.0),
-                String.format("Khát: %.1f%%", (animal.getThirst() / animal.getMaxThirst()) * 100.0),
-                "Hành động: " + animal.getActionState().toUpperCase()
-            };
-            
-            for (String info : infoTexts) {
-                // Shadow
-                g2d.setColor(new Color(0, 0, 0, 150));
-                g2d.drawString(info, x + 2, y + 2);
-                // Text
-                g2d.setColor(Color.WHITE);
-                g2d.drawString(info, x, y);
-                y += lineHeight;
-            }
-        }
+        // (Thông tin chi tiết của con vật đã được chuyển sang Sidebar)
     }
 }

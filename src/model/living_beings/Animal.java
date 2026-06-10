@@ -180,13 +180,21 @@ public abstract class Animal extends LivingBeing {
 
         // Kiểm tra xem có đang trên cát và không thích nghi sa mạc
         boolean onSand = false;
+        boolean onSnow = false;
+        float snowDensity = 0.0f;
         if (worldRef != null && worldRef.getGameMap() != null) {
             onSand = worldRef.getGameMap().isSandTile(this.position.x, this.position.y);
+            snowDensity = worldRef.getSnowDensity(this.position);
+            onSnow = snowDensity > 0.0f;
         }
         boolean isDesertAdapted = this.getProfile() != null && this.getProfile().isDesertAdapted();
 
         if (onSand && !isDesertAdapted) {
             moveDeltaTime *= 0.6f; // Giảm tốc độ 40%
+        }
+        if (onSnow) {
+            // Giảm tốc độ tối đa 50% ở nơi tuyết dày đặc nhất
+            moveDeltaTime *= (1.0f - (snowDensity * 0.5f));
         }
         
         super.update(moveDeltaTime);
@@ -198,6 +206,13 @@ public abstract class Animal extends LivingBeing {
 
         if (onSand && !isDesertAdapted) {
             decayMultiplier *= 2.0f; // Khát nhanh gấp đôi
+        }
+        if (worldRef != null && worldRef.getCurrentSeason() == model.world.World.Season.WINTER) {
+            float winterPenalty = 1.0f + worldRef.getWinterProgress() * 1.5f; // Mùa đông tiêu hao nhanh tối đa gấp 2.5 lần
+            if (isFish) {
+                winterPenalty *= 2.0f; // Ở dưới nước lạnh hơn, cá đói khát nhanh gấp đôi thú trên bờ
+            }
+            decayMultiplier *= winterPenalty; 
         }
 
         // Suy giảm sinh học (× 0.25 để thanh đói/khát tụt chậm hơn 4 lần)

@@ -63,7 +63,12 @@ public class FishPopulationManager {
         }
 
         // Bù đắp số lượng tảo biển
-        int seaweedToSpawn = TARGET_SEAWEED_COUNT - seaweedCount;
+        int targetSeaweed = TARGET_SEAWEED_COUNT;
+        if (world.getCurrentSeason() == World.Season.WINTER) {
+            targetSeaweed = (int)(TARGET_SEAWEED_COUNT * (1.0f - world.getWinterProgress() * 0.8f)); // Giảm tối đa 80% trong mùa đông
+        }
+
+        int seaweedToSpawn = targetSeaweed - seaweedCount;
         for (int i = 0; i < seaweedToSpawn; i++) {
             spawnRandomSeaweed(map);
         }

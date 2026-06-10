@@ -33,7 +33,12 @@ public class FruitTree extends Plant {
     public void update(float deltaTime) {
         if (!isAlive || world == null) return;
         
-        dropTimer -= deltaTime;
+        float currentDelta = deltaTime;
+        if (world.getCurrentSeason() == model.world.World.Season.WINTER) {
+            currentDelta *= (1.0f - world.getWinterProgress() * 0.8f); // Chậm tối đa 80%
+        }
+        
+        dropTimer -= currentDelta;
         if (dropTimer <= 0) {
             dropTimer = DROP_INTERVAL + random.nextFloat() * 10;
             

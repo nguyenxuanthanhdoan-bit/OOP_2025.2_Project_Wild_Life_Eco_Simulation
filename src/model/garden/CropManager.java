@@ -41,9 +41,9 @@ public class CropManager {
     /**
      * Cập nhật thời gian sinh trưởng của toàn bộ cây trồng.
      */
-    public void update(float deltaTime) {
+    public void update(float deltaTime, World world) {
         for (GardenBed bed : gardens) {
-            bed.updateCrop(deltaTime);
+            bed.updateCrop(deltaTime, world);
         }
         guardedCacheTtl.replaceAll((id, ttl) -> Math.max(0.0f, ttl - deltaTime));
     }

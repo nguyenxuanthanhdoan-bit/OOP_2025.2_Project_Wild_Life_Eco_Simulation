@@ -30,10 +30,15 @@ public class GardenBed extends Structure {
         this.growthTimer = 0f;
     }
 
-    public void updateCrop(float deltaTime) {
+    public void updateCrop(float deltaTime, model.world.World world) {
         if (currentState == CropState.MATURE) return; // Đã lớn, chờ thu hoạch
 
-        growthTimer += deltaTime;
+        float currentDelta = deltaTime;
+        if (world != null && world.getCurrentSeason() == model.world.World.Season.WINTER) {
+            currentDelta *= (1.0f - world.getWinterProgress() * 0.8f);
+        }
+
+        growthTimer += currentDelta;
         if (growthTimer >= currentCropType.getStateDuration()) {
             growthTimer = 0f;
             advanceState();

@@ -14,6 +14,15 @@ public class Sidebar extends JPanel {
     private final GameLoop gameLoop;
     private final Runnable requestFocusCallback;
 
+    private JLabel infoSpeciesLabel;
+    private JLabel infoAgeLabel;
+    private JLabel infoHealthLabel;
+    private JLabel infoHungerLabel;
+    private JLabel infoThirstLabel;
+    private JLabel infoActionLabel;
+    private JLabel infoStrategyLabel;
+    private JPanel infoPanel;
+
     public Sidebar(Simulation simulation, GameLoop gameLoop, Runnable requestFocusCallback) {
         this.simulation = simulation;
         this.gameLoop = gameLoop;
@@ -159,14 +168,66 @@ public class Sidebar extends JPanel {
             requestFocus();
         });
 
+        JPanel seasonPanel = new JPanel();
+        seasonPanel.setLayout(new BoxLayout(seasonPanel, BoxLayout.X_AXIS));
+        seasonPanel.setBackground(new Color(38, 41, 45));
+        seasonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel seasonLabel = new JLabel("Mùa vụ: ");
+        seasonLabel.setForeground(new Color(220, 224, 230));
+        JComboBox<String> seasonCombo = new JComboBox<>(new String[]{"Sinh Trưởng", "Khắc Nghiệt"});
+        seasonCombo.setFocusable(false);
+        seasonCombo.setMaximumSize(new Dimension(140, 26));
+        seasonCombo.addActionListener(e -> {
+            if (simulation.getWorld() != null) {
+                if (seasonCombo.getSelectedIndex() == 0) {
+                    simulation.getWorld().setSeason(model.world.World.Season.GROWING);
+                } else {
+                    simulation.getWorld().setSeason(model.world.World.Season.WINTER);
+                }
+            }
+            requestFocus();
+        });
+        seasonPanel.add(seasonLabel);
+        seasonPanel.add(Box.createRigidArea(new Dimension(6, 0)));
+        seasonPanel.add(seasonCombo);
+
         controlSection.add(pauseBtn);
         controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
         controlSection.add(speedPanel);
         controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
         controlSection.add(spawnPanel);
         controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
+        controlSection.add(seasonPanel);
+        controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
         controlSection.add(resetBtn);
         container.add(controlSection);
+        container.add(Box.createRigidArea(new Dimension(0, 12)));
+
+        // 3. INFO SECTION
+        JPanel infoSection = createSectionPanel("THÔNG TIN CHI TIẾT");
+        infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(new Color(38, 41, 45));
+        infoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        infoSpeciesLabel = createInfoLabel("Loài: Không có");
+        infoAgeLabel = createInfoLabel("Tuổi: -");
+        infoHealthLabel = createInfoLabel("Máu: -");
+        infoHungerLabel = createInfoLabel("Đói: -");
+        infoThirstLabel = createInfoLabel("Khát: -");
+        infoActionLabel = createInfoLabel("Hành động: -");
+        infoStrategyLabel = createInfoLabel("Chiến thuật: -");
+
+        infoPanel.add(infoSpeciesLabel);
+        infoPanel.add(infoAgeLabel);
+        infoPanel.add(infoHealthLabel);
+        infoPanel.add(infoHungerLabel);
+        infoPanel.add(infoThirstLabel);
+        infoPanel.add(infoActionLabel);
+        infoPanel.add(infoStrategyLabel);
+
+        infoSection.add(infoPanel);
+        container.add(infoSection);
         
         container.add(Box.createVerticalGlue());
 
@@ -180,7 +241,34 @@ public class Sidebar extends JPanel {
     }
 
     public void updateSidebar() {
-        // Reserved for future live controls.
+        if (simulation.getRenderSystem() == null) return;
+        model.living_beings.Animal animal = simulation.getRenderSystem().getSelectedAnimal();
+        if (animal != null && animal.isAliveState()) {
+            infoSpeciesLabel.setText("Loài: " + animal.getSpeciesName());
+            infoAgeLabel.setText(String.format("Tuổi: %.1f / %.1f (%s)", animal.getAge(), animal.getMaxAge(), animal.isAdult() ? "Trưởng thành" : "Trẻ con"));
+            infoHealthLabel.setText(String.format("Máu: %.1f%%", (animal.getHealth() / animal.getMaxHealth()) * 100.0));
+            infoHungerLabel.setText(String.format("Đói: %.1f%%", (animal.getHunger() / animal.getMaxHunger()) * 100.0));
+            infoThirstLabel.setText(String.format("Khát: %.1f%%", (animal.getThirst() / animal.getMaxThirst()) * 100.0));
+            infoActionLabel.setText("Hành động: " + animal.getActionState().toUpperCase());
+            
+            String strategyName = "Không có";
+            if (animal.getCurrentStrategy() != null) {
+                strategyName = animal.getCurrentStrategy().getClass().getSimpleName();
+                // Bỏ chữ 'Strategy' cho gọn
+                if (strategyName.endsWith("Strategy")) {
+                    strategyName = strategyName.substring(0, strategyName.length() - 8);
+                }
+            }
+            infoStrategyLabel.setText("Chiến thuật: " + strategyName);
+        } else {
+            infoSpeciesLabel.setText("Loài: Không có (Chưa chọn)");
+            infoAgeLabel.setText("Tuổi: -");
+            infoHealthLabel.setText("Máu: -");
+            infoHungerLabel.setText("Đói: -");
+            infoThirstLabel.setText("Khát: -");
+            infoActionLabel.setText("Hành động: -");
+            infoStrategyLabel.setText("Chiến thuật: -");
+        }
     }
 
     @Override
@@ -249,5 +337,14 @@ public class Sidebar extends JPanel {
         button.setBorder(BorderFactory.createLineBorder(new Color(80, 88, 94), 1));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return button;
+    }
+
+    private static JLabel createInfoLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(new Color(210, 215, 220));
+        label.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
     }
 }
