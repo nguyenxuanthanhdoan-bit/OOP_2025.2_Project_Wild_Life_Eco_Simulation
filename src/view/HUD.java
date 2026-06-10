@@ -41,7 +41,6 @@ public class HUD {
         
         String[] texts = {
             "Ngày trong game: " + world.getGameDay(),
-            "Mùa hiện tại: " + world.getCurrentSeason().getName(),
             "Thời tiết: " + world.getCurrentWeather().getName(),
             "FPS: " + fps,
             "Tổng số động vật: " + animalCount,

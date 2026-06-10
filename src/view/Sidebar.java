@@ -2,21 +2,17 @@ package view;
 
 import controller.GameLoop;
 import controller.Simulation;
-import model.world.World;
 import view.systems.Camera;
 import view.systems.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 
 public class Sidebar extends JPanel {
 
     private final Simulation simulation;
     private final GameLoop gameLoop;
     private final Runnable requestFocusCallback;
-
-    private JComboBox<String> seasonCombo;
 
     public Sidebar(Simulation simulation, GameLoop gameLoop, Runnable requestFocusCallback) {
         this.simulation = simulation;
@@ -72,18 +68,14 @@ public class Sidebar extends JPanel {
         // 2. CONTROLS SECTION
         JPanel controlSection = createSectionPanel("BẢNG ĐIỀU KHIỂN");
 
-        JButton pauseBtn = new JButton("Tạm dừng");
-        pauseBtn.setFocusable(false);
-        pauseBtn.setBackground(new Color(220, 53, 69));
-        pauseBtn.setForeground(Color.WHITE);
-        pauseBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        pauseBtn.setMaximumSize(new Dimension(280, 32));
-        pauseBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        ImageIcon pauseIcon = loadUiIcon("Pause.png", 20, 20);
+        ImageIcon playIcon = loadUiIcon("Play.png", 20, 20);
+        JButton pauseBtn = createIconButton("Tạm dừng", pauseIcon, new Dimension(280, 34));
         pauseBtn.addActionListener(e -> {
             boolean isPaused = !gameLoop.isPaused();
             gameLoop.setPaused(isPaused);
             pauseBtn.setText(isPaused ? "Tiếp tục" : "Tạm dừng");
-            pauseBtn.setBackground(isPaused ? new Color(40, 167, 69) : new Color(220, 53, 69));
+            pauseBtn.setIcon(isPaused ? playIcon : pauseIcon);
             requestFocus();
         });
 
@@ -91,14 +83,15 @@ public class Sidebar extends JPanel {
         speedPanel.setLayout(new BoxLayout(speedPanel, BoxLayout.X_AXIS));
         speedPanel.setBackground(new Color(38, 41, 45));
         speedPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel timeIcon = new JLabel(loadUiIcon("Time.png", 24, 24));
         JLabel speedLabel = new JLabel("Tốc độ: 1.0x");
         speedLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         speedLabel.setForeground(new Color(220, 224, 230));
-        JButton slowBtn = new JButton("-");
-        JButton fastBtn = new JButton("+");
+        JButton slowBtn = createSmallButton("-");
+        JButton fastBtn = createSmallButton("+");
         Dimension btnDim = new Dimension(42, 24);
-        slowBtn.setPreferredSize(btnDim); slowBtn.setMaximumSize(btnDim); slowBtn.setFocusable(false);
-        fastBtn.setPreferredSize(btnDim); fastBtn.setMaximumSize(btnDim); fastBtn.setFocusable(false);
+        slowBtn.setPreferredSize(btnDim); slowBtn.setMaximumSize(btnDim);
+        fastBtn.setPreferredSize(btnDim); fastBtn.setMaximumSize(btnDim);
         
         slowBtn.addActionListener(e -> {
             float ts = gameLoop.getTimeScale();
@@ -116,6 +109,8 @@ public class Sidebar extends JPanel {
             speedLabel.setText(String.format("Tốc độ: %.1fx", ts));
             requestFocus();
         });
+        speedPanel.add(timeIcon);
+        speedPanel.add(Box.createRigidArea(new Dimension(8, 0)));
         speedPanel.add(speedLabel);
         speedPanel.add(Box.createHorizontalGlue());
         speedPanel.add(slowBtn);
@@ -129,11 +124,7 @@ public class Sidebar extends JPanel {
         JComboBox<String> speciesCombo = new JComboBox<>(new String[]{"Thỏ", "Nai", "Voi", "Sói", "Hổ"});
         speciesCombo.setFocusable(false);
         speciesCombo.setMaximumSize(new Dimension(140, 26));
-        JButton spawnBtn = new JButton("Spawn");
-        spawnBtn.setFocusable(false);
-        spawnBtn.setBackground(new Color(40, 167, 69));
-        spawnBtn.setForeground(Color.WHITE);
-        spawnBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JButton spawnBtn = createIconButton("Spawn", loadUiIcon("OK.png", 42, 18), new Dimension(112, 30));
         spawnBtn.addActionListener(e -> {
             String sp = (String) speciesCombo.getSelectedItem();
             Camera camera = simulation.getCamera();
@@ -159,38 +150,11 @@ public class Sidebar extends JPanel {
         spawnPanel.add(Box.createRigidArea(new Dimension(6, 0)));
         spawnPanel.add(spawnBtn);
 
-        JPanel seasonPanel = new JPanel();
-        seasonPanel.setLayout(new BoxLayout(seasonPanel, BoxLayout.X_AXIS));
-        seasonPanel.setBackground(new Color(38, 41, 45));
-        seasonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel seasonLabelTitle = new JLabel("Đổi mùa: ");
-        seasonLabelTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        seasonLabelTitle.setForeground(new Color(220, 224, 230));
-        seasonCombo = new JComboBox<>(new String[]{"Xuân", "Hạ", "Thu", "Đông"});
-        seasonCombo.setFocusable(false);
-        seasonCombo.setMaximumSize(new Dimension(140, 26));
-        seasonCombo.addActionListener(e -> {
-            int idx = seasonCombo.getSelectedIndex();
-            World.Season s = World.Season.values()[idx];
-            simulation.getWorld().setSeason(s);
-            requestFocus();
-        });
-        seasonPanel.add(seasonLabelTitle);
-        seasonPanel.add(Box.createHorizontalGlue());
-        seasonPanel.add(seasonCombo);
-
-        JButton resetBtn = new JButton("Reset Thế Giới");
-        resetBtn.setFocusable(false);
-        resetBtn.setBackground(new Color(255, 140, 0));
-        resetBtn.setForeground(Color.WHITE);
-        resetBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        resetBtn.setMaximumSize(new Dimension(280, 32));
-        resetBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton resetBtn = createIconButton("Reset Thế Giới", loadUiIcon("Replay.png", 20, 20), new Dimension(280, 34));
         resetBtn.addActionListener(e -> {
             int option = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn reset toàn bộ thế giới?", "Xác nhận Reset", JOptionPane.YES_NO_OPTION);
             if (option == JOptionPane.YES_OPTION) {
                 simulation.reset();
-                seasonCombo.setSelectedIndex(simulation.getWorld().getCurrentSeason().ordinal());
             }
             requestFocus();
         });
@@ -200,8 +164,6 @@ public class Sidebar extends JPanel {
         controlSection.add(speedPanel);
         controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
         controlSection.add(spawnPanel);
-        controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
-        controlSection.add(seasonPanel);
         controlSection.add(Box.createRigidArea(new Dimension(0, 8)));
         controlSection.add(resetBtn);
         container.add(controlSection);
@@ -218,17 +180,7 @@ public class Sidebar extends JPanel {
     }
 
     public void updateSidebar() {
-        World world = simulation.getWorld();
-        // Sync Season dropdown
-        if (seasonCombo != null) {
-            int currentOrdinal = world.getCurrentSeason().ordinal();
-            if (seasonCombo.getSelectedIndex() != currentOrdinal) {
-                ActionListener[] listeners = seasonCombo.getActionListeners();
-                for (ActionListener l : listeners) seasonCombo.removeActionListener(l);
-                seasonCombo.setSelectedIndex(currentOrdinal);
-                for (ActionListener l : listeners) seasonCombo.addActionListener(l);
-            }
-        }
+        // Reserved for future live controls.
     }
 
     @Override
@@ -256,5 +208,46 @@ public class Sidebar extends JPanel {
         
         panel.add(title);
         return panel;
+    }
+
+    private static ImageIcon loadUiIcon(String fileName, int width, int height) {
+        ImageIcon icon = new ImageIcon("resources/assets/images/ui/" + fileName);
+        if (icon.getIconWidth() <= 0 || icon.getIconHeight() <= 0) {
+            return null;
+        }
+        Image scaled = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaled);
+    }
+
+    private static JButton createIconButton(String text, Icon icon, Dimension size) {
+        JButton button = new JButton(text, icon);
+        button.setFocusable(false);
+        button.setForeground(new Color(230, 238, 242));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setHorizontalAlignment(SwingConstants.CENTER);
+        button.setIconTextGap(8);
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(80, 88, 94), 1),
+                BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        button.setMaximumSize(size);
+        button.setPreferredSize(size);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return button;
+    }
+
+    private static JButton createSmallButton(String text) {
+        JButton button = new JButton(text);
+        button.setFocusable(false);
+        button.setForeground(new Color(230, 238, 242));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
+        button.setBorder(BorderFactory.createLineBorder(new Color(80, 88, 94), 1));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
     }
 }

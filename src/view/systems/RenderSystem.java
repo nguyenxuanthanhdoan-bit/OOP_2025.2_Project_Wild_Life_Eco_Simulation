@@ -394,38 +394,14 @@ public class RenderSystem {
         int tilePixelW = Math.max(1, (int) Math.ceil(mapW / (float) gameMap.getCols()));
         int tilePixelH = Math.max(1, (int) Math.ceil(mapH / (float) gameMap.getRows()));
         
-        List<GameMap.MapPolygonObject> polygons = gameMap.getBiomePolygons();
-
         for (int tx = 0; tx < gameMap.getCols(); tx++) {
             for (int ty = 0; ty < gameMap.getRows(); ty++) {
                 float wx = tx * TILE_SIZE + TILE_SIZE / 2.0f;
                 float wy = ty * TILE_SIZE + TILE_SIZE / 2.0f;
 
-                String biomeType = null;
-                if (polygons != null) {
-                    for (GameMap.MapPolygonObject poly : polygons) {
-                        if (poly.polygonPath != null && poly.polygonPath.contains(wx, wy)) {
-                            biomeType = poly.type;
-                            break;
-                        }
-                    }
-                }
-
-                if (biomeType != null) {
-                    if ("FOREST".equalsIgnoreCase(biomeType)) {
-                        g.setColor(new Color(34, 100, 45)); // Deep Forest Green
-                    } else if ("PLAIN".equalsIgnoreCase(biomeType)) {
-                        g.setColor(new Color(105, 175, 75)); // Grassland light green
-                    } else if ("OCEAN".equalsIgnoreCase(biomeType)) {
-                        g.setColor(new Color(15, 60, 135)); // Deep blue
-                    } else if ("LAKE".equalsIgnoreCase(biomeType)) {
-                        g.setColor(new Color(35, 137, 218)); // Clear blue
-                    } else {
-                        g.setColor(new Color(150, 150, 150)); // Village or other biomes
-                    }
-                } else if (gameMap.isBridgeTile(wx, wy)) {
+                if (gameMap.isBridgeTile(wx, wy)) {
                     g.setColor(new Color(140, 92, 50)); // Wooden bridge
-                } else if (gameMap.isPositionInWater(wx, wy)) {
+                } else if (gameMap.isWaterTile(wx, wy)) {
                     g.setColor(new Color(18, 145, 207));
                 } else if (gameMap.isGroundTile(wx, wy)) {
                     g.setColor(new Color(63, 134, 70));
