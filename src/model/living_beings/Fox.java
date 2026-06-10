@@ -10,6 +10,7 @@ public class Fox extends CarnivoreAnimal {
             .entityLevel(LEVEL_CARNIVORE)
             .canHunt(true)
             .canEatMeat(true)
+            .canBeScared(true)
             .attackDamagePerSecond(50.0f)
             .maxPreySizeMultiplier(1.2f)
             .avoidsGuardedGardens(true)

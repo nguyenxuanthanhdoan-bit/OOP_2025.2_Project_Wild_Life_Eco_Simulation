@@ -12,7 +12,6 @@ src/controller/Simulation.java
 src/controller/InputProcessor.java
 src/controller/GameLoop.java
 src/map/TileMapRenderer.java
-src/DebugMain.java
 src/screen/GameScreen.java
 src/Main.java
 src/model/living_beings/Rabbit.java
@@ -117,5 +116,4 @@ src/view/systems/RenderSystem.java
 src/view/systems/MinimalRenderer.java
 src/view/systems/Camera.java
 src/view/Sidebar.java
-src/TestSpawning.java
 src/TestMap.java

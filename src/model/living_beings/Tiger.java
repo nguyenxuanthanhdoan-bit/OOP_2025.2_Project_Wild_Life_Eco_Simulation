@@ -11,6 +11,7 @@ public class Tiger extends CarnivoreAnimal {
             .entityLevel(LEVEL_CARNIVORE)
             .canHunt(true)
             .canEatMeat(true)
+            .canBeScared(true)
             .attackDamagePerSecond(100.0f)
             .maxPreySizeMultiplier(1.5f)
             .avoidsGuardedGardens(true)

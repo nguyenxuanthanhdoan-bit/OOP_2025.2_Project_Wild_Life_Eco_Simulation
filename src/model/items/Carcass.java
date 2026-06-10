@@ -32,7 +32,7 @@ public class Carcass extends FoodSource {
         this.initialSize = size;
         this.sourceSpecies = sourceSpecies;
         this.humanSource = humanSource;
-        this.imageVariant = "Meat";
+        this.imageVariant = "meat";
     }
 
     /** Gắn tham chiếu world để Carcass có thể rớt xương khi phân hủy. */

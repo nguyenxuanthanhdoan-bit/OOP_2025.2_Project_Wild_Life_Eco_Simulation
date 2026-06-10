@@ -24,6 +24,8 @@ public class AvoidanceStrategy {
 
     /** Ngưỡng kích thước: chỉ né thú lớn hơn N lần */
     private static final float SIZE_THRESHOLD = 1.5f;
+    
+    private static final ThreadLocal<List<Entity>> CACHED_LIST = ThreadLocal.withInitial(java.util.ArrayList::new);
 
     // =========================================================
     // 1. NÉ VẬT CẢN TĨNH (Đá, Cây)
@@ -43,9 +45,11 @@ public class AvoidanceStrategy {
 
         // Quét trong phạm vi: bán kính bản thân + 25px buffer
         float scanRadius = owner.getSize() / 2 + 25f;
-        List<Entity> nearby = world.getSpatialGrid().getNeighbors(owner.getPosition(), scanRadius);
+        List<Entity> nearby = CACHED_LIST.get();
+        world.getSpatialGrid().getNeighbors(owner.getPosition(), scanRadius, nearby);
 
-        for (Entity e : nearby) {
+        for (int i = 0; i < nearby.size(); i++) {
+            Entity e = nearby.get(i);
             if (e == owner || !e.isSolid() || !e.isAlive()) continue;
 
             Vector2 toObs = e.getPosition().copy().subtract(owner.getPosition());
@@ -105,10 +109,11 @@ public class AvoidanceStrategy {
         Vector2 avoidanceForce = new Vector2();
         if (world == null || world.getSpatialGrid() == null) return avoidanceForce;
 
-        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(
-            owner.getPosition(), (float) owner.getVisionRange());
+        List<Entity> neighbors = CACHED_LIST.get();
+        world.getSpatialGrid().getNeighbors(owner.getPosition(), (float) owner.getVisionRange(), neighbors);
 
-        for (Entity e : neighbors) {
+        for (int i = 0; i < neighbors.size(); i++) {
+            Entity e = neighbors.get(i);
             if (!(e instanceof Animal) || e == owner || !e.isAlive()) continue;
             Animal other = (Animal) e;
 

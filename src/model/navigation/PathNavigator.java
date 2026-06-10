@@ -23,6 +23,7 @@ public class PathNavigator {
     private float repathTimer = 0.0f;
     private boolean blocked = false;
     private float stuckTimer = 0.0f;
+    private float losCheckTimer = 0.0f; // Line-of-sight check timer
 
     public boolean moveTo(Animal animal, World world, Vector2 target, float deltaTime,
                           float reachDistance, float repathInterval) {
@@ -41,11 +42,21 @@ public class PathNavigator {
         }
 
         repathTimer -= deltaTime;
+        losCheckTimer -= deltaTime;
 
-        boolean direct = TerrainNavigator.hasWalkableLine(
-                world, animal, animal.getPosition(), target, context);
-        if (direct) {
-            clear();
+        // Tối ưu: Chỉ kiểm tra tia thẳng mỗi 0.25s để tránh lag FPS do Raycast liên tục
+        if (losCheckTimer <= 0) {
+            boolean direct = TerrainNavigator.hasWalkableLine(
+                    world, animal, animal.getPosition(), target, context);
+            if (direct) {
+                clear();
+                moveAlong(animal, world, target, deltaTime, context);
+                losCheckTimer = 0.25f; // Đợi 0.25s trước lần check tiếp theo
+                return false;
+            }
+            losCheckTimer = 0.25f;
+        } else if (path.isEmpty()) {
+            // Nếu không có đường đi mà cũng chưa đến lúc check direct, cứ giả vờ đi thẳng xem sao
             moveAlong(animal, world, target, deltaTime, context);
             return false;
         }
@@ -70,7 +81,7 @@ public class PathNavigator {
 
         if (path.isEmpty()) return false;
 
-        skipVisibleWaypoints(animal, world, context);
+        // skipVisibleWaypoints(animal, world, context); // TẮT: Rất tốn kém, không cần thiết mỗi frame
         moveAlong(animal, world, path.get(0), deltaTime, context);
         return false;
     }

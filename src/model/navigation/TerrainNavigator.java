@@ -16,7 +16,7 @@ import java.util.PriorityQueue;
 public class TerrainNavigator {
     public static final int TILE_SIZE = 32;
     private static final int DEFAULT_MAX_SEARCH_TILES = 80;
-    private static final int MAX_VISITED_NODES = 9000;
+    private static final int MAX_VISITED_NODES = 2000; // Tối ưu: Giảm từ 9000 xuống 2000 để tránh lag khi kẹt cứng
 
     private TerrainNavigator() {}
 

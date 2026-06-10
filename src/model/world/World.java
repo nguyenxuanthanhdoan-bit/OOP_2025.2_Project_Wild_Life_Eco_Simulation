@@ -318,20 +318,17 @@ public class World {
         float entityRadius = entity.getCollider() != null
                 ? entity.getCollider().getRadius()
                 : entity.getSize() * 0.35f;
-        List<Entity> nearby = spatialGrid.getNeighbors(pos, entityRadius + 80.0f);
+        float searchRadius = entityRadius + 80.0f;
 
-        for (Entity other : nearby) {
+        return spatialGrid.hasEntityMatching(pos, searchRadius, other -> {
             if (other == entity || !(other instanceof Structure) || !other.isSolid() || !other.isAlive()) {
-                continue;
+                return false;
             }
             float otherRadius = other.getCollider() != null
                     ? other.getCollider().getRadius()
                     : other.getSize() * 0.35f;
-            if (pos.distanceTo(other.getPosition()) < entityRadius + otherRadius) {
-                return true;
-            }
-        }
-        return false;
+            return pos.distanceTo(other.getPosition()) < entityRadius + otherRadius;
+        });
     }
 
     // =========================================================

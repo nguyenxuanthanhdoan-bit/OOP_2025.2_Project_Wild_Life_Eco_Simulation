@@ -101,8 +101,8 @@ public class RenderSystem {
 
         // Items
         for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
-        tryLoadAsset("carcass", path + "Items/carcass.png");
-        tryLoadAsset("bone", path + "Items/bone.png");
+        tryLoadAsset("meat", path + "Items/Meat/Meat.png");
+        tryLoadAsset("bone", path + "Items/Bone/Bone.png");
         tryLoadAsset("egg", path + "Items/egg.png");
         tryLoadAsset("fish", path + "Items/fish.png");
         tryLoadAsset("fishing_net", path + "Items/fishing_net.png");
@@ -781,6 +781,17 @@ public class RenderSystem {
         }
 
         g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
+
+        // [MỚI] Hiệu ứng chớp đỏ khi bị nhận sát thương
+        if (animal.getDamageBlinkTimer() > 0) {
+            // Lưu lại composite hiện tại nếu chưa lưu (nếu con vật không phải cá thì originalComposite dùng lại được)
+            g2d.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_ATOP, 0.5f));
+            g2d.setColor(java.awt.Color.RED);
+            int drawX = Math.min(dstX1, dstX2);
+            int drawY = Math.min(dstY1, dstY2);
+            g2d.fillOval(drawX, drawY, drawSize, drawSize);
+            g2d.setComposite(originalComposite);
+        }
 
         if (animal instanceof model.living_beings.Fish) {
             g2d.setComposite(originalComposite);

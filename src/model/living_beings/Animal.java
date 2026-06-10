@@ -62,6 +62,7 @@ public abstract class Animal extends LivingBeing {
     protected AnimalProfile profile;
     private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
     private float reproductionCooldown = 0.0f;
+    protected float damageBlinkTimer = 0.0f;
 
     // Caching for threats
     protected float radarCooldown = 0f;
@@ -145,6 +146,9 @@ public abstract class Animal extends LivingBeing {
         }
         if (gardenThreatCooldown > 0) {
             gardenThreatCooldown -= deltaTime;
+        }
+        if (damageBlinkTimer > 0) {
+            damageBlinkTimer -= deltaTime;
         }
 
         boolean isNight = (worldRef != null) && (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
@@ -424,7 +428,12 @@ public abstract class Animal extends LivingBeing {
     public void takeDamage(double amount) {
         if (!alive) return;
         this.health = Math.max(0, this.health - amount);
+        this.damageBlinkTimer = 0.15f; // Chớp đỏ trong 0.15 giây
         if (this.health <= 0) die("Kiệt sức (hết máu)");
+    }
+
+    public float getDamageBlinkTimer() {
+        return damageBlinkTimer;
     }
 
     public void heal(double amount) {

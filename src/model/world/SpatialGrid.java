@@ -120,13 +120,57 @@ public class SpatialGrid {
         startY = Math.max(0, startY);
         endY = Math.min(rows - 1, endY);
 
-        // Gom các thực thể lại
         for (int x = startX; x <= endX; x++) {
             for (int y = startY; y <= endY; y++) {
                 neighbors.addAll(grid[x][y]);
             }
         }
         return neighbors;
+    }
+
+    /**
+     * Lấy danh sách thực thể và đưa vào danh sách có sẵn (Tránh tạo rác bộ nhớ - GC).
+     */
+    public void getNeighbors(Vector2 position, float range, List<Entity> result) {
+        if (position == null || result == null) return;
+        result.clear();
+
+        int startX = Math.max(0, getCellX(position.x - range));
+        int endX = Math.min(cols - 1, getCellX(position.x + range));
+        int startY = Math.max(0, getCellY(position.y - range));
+        int endY = Math.min(rows - 1, getCellY(position.y + range));
+
+        for (int x = startX; x <= endX; x++) {
+            for (int y = startY; y <= endY; y++) {
+                result.addAll(grid[x][y]);
+            }
+        }
+    }
+
+    /**
+     * Kiểm tra xem có thực thể nào thỏa mãn điều kiện trong phạm vi hay không.
+     * ZERO-ALLOCATION: Không tạo List mới, vòng lặp ngắt ngay khi tìm thấy.
+     */
+    public boolean hasEntityMatching(Vector2 position, float range, java.util.function.Predicate<Entity> condition) {
+        if (position == null || condition == null) return false;
+
+        int startX = Math.max(0, getCellX(position.x - range));
+        int endX = Math.min(cols - 1, getCellX(position.x + range));
+        int startY = Math.max(0, getCellY(position.y - range));
+        int endY = Math.min(rows - 1, getCellY(position.y + range));
+
+        for (int x = startX; x <= endX; x++) {
+            for (int y = startY; y <= endY; y++) {
+                List<Entity> cell = grid[x][y];
+                for (int i = 0; i < cell.size(); i++) {
+                    Entity e = cell.get(i);
+                    if (condition.test(e)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // --- GETTER ---
