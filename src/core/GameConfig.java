@@ -70,7 +70,7 @@ public class GameConfig {
     public final float DECORATIVE_STRUCTURE_SIZE = 50.0f;
     public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 70.0f;
     public final float VILLAGE_STRUCTURE_CLUSTER_RADIUS = 200.0f;
-    public final int HUMANS_PER_VILLAGE = 8;
+    public final int HUMANS_PER_VILLAGE = 14;
     public final int HUNTERS_PER_VILLAGE = 2;
     public final float HUMAN_CARRY_CAPACITY = 45.0f;
     public final float HUNTER_CARRY_CAPACITY = 180.0f;

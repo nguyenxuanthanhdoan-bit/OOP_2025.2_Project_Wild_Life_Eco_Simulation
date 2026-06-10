@@ -310,19 +310,63 @@ public class BiomeGenerator {
         GameConfig config = GameConfig.getInstance();
 
         for (int i = 0; i < count; i++) {
-            for (int attempt = 0; attempt < config.SPAWN_ATTEMPTS_PER_POINT * 4; attempt++) {
-                Vector2 pos = randomClusteredPoint(village, clusterCenter, rand);
-                if (pos == null || !village.polygonPath.contains(pos.x, pos.y)) continue;
-                if (gameMap != null && gameMap.isPositionInWater(pos.x, pos.y) && !gameMap.isBridgeTile(pos.x, pos.y)) {
+            int maxAttempts = config.SPAWN_ATTEMPTS_PER_POINT * 8;
+            for (int attempt = 0; attempt < maxAttempts; attempt++) {
+                Vector2 pos = randomVillageResidentPoint(village, clusterCenter, rand, attempt, maxAttempts);
+                Animal animal = pos == null ? null : factory.create(pos, i);
+                if (!isValidVillageResidentSpawn(world, gameMap, village, animal, pos, attempt, maxAttempts)) {
                     continue;
                 }
-
-                Animal animal = factory.create(pos, i);
-                if (!world.isValidPositionFor(animal, pos)) continue;
                 addSpawnedAnimal(world, animal, rand);
                 break;
             }
         }
+    }
+
+    private static Vector2 randomVillageResidentPoint(MapPolygonObject village, Vector2 clusterCenter,
+                                                      Random rand, int attempt, int maxAttempts) {
+        if (attempt < maxAttempts / 2) {
+            return randomClusteredPoint(village, clusterCenter, rand);
+        }
+        return getRandomPointInsidePolygon(village, rand);
+    }
+
+    private static boolean isValidVillageResidentSpawn(World world, GameMap gameMap, MapPolygonObject village,
+                                                       Animal animal, Vector2 pos, int attempt, int maxAttempts) {
+        if (world == null || village == null || village.polygonPath == null || animal == null || pos == null) {
+            return false;
+        }
+        if (!village.polygonPath.contains(pos.x, pos.y)) return false;
+        if (gameMap != null && gameMap.isPositionInWater(pos.x, pos.y) && !gameMap.isBridgeTile(pos.x, pos.y)) {
+            return false;
+        }
+        if (!world.isValidPositionFor(animal, pos)) return false;
+
+        float strictness = attempt < maxAttempts / 3 ? 1.0f : (attempt < maxAttempts * 2 / 3 ? 0.75f : 0.55f);
+        return hasVillageResidentClearance(world, animal, pos, strictness);
+    }
+
+    private static boolean hasVillageResidentClearance(World world, Animal animal, Vector2 pos, float strictness) {
+        if (world.getSpatialGrid() == null) return true;
+
+        float scanRange = 150.0f;
+        List<Entity> nearby = world.getSpatialGrid().getNeighbors(pos, scanRange);
+        for (Entity entity : nearby) {
+            if (entity == animal || !entity.isAlive()) continue;
+
+            if (entity instanceof Structure && entity.isSolid()) {
+                float minDistance = animal.getSize() * 0.55f + entity.getSize() * 0.72f + 12.0f;
+                if (pos.distanceTo(entity.getPosition()) < minDistance * strictness) {
+                    return false;
+                }
+            } else if (entity instanceof Animal) {
+                float minDistance = (animal.getSize() + entity.getSize()) * 0.55f;
+                if (pos.distanceTo(entity.getPosition()) < minDistance * strictness) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static int countVillageAssets(String prefix) {
