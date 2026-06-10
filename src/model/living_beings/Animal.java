@@ -427,8 +427,10 @@ public abstract class Animal extends LivingBeing {
 
         if (world != null && this.position != null) {
             model.items.Carcass carcass = createCarcass();
-            carcass.setWorld(world); // Gắn world để Carcass rớt xương khi phân hủy
-            world.addEntity(carcass);
+            if (carcass != null) {
+                carcass.setWorld(world); // Gắn world để Carcass rớt xương khi phân hủy
+                world.addEntity(carcass);
+            }
             world.publishEvent(WorldEventType.ANIMAL_DIED, this, reason);
         }
     }

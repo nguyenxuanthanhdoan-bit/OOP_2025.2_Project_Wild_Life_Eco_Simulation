@@ -53,6 +53,8 @@ public final class AnimalProfile {
                     .canEatPlants(true)
                     .canBeScared(true)
                     .canHide(true)
+                    .canFlock(true)
+                    .flockingMode(FlockingMode.BASIC)
                     .build();
         }
         return builder.build();

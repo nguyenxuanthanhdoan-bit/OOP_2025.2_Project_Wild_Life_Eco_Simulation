@@ -164,7 +164,11 @@ public class AvoidanceStrategy {
             for (float angle : angles) {
                 Vector2 probeDir = rotate(dir, angle);
                 Vector2 probe = owner.getPosition().copy().add(probeDir.scale(distance));
-                if (world.isPositionInWater(probe.x, probe.y) || !world.isValidPositionFor(owner, probe)) {
+                boolean isWater = world.isPositionInWater(probe.x, probe.y);
+                boolean isFish = owner instanceof model.living_beings.Fish;
+                boolean shouldAvoid = isFish ? !isWater : isWater;
+
+                if (shouldAvoid || !world.isValidPositionFor(owner, probe)) {
                     Vector2 away = owner.getPosition().copy().subtract(probe);
                     if (away.lengthSquared() > 0) {
                         away.normalize();

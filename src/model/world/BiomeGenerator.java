@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import model.living_beings.FishFactory;
+import model.world.WaterTile;
+
 /**
  * Lớp chuyên tạo và phân bố các vùng sinh thái (Biomes).
  */
@@ -51,6 +54,7 @@ public class BiomeGenerator {
 
         // Sinh Động vật
         spawnAnimals(world, gameMap, plainPolygons, forestPolygons, rand);
+        // Hệ thống sinh thái cá giờ được quản lý động bởi FishPopulationManager trong World.java
         
         // Sinh Cây cỏ
         spawnVegetation(world, gameMap, plainPolygons, forestPolygons, villagePolygons, rand);

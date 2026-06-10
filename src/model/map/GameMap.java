@@ -234,7 +234,26 @@ public class GameMap {
         int col = (int) (worldX / 32);
         int row = (int) (worldY / 32);
         if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
-        return hasTileOnLayer(col, row, "bridge");
+        
+        if (hasTileOnLayer(col, row, "bridge")) return true;
+
+        // Nếu map không có layer bridge, kiểm tra xem có Structure nào nằm trên Nước không (đó chính là cầu)
+        if (!layersGrid.isEmpty()) {
+            int rawId0 = layersGrid.get(0)[col][row];
+            int tileId0 = rawId0 & 0x0FFFFFFF;
+            boolean isWater0 = (tileId0 == 1 || (tileId0 >= 20 && tileId0 <= 37));
+            if (isWater0) {
+                for (int l = 1; l < layersGrid.size(); l++) {
+                    String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
+                    if (lName.contains("structure")) {
+                        if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public boolean isGroundTile(float worldX, float worldY) {
@@ -313,6 +332,12 @@ public class GameMap {
         boolean isWater = (tileId0 == 1 || (tileId0 >= 20 && tileId0 <= 37));
         if (isWater) {
             for (int l = 1; l < layersGrid.size(); l++) {
+                // Bỏ qua layer Decorate vì nó chỉ là bóng/trang trí mặt nước, không thể đứng lên
+                String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
+                if (lName.contains("decorate")) {
+                    continue;
+                }
+                
                 int rawId = layersGrid.get(l)[col][row];
                 if (rawId != 0) {
                     int tileId = rawId & 0x0FFFFFFF;

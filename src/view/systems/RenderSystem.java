@@ -114,6 +114,12 @@ public class RenderSystem {
         for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
         tryLoadAsset("meat", path + "Items/Meat/Meat.png");
         tryLoadAsset("bone", path + "Items/Bone/Bone.png");
+
+        // Fish
+        String[] fishSpecies = {"clownfish", "shark", "sunfish"};
+        for (String sp : fishSpecies) {
+            tryLoadAsset(sp + "_west", path + "Fish/" + sp + ".png");
+        }
     }
 
     private void tryLoadAsset(String key, String path) {
@@ -288,6 +294,16 @@ public class RenderSystem {
                     int barH = Math.max(2, Math.min(5, Math.round(2.4f * zoom)));
                     int barX = (int)screenPos.x - barW / 2;
                     int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
+
+                    // Thanh Máu (Xanh lá)
+                    int healthY = barY - barH - 1;
+                    g2d.setColor(java.awt.Color.BLACK);
+                    g2d.fillRect(barX - 1, healthY - 1, barW + 2, barH + 2);
+                    g2d.setColor(new java.awt.Color(50, 50, 50));
+                    g2d.fillRect(barX, healthY, barW, barH);
+                    g2d.setColor(new java.awt.Color(40, 200, 40));
+                    int healthFill = (int)(barW * (animal.getHealth() / animal.getMaxHealth()));
+                    if (healthFill > 0) g2d.fillRect(barX, healthY, healthFill, barH);
 
                     // Thanh Đói (Đỏ)
                     g2d.setColor(java.awt.Color.BLACK);
@@ -465,6 +481,9 @@ public class RenderSystem {
             }
             if (sheet == null) sheet = assetMap.get(species + "_walk");
             if (sheet == null) sheet = assetMap.get(species + "_west");
+            
+            // [MỚI] Fallback cho cá (Fish) hoặc các Entity chỉ có 1 hình ảnh tĩnh mang tên "species.png"
+            if (sheet == null) sheet = assetMap.get(species + ".png");
         }
         if (sheet == null) return;
         
@@ -493,10 +512,18 @@ public class RenderSystem {
 
         int dstX1 = (int) screenPos.x - drawSize / 2;
         int dstY1 = (int) screenPos.y - drawSize / 2;
-        int dstX2 = (int) screenPos.x + drawSize / 2;
-        int dstY2 = (int) screenPos.y + drawSize / 2;
+        int dstX2 = dstX1 + drawSize;
+        int dstY2 = dstY1 + drawSize;
 
-        if (animal.isFacingRight()) {
+        // Xác định hướng quay mặt
+        boolean flipped = animal.isFacingRight();
+        if (animal instanceof model.living_beings.Fish) {
+            // Đa số ảnh cá trên mạng thường quay mặt sang phải mặc định
+            // Nên ta cần đảo ngược lại logic lật hình của hệ thống (hệ thống mặc định ảnh gốc là quay trái/west)
+            flipped = !flipped;
+        }
+
+        if (flipped) {
             int temp = dstX1;
             dstX1 = dstX2;
             dstX2 = temp;
@@ -507,7 +534,29 @@ public class RenderSystem {
         int srcX2 = srcX1 + frameW;
         int srcY2 = srcY1 + frameH;
 
+        // [MỚI] Procedural Animation (Hoạt ảnh bằng Code) cho các loài Cá
+        java.awt.geom.AffineTransform oldTransform = g2d.getTransform();
+        if (animal instanceof model.living_beings.Fish && moving) {
+            // Hàm Sin tạo dao động tuần hoàn. Giảm biên độ xuống khoảng 8 độ (Math.toRadians(8))
+            double swimWobble = Math.sin(animationTimer * 15.0) * Math.toRadians(8); 
+            g2d.rotate(swimWobble, screenPos.x, screenPos.y);
+        }
+
+        java.awt.Composite originalComposite = g2d.getComposite();
+        if (animal instanceof model.living_beings.Fish) {
+            // Giảm độ trong suốt (Alpha) xuống 60% để cá lặn dưới nước, 
+            // giúp màu xanh của nước hòa quyện vào thân cá tạo hiệu ứng chân thực
+            g2d.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.65f));
+        }
+
         g2d.drawImage(sheet, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
+        
+        if (animal instanceof model.living_beings.Fish) {
+            g2d.setComposite(originalComposite);
+        }
+                
+        // Khôi phục lại transform ban đầu
+        g2d.setTransform(oldTransform);
     }
 
     private BufferedImage getEatDrinkSheet(String species) {

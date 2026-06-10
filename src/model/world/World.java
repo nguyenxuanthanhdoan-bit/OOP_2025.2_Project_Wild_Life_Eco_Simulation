@@ -26,10 +26,12 @@ public class World {
     // [MỚI] Tham chiếu đến GameMap
     private model.map.GameMap gameMap;
     private final WorldEventSystem eventSystem;
+    private final FishPopulationManager fishPopulationManager;
 
     public World() {
         this.entities = new ArrayList<>();
         this.eventSystem = new WorldEventSystem();
+        this.fishPopulationManager = new FishPopulationManager(this);
         this.width = GameConfig.getInstance().WORLD_WIDTH;
         this.height = GameConfig.getInstance().WORLD_HEIGHT;
         registerDefaultEventListeners();
@@ -99,6 +101,8 @@ public class World {
                 i--; // Lùi index lại để không bị bỏ sót phần tử tiếp theo
             }
         }
+
+        fishPopulationManager.update(deltaTime);
 
         // Trong Phase 1, Biome chưa cần cập nhật logic
         currentBiome.update(deltaTime);
@@ -178,25 +182,34 @@ public class World {
             return false;
         }
 
-        // Kiểm tra địa hình nước đối với động vật trên cạn
+        // Phân loại logic cho động vật dưới nước và trên cạn
         if (gameMap != null) {
-            // Nếu động vật đứng trên cầu -> luôn cho phép, dù xung quanh là nước
-            if (gameMap.isBridgeTile(pos.x, pos.y)) {
+            if (entity instanceof model.living_beings.Fish) {
+                // Động vật dưới nước (Cá): Chỉ cần vị trí là nước
+                float m = entity.getSize() / 2;
+                boolean notInWater = !gameMap.isPositionInWater(pos.x,     pos.y)     ||
+                                     !gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
+                                     !gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
+                                     !gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
+                                     !gameMap.isPositionInWater(pos.x + m, pos.y + m);
+                if (notInWater) return false;
                 return true;
+            } else {
+                // Động vật trên cạn
+                if (gameMap.isBridgeTile(pos.x, pos.y)) {
+                    return true;
+                }
+
+                // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
+                float m = entity.getSize() / 2;
+                boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
+                                  gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
+                                  gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
+                                  gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
+                                  gameMap.isPositionInWater(pos.x + m, pos.y + m);
+                if (inWater) return false;
             }
-
-            // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
-            float m = entity.getSize() / 2;
-            boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
-                              gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
-                              gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
-                              gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
-                              gameMap.isPositionInWater(pos.x + m, pos.y + m);
-            if (inWater) return false;
         }
-
-
-
         return true;
     }
 
@@ -227,6 +240,10 @@ public class World {
 
     public float getHeight() {
         return height;
+    }
+
+    public model.map.GameMap getGameMap() {
+        return gameMap;
     }
 
     public void setGameMap(model.map.GameMap gameMap) {
