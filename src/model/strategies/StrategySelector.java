@@ -18,6 +18,11 @@ public final class StrategySelector {
             return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
         }
 
+        boolean isNight = animal.getWorld() != null &&
+                          (animal.getWorld().getTimeOfDay() >= 18.0f || animal.getWorld().getTimeOfDay() <= 5.0f);
+        boolean isAquatic = animal.getProfile().isAquatic();
+        boolean isNocturnal = animal.getProfile().isNocturnal();
+
         if (animal.hasDangerousThreats() && animal.canUseStrategy(ScaredStrategy.class)) {
             return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
         }
@@ -32,8 +37,15 @@ public final class StrategySelector {
             }
         }
 
-        if ((criticalHunger || hungry) && animal.canUseStrategy(HunterStrategy.class)) {
+        boolean predatorHungry = animal.getDietType() == model.living_beings.DietType.CARNIVORE &&
+                                 animal.getHunger() < animal.getMaxHunger() * 0.90;
+
+        if ((criticalHunger || hungry || predatorHungry) && animal.canUseStrategy(HunterStrategy.class)) {
             return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+        }
+
+        if (isNight && !isNocturnal && !isAquatic && !(animal instanceof Human) && !criticalHunger) {
+            return currentOrNew(animal, SleepStrategy.class, new SleepStrategy());
         }
 
         if (hungry && animal.canUseStrategy(ForageStrategy.class) && animal.canForageForFood()) {

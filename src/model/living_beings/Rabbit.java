@@ -56,9 +56,8 @@ public class Rabbit extends HerbivoreAnimal {
         return baby;
     }
 
-    @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.Carcass(this.position.copy(), 15.0f, 40.0f, 60.0f, 40.0f, "Thỏ");
+        return new model.items.Carcass(this.position.copy(), 20.0f, 40.0f, 60.0f, 40.0f, "Thỏ");
     }
 
     @Override

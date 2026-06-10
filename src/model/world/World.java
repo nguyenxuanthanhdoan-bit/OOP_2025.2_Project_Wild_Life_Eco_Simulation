@@ -41,16 +41,23 @@ public class World {
     private float width;
     private float height;
 
+    // Thời gian trong ngày (0.0 đến 24.0)
+    private float timeOfDay = 6.0f; // Bắt đầu từ 6 giờ sáng
+    // 1 ngày game = 120s thực tế => 24h = 120s => 1h = 5s => tốc độ = 0.2
+    private float timeScale = 0.2f;
+
     // [MỚI] Quản lý lưới không gian
     private SpatialGrid spatialGrid;
 
     // [MỚI] Tham chiếu đến GameMap
     private model.map.GameMap gameMap;
     private final WorldEventSystem eventSystem;
+    private final FishPopulationManager fishPopulationManager;
 
     public World() {
         this.entities = new ArrayList<>();
         this.eventSystem = new WorldEventSystem();
+        this.fishPopulationManager = new FishPopulationManager(this);
         this.width = GameConfig.getInstance().WORLD_WIDTH;
         this.height = GameConfig.getInstance().WORLD_HEIGHT;
         registerDefaultEventListeners();
@@ -135,6 +142,14 @@ public class World {
                 removeEntity(e);
                 i--; // Lùi index lại để không bị bỏ sót phần tử tiếp theo
             }
+        }
+
+        fishPopulationManager.update(deltaTime);
+
+        // Cập nhật thời gian trong ngày
+        timeOfDay += deltaTime * timeScale;
+        if (timeOfDay >= 24.0f) {
+            timeOfDay -= 24.0f;
         }
 
         // Trong Phase 1, Biome chưa cần cập nhật logic
@@ -226,25 +241,34 @@ public class World {
             return false;
         }
 
-        // Kiểm tra địa hình nước đối với động vật trên cạn
+        // Phân loại logic cho động vật dưới nước và trên cạn
         if (gameMap != null) {
-            // Nếu động vật đứng trên cầu -> luôn cho phép, dù xung quanh là nước
-            if (gameMap.isBridgeTile(pos.x, pos.y)) {
+            if (entity instanceof model.living_beings.Fish) {
+                // Động vật dưới nước (Cá): Chỉ cần vị trí là nước
+                float m = entity.getSize() / 2;
+                boolean notInWater = !gameMap.isPositionInWater(pos.x,     pos.y)     ||
+                                     !gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
+                                     !gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
+                                     !gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
+                                     !gameMap.isPositionInWater(pos.x + m, pos.y + m);
+                if (notInWater) return false;
                 return true;
+            } else {
+                // Động vật trên cạn
+                if (gameMap.isBridgeTile(pos.x, pos.y)) {
+                    return true;
+                }
+
+                // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
+                float m = entity.getSize() / 2;
+                boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
+                                  gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
+                                  gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
+                                  gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
+                                  gameMap.isPositionInWater(pos.x + m, pos.y + m);
+                if (inWater) return false;
             }
-
-            // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
-            float m = entity.getSize() / 2;
-            boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
-                              gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
-                              gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
-                              gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
-                              gameMap.isPositionInWater(pos.x + m, pos.y + m);
-            if (inWater) return false;
         }
-
-
-
         return true;
     }
 
@@ -299,8 +323,20 @@ public class World {
         return height;
     }
 
+    public model.map.GameMap getGameMap() {
+        return gameMap;
+    }
+
     public void setGameMap(model.map.GameMap gameMap) {
         this.gameMap = gameMap;
+    }
+
+    public float getTimeOfDay() {
+        return timeOfDay;
+    }
+
+    public void setTimeOfDay(float timeOfDay) {
+        this.timeOfDay = timeOfDay;
     }
 
     public void setWidth(float width) {

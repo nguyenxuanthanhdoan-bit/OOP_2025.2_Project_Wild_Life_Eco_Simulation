@@ -176,16 +176,28 @@ public class HunterStrategy implements IStrategy {
                         ownerAnimal.setActionState("idle");
                     }
                 } else if (targetFood instanceof Animal) {
-                    // Tấn công con mồi
                     ownerAnimal.setActionState("attack");
                     Animal prey = (Animal) targetFood;
-                    prey.takeDamage(ownerAnimal.getProfile().getAttackDamagePerSecond() * deltaTime);
-
-                    if (!prey.isAlive()) {
-                        // Trả về null để lần sau quét trúng Carcass vừa rơi ra
+                    
+                    if (ownerAnimal instanceof model.living_beings.Fish) {
+                        // CÁ SĂN MỒI NUỐT CHỬNG (Instant kill)
+                        float nutrition = (float) prey.getMaxHunger();
+                        ownerAnimal.setHunger(Math.min(ownerAnimal.getMaxHunger(), ownerAnimal.getHunger() + nutrition));
+                        
+                        prey.takeDamage(prey.getHealth() + 9999); // Giết ngay lập tức, gọi die() và biến mất (do createCarcass = null)
                         targetFood = null;
                         targetNavigator.clear();
                         ownerAnimal.setActionState("idle");
+                    } else {
+                        // THÚ TRÊN CẠN TẤN CÔNG TỪ TỪ
+                        prey.takeDamage(ownerAnimal.getProfile().getAttackDamagePerSecond() * deltaTime);
+
+                        if (!prey.isAlive()) {
+                            // Trả về null để lần sau quét trúng Carcass vừa rơi ra
+                            targetFood = null;
+                            targetNavigator.clear();
+                            ownerAnimal.setActionState("idle");
+                        }
                     }
                 }
             } else {

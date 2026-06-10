@@ -86,4 +86,13 @@ public class Simulation {
     public Camera getCamera() {
         return camera;
     }
+
+    public void spawnCarcassAtCameraCenter() {
+        Vector2 pos = camera.getPosition().copy();
+        // Giả sử màn hình 800x600, cộng một chút offset để nó vào khoảng giữa
+        pos.x += 400 / camera.getZoomLevel();
+        pos.y += 300 / camera.getZoomLevel();
+        model.items.Carcass carcass = new model.items.Carcass(pos, 30.0f, 100.0f, 120.0f, 100.0f, "Spawn");
+        world.addEntity(carcass);
+    }
 }

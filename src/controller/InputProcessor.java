@@ -32,6 +32,7 @@ public class InputProcessor extends KeyAdapter {
         if (key == KeyEvent.VK_UP) camera.zoom(1.1f);
         if (key == KeyEvent.VK_DOWN) camera.zoom(0.9f);
         if (key == KeyEvent.VK_M) simulation.toggleDisplayMode();
+        if (key == KeyEvent.VK_C) simulation.spawnCarcassAtCameraCenter();
     }
 
     @Override

@@ -9,7 +9,7 @@ import model.plants.Plant;
 
 public class Elephant extends HerbivoreAnimal {
     private static final float  SIZE               = 50.0f;
-    private static final float  BASE_SPEED         = 60.0f;
+    private static final float  BASE_SPEED         = 40.0f;
     private int herdId = 1;
     private static final double MAX_HEALTH         = 500.0;
     private static final double MAX_HUNGER         = 300.0;
