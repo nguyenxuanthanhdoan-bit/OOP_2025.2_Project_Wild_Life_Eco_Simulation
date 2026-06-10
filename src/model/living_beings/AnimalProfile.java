@@ -34,6 +34,7 @@ public final class AnimalProfile {
     private final boolean avoidsGuardedGardens;
     private final boolean canEnterGardens;
     private final SettlementPolicy settlementPolicy;
+    private final boolean isDesertAdapted;
 
     private AnimalProfile(Builder builder) {
         this.entityLevel = builder.entityLevel;
@@ -53,6 +54,7 @@ public final class AnimalProfile {
         this.avoidsGuardedGardens = builder.avoidsGuardedGardens;
         this.canEnterGardens = builder.canEnterGardens;
         this.settlementPolicy = builder.settlementPolicy;
+        this.isDesertAdapted = builder.isDesertAdapted;
     }
 
     public static AnimalProfile defaultFor(DietType dietType) {
@@ -99,11 +101,12 @@ public final class AnimalProfile {
             .isAquatic(this.isAquatic)
             .isNocturnal(this.isNocturnal)
             .avoidsGuardedGardens(this.avoidsGuardedGardens)
-            .canEnterGardens(this.canEnterGardens);
+            .canEnterGardens(this.canEnterGardens)
+            .settlementPolicy(this.settlementPolicy)
+            .isDesertAdapted(this.isDesertAdapted);
         for (Class<? extends Plant> pt : this.ediblePlantTypes) {
             b.ediblePlants(pt);
         }
-        b.settlementPolicy(this.settlementPolicy);
         return b;
     }
 
@@ -132,6 +135,7 @@ public final class AnimalProfile {
     public boolean avoidsGuardedGardens() { return avoidsGuardedGardens; }
     public boolean canEnterGardens() { return canEnterGardens; }
     public SettlementPolicy getSettlementPolicy() { return settlementPolicy; }
+    public boolean isDesertAdapted() { return isDesertAdapted; }
 
     public static final class Builder {
         private int entityLevel = Entity.LEVEL_UNCLASSIFIED;
@@ -151,6 +155,7 @@ public final class AnimalProfile {
         private boolean avoidsGuardedGardens = false;
         private boolean canEnterGardens = false;
         private SettlementPolicy settlementPolicy = SettlementPolicy.ALLOW;
+        private boolean isDesertAdapted = false;
 
         public Builder entityLevel(int entityLevel) {
             this.entityLevel = entityLevel;
@@ -238,6 +243,11 @@ public final class AnimalProfile {
 
         public Builder settlementPolicy(SettlementPolicy policy) {
             this.settlementPolicy = (policy == null) ? SettlementPolicy.ALLOW : policy;
+            return this;
+        }
+
+        public Builder isDesertAdapted(boolean isDesertAdapted) {
+            this.isDesertAdapted = isDesertAdapted;
             return this;
         }
 

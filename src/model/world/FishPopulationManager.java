@@ -13,6 +13,7 @@ public class FishPopulationManager {
     private final World world;
     private final int TARGET_PREY_COUNT = 40;
     private final int TARGET_PREDATOR_COUNT = TARGET_PREY_COUNT / 2;
+    private final int TARGET_SEAWEED_COUNT = 30;
     private float checkTimer = 5.0f; // Khởi tạo bằng CHECK_INTERVAL để spawn ngay lập tức lúc mới mở game
     private final float CHECK_INTERVAL = 5.0f; // Kiểm tra mỗi 5 giây
     private final Random rand = new Random();
@@ -35,6 +36,7 @@ public class FishPopulationManager {
 
         int preyCount = 0;
         int predatorCount = 0;
+        int seaweedCount = 0;
 
         for (Entity e : world.getEntities()) {
             if (e instanceof Fish && e.isAlive()) {
@@ -43,6 +45,8 @@ public class FishPopulationManager {
                 } else {
                     preyCount++;
                 }
+            } else if (e instanceof model.plants.Seaweed && e.isAlive()) {
+                seaweedCount++;
             }
         }
 
@@ -56,6 +60,12 @@ public class FishPopulationManager {
         int predatorsToSpawn = TARGET_PREDATOR_COUNT - predatorCount;
         for (int i = 0; i < predatorsToSpawn; i++) {
             spawnRandomPredator(map);
+        }
+
+        // Bù đắp số lượng tảo biển
+        int seaweedToSpawn = TARGET_SEAWEED_COUNT - seaweedCount;
+        for (int i = 0; i < seaweedToSpawn; i++) {
+            spawnRandomSeaweed(map);
         }
     }
 
@@ -82,6 +92,15 @@ public class FishPopulationManager {
                 world.addEntity(shark);
                 return true;
             }
+        }
+        return false;
+    }
+
+    private boolean spawnRandomSeaweed(GameMap map) {
+        Vector2 pos = getRandomWaterPosition(map);
+        if (pos != null) {
+            world.addEntity(new model.plants.Seaweed(pos));
+            return true;
         }
         return false;
     }

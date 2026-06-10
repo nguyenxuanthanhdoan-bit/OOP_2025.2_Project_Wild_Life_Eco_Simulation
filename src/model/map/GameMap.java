@@ -346,6 +346,13 @@ public class GameMap {
         return false;
     }
 
+    public boolean isSandTile(float worldX, float worldY) {
+        int col = (int) (worldX / 32);
+        int row = (int) (worldY / 32);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+        return hasTileOnLayer(col, row, "sand");
+    }
+
     /**
      * Kiểm tra ô gạch tại vị trí thế giới có phải là nước hay không.
      * Ưu tiên dùng layer có tên "Water" nếu tìm thấy.
@@ -423,21 +430,6 @@ public class GameMap {
         }
         // 2. Kiểm tra qua Tile Nước
         return isWaterTile(worldX, worldY);
-    }
-
-    public boolean isSandTile(float worldX, float worldY) {
-        int col = (int) (worldX / 16);
-        int row = (int) (worldY / 16);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
-
-        for (int l = 0; l < layersGrid.size(); l++) {
-            String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-            if (lName.contains("sand")) {
-                int rawId = layersGrid.get(l)[col][row];
-                if (rawId != 0) return true;
-            }
-        }
-        return false;
     }
 
     public List<Tileset> getTilesets() {

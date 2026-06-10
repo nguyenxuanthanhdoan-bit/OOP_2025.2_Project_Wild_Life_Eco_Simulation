@@ -32,6 +32,7 @@ src/model/living_beings/Human.java
 src/model/living_beings/Sunfish.java
 src/model/living_beings/LivingBeing.java
 src/model/living_beings/Fish.java
+src/model/living_beings/Fox.java
 src/model/living_beings/Wolf.java
 src/model/living_beings/Hunter.java
 src/model/living_beings/CarnivoreAnimal.java
@@ -52,6 +53,9 @@ src/model/structures/Well.java
 src/model/structures/Lantern.java
 src/model/plants/FruitTree.java
 src/model/plants/Plant.java
+src/model/plants/Straw.java
+src/model/plants/Cactus.java
+src/model/plants/Seaweed.java
 src/model/plants/Mushroom.java
 src/model/plants/Grass.java
 src/model/plants/Fruit.java
