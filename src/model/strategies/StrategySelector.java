@@ -17,6 +17,16 @@ public final class StrategySelector {
             return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
         }
 
+        boolean isNight = animal.getWorld() != null && 
+                          (animal.getWorld().getTimeOfDay() >= 18.0f || animal.getWorld().getTimeOfDay() <= 5.0f);
+        boolean isAquatic = animal.getProfile().isAquatic();
+        boolean isNocturnal = animal.getProfile().isNocturnal();
+        
+        // At night, sleep strategy takes priority over normal hunting/foraging
+        if (isNight && !isNocturnal && !isAquatic && !criticalHunger) {
+            return currentOrNew(animal, SleepStrategy.class, new SleepStrategy());
+        }
+
         if (animal.hasDangerousThreats() && animal.canUseStrategy(ScaredStrategy.class)) {
             return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
         }

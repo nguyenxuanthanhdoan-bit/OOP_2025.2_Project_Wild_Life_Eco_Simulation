@@ -20,6 +20,11 @@ public class World {
     private float width;
     private float height;
 
+    // Thời gian trong ngày (0.0 đến 24.0)
+    private float timeOfDay = 6.0f; // Bắt đầu từ 6 giờ sáng
+    // 1 ngày game = 120s thực tế => 24h = 120s => 1h = 5s => tốc độ = 0.2
+    private float timeScale = 0.2f; 
+
     // [MỚI] Quản lý lưới không gian
     private SpatialGrid spatialGrid;
 
@@ -103,6 +108,12 @@ public class World {
         }
 
         fishPopulationManager.update(deltaTime);
+
+        // Cập nhật thời gian trong ngày
+        timeOfDay += deltaTime * timeScale;
+        if (timeOfDay >= 24.0f) {
+            timeOfDay -= 24.0f;
+        }
 
         // Trong Phase 1, Biome chưa cần cập nhật logic
         currentBiome.update(deltaTime);
@@ -248,6 +259,14 @@ public class World {
 
     public void setGameMap(model.map.GameMap gameMap) {
         this.gameMap = gameMap;
+    }
+
+    public float getTimeOfDay() {
+        return timeOfDay;
+    }
+
+    public void setTimeOfDay(float timeOfDay) {
+        this.timeOfDay = timeOfDay;
     }
 
     public void setWidth(float width) {

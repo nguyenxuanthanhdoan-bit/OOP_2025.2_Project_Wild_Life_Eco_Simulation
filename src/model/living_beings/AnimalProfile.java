@@ -20,6 +20,8 @@ public final class AnimalProfile {
     private final float maxPreySizeMultiplier;
     private final FlockingMode flockingMode;
     private final Set<Class<? extends Plant>> ediblePlantTypes;
+    private final boolean isAquatic;
+    private final boolean isNocturnal;
 
     private AnimalProfile(Builder builder) {
         this.entityLevel = builder.entityLevel;
@@ -34,6 +36,8 @@ public final class AnimalProfile {
         this.maxPreySizeMultiplier = builder.maxPreySizeMultiplier;
         this.flockingMode = builder.flockingMode;
         this.ediblePlantTypes = Collections.unmodifiableSet(new HashSet<>(builder.ediblePlantTypes));
+        this.isAquatic = builder.isAquatic;
+        this.isNocturnal = builder.isNocturnal;
     }
 
     public static AnimalProfile defaultFor(DietType dietType) {
@@ -64,6 +68,27 @@ public final class AnimalProfile {
         return new Builder();
     }
 
+    public Builder toBuilder() {
+        Builder b = new Builder()
+            .entityLevel(this.entityLevel)
+            .canHunt(this.canHunt)
+            .canEatMeat(this.canEatMeat)
+            .canEatPlants(this.canEatPlants)
+            .canFlock(this.canFlock)
+            .canHide(this.canHide)
+            .canBeScared(this.canBeScared)
+            .eatOwnSpecies(this.eatOwnSpecies)
+            .attackDamagePerSecond(this.attackDamagePerSecond)
+            .maxPreySizeMultiplier(this.maxPreySizeMultiplier)
+            .flockingMode(this.flockingMode)
+            .isAquatic(this.isAquatic)
+            .isNocturnal(this.isNocturnal);
+        for (Class<? extends Plant> pt : this.ediblePlantTypes) {
+            b.ediblePlants(pt);
+        }
+        return b;
+    }
+
     public boolean canEatPlant(Plant plant) {
         if (!canEatPlants || plant == null) return false;
         if (ediblePlantTypes.isEmpty()) return true;
@@ -84,6 +109,8 @@ public final class AnimalProfile {
     public float getAttackDamagePerSecond() { return attackDamagePerSecond; }
     public float getMaxPreySizeMultiplier() { return maxPreySizeMultiplier; }
     public FlockingMode getFlockingMode() { return flockingMode; }
+    public boolean isAquatic() { return isAquatic; }
+    public boolean isNocturnal() { return isNocturnal; }
 
     public static final class Builder {
         private int entityLevel = Entity.LEVEL_UNCLASSIFIED;
@@ -98,6 +125,8 @@ public final class AnimalProfile {
         private float maxPreySizeMultiplier = 1.5f;
         private FlockingMode flockingMode = FlockingMode.NONE;
         private final Set<Class<? extends Plant>> ediblePlantTypes = new HashSet<>();
+        private boolean isAquatic = false;
+        private boolean isNocturnal = false;
 
         public Builder entityLevel(int entityLevel) {
             this.entityLevel = entityLevel;
@@ -160,6 +189,16 @@ public final class AnimalProfile {
             if (plantTypes != null) {
                 Collections.addAll(this.ediblePlantTypes, plantTypes);
             }
+            return this;
+        }
+
+        public Builder isAquatic(boolean isAquatic) {
+            this.isAquatic = isAquatic;
+            return this;
+        }
+
+        public Builder isNocturnal(boolean isNocturnal) {
+            this.isNocturnal = isNocturnal;
             return this;
         }
 

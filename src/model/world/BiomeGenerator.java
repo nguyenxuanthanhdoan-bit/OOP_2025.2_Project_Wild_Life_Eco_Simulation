@@ -58,9 +58,8 @@ public class BiomeGenerator {
         
         // Sinh Cây cỏ
         spawnVegetation(world, gameMap, plainPolygons, forestPolygons, villagePolygons, rand);
-        
-        // Sinh Môi trường (Đá, Bụi)
         spawnStructures(world, gameMap, plainPolygons, forestPolygons, rand);
+        spawnLanterns(world, gameMap, rand);
     }
 
     private static List<MapPolygonObject> createFallbackZone(World world, ZoneType type) {
@@ -230,6 +229,58 @@ public class BiomeGenerator {
             boolean inPlain = rand.nextFloat() < config.ROCK_PLAIN_SPAWN_CHANCE;
             Vector2 pos = getRandomPointInPolygons(inPlain ? plain : forest, gameMap, rand);
             if (pos != null) world.addEntity(new Rock(pos));
+        }
+    }
+
+    private static void spawnLanterns(World world, GameMap gameMap, Random rand) {
+        int minBridgeX = Integer.MAX_VALUE;
+        int maxBridgeX = Integer.MIN_VALUE;
+        int minBridgeY = Integer.MAX_VALUE;
+        int maxBridgeY = Integer.MIN_VALUE;
+        boolean bridgeFound = false;
+
+        for (int c = 0; c < gameMap.getCols(); c++) {
+            for (int r = 0; r < gameMap.getRows(); r++) {
+                if (gameMap.isBridgeTile(c * 32 + 16, r * 32 + 16)) {
+                    bridgeFound = true;
+                    if (c * 32 < minBridgeX) minBridgeX = c * 32;
+                    if (c * 32 > maxBridgeX) maxBridgeX = c * 32;
+                    if (r * 32 < minBridgeY) minBridgeY = r * 32;
+                    if (r * 32 > maxBridgeY) maxBridgeY = r * 32;
+                }
+            }
+        }
+
+        if (bridgeFound) {
+            float width = maxBridgeX - minBridgeX;
+            float height = maxBridgeY - minBridgeY;
+            if (width > height) {
+                world.addEntity(new model.structures.Lantern(new Vector2(minBridgeX - 32, (minBridgeY + maxBridgeY) / 2f + 16), "lantern"));
+                world.addEntity(new model.structures.Lantern(new Vector2(maxBridgeX + 64, (minBridgeY + maxBridgeY) / 2f + 16), "lantern"));
+            } else {
+                world.addEntity(new model.structures.Lantern(new Vector2((minBridgeX + maxBridgeX) / 2f + 16, minBridgeY - 32), "lantern"));
+                world.addEntity(new model.structures.Lantern(new Vector2((minBridgeX + maxBridgeX) / 2f + 16, maxBridgeY + 64), "lantern"));
+            }
+        }
+
+        int lanternsSpawned = 0;
+        int attempts = 0;
+        while (lanternsSpawned < 30 && attempts < 300) {
+            attempts++;
+            Vector2 pos = getRandomGroundPoint(world, gameMap, rand);
+            if (pos != null) {
+                boolean collision = false;
+                for (model.entity.Entity e : world.getEntities()) {
+                    if (e.isSolid() && e.getPosition().distanceTo(pos) < e.getSize() / 2f + 16f) {
+                        collision = true;
+                        break;
+                    }
+                }
+                if (!collision) {
+                    world.addEntity(new model.structures.Lantern(pos, "lantern"));
+                    lanternsSpawned++;
+                }
+            }
         }
     }
 

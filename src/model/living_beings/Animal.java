@@ -62,6 +62,22 @@ public abstract class Animal extends LivingBeing {
     protected AnimalProfile profile;
     private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
 
+    // Radar cooldown
+    private float radarCooldown = 0f;
+    private boolean cachedThreat = false;
+
+    // Cache to avoid object allocation in update
+    private final Vector2 oldPosCache = new Vector2(0, 0);
+
+    // Pre-calculated escape directions to avoid Math.cos/sin
+    private static final Vector2[] ESCAPE_DIRS = new Vector2[8];
+    static {
+        for (int i = 0; i < 8; i++) {
+            double angle = 2 * Math.PI * i / 8;
+            ESCAPE_DIRS[i] = new Vector2((float) Math.cos(angle), (float) Math.sin(angle));
+        }
+    }
+
     /** Tham chiếu tới World hiện tại — được World.update() gán trước mỗi frame. */
     protected model.world.World worldRef = null;
     public void setWorldRef(model.world.World w) { this.worldRef = w; }
@@ -69,13 +85,7 @@ public abstract class Animal extends LivingBeing {
     // =========================================================
     // STUCK DETECTOR — Phát hiện và thoát khẩn cấp khi bị kẹt
     // =========================================================
-    private Vector2 stuckCheckPos = null;    // Vị trí được lưu lần check trước
-    private float stuckTimer = 0f;           // Thời gian đã đứng yên
-    private float escapeTimer = 0f;          // Thời gian còn lại của chế độ thoát
-    private Vector2 escapeDir = null;        // Hướng thoát đang sử dụng
-    private static final float STUCK_THRESHOLD_TIME = 0.4f;  // Giây bất động trước khi bị coi là kẹt
-    private static final float STUCK_MOVE_THRESHOLD = 3.0f;  // Pixel/frame tối thiểu để không bị coi là kẹt
-    private static final float ESCAPE_DURATION = 0.5f;       // Giây kích hoạt thoát khẩn cấp
+    private final model.navigation.StuckDetector stuckDetector = new model.navigation.StuckDetector();
 
     // =========================================================
     // CONSTRUCTOR
@@ -126,12 +136,18 @@ public abstract class Animal extends LivingBeing {
         if (!alive) return;
 
         updateUnsafeFoodMemory(deltaTime);
+        if (radarCooldown > 0) {
+            radarCooldown -= deltaTime;
+        }
+
+        boolean isNight = (worldRef != null) && (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
+        boolean isFish = this.getProfile() != null && this.getProfile().isAquatic();
 
         // --- STUCK DETECTOR ---
-        updateStuckDetector(deltaTime);
+        stuckDetector.update(this, deltaTime);
         // Nếu đang trong chế độ thoát khẩn cấp → bỏ qua strategy thường
-        if (escapeTimer > 0) {
-            doEmergencyEscape(deltaTime);
+        if (stuckDetector.isEscaping()) {
+            stuckDetector.doEmergencyEscape(this, deltaTime);
             // Vẫn cập nhật sinh học bình thường
             this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * 1.5f * deltaTime * 0.25f));
             this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * 1.5f * deltaTime * 0.25f));
@@ -144,11 +160,17 @@ public abstract class Animal extends LivingBeing {
 
         decideActiveStrategy();
 
-        Vector2 oldPos = this.position.copy();
-        super.update(deltaTime);
+        oldPosCache.set(this.position);
+        
+        float moveDeltaTime = deltaTime;
+        if (isNight && isFish) {
+            moveDeltaTime *= 0.5f; // Cá bơi chậm lại 50% vào ban đêm
+        }
+        
+        super.update(moveDeltaTime);
 
         // Tính hệ số tiêu hao (di chuyển tiêu hao nhiều hơn)
-        float distSq = this.position.distanceSquared(oldPos);
+        float distSq = this.position.distanceSquared(oldPosCache);
         this.isMoving = distSq > 0.0001f;
         float decayMultiplier = this.isMoving ? 1.5f : 1.0f;
 
@@ -163,102 +185,6 @@ public abstract class Animal extends LivingBeing {
         // Hậu quả đói/khát
         if (this.hunger <= 0) takeDamage(5.0f * deltaTime);
         if (this.thirst <= 0) takeDamage(10.0f * deltaTime);
-    }
-
-    /**
-     * Cập nhật bộ phát hiện kẹt.
-     * Nếu con vật cố di chuyển (speed > 0) nhưng không nhúc nhích trong STUCK_THRESHOLD_TIME giây
-     * → kích hoạt thoát khẩn cấp.
-     */
-    private void updateStuckDetector(float deltaTime) {
-        // Chỉ kiểm tra khi đang có ý định di chuyển (speed > 0) và không đang thoát
-        if (this.speed <= 0 || escapeTimer > 0) {
-            stuckTimer = 0;
-            stuckCheckPos = this.position.copy();
-            return;
-        }
-
-        if (stuckCheckPos == null) {
-            stuckCheckPos = this.position.copy();
-            return;
-        }
-
-        float dist = this.position.distanceTo(stuckCheckPos);
-        if (dist < STUCK_MOVE_THRESHOLD) {
-            stuckTimer += deltaTime;
-            if (stuckTimer >= STUCK_THRESHOLD_TIME) {
-                // BỊ KẸT — kích hoạt thoát khẩn cấp
-                escapeDir = findBestEscapeDirection();
-                escapeTimer = ESCAPE_DURATION;
-                stuckTimer = 0;
-            }
-        } else {
-            // Đang di chuyển tốt — reset
-            stuckTimer = 0;
-            stuckCheckPos = this.position.copy();
-        }
-    }
-
-    /**
-     * Quét 8 hướng xung quanh, chọn hướng có nhiều không gian trống nhất.
-     */
-    private Vector2 findBestEscapeDirection() {
-        model.world.World w = getCurrentWorld();
-        Vector2 bestDir = new Vector2(1, 0); // mặc định sang phải
-        float maxClearDist = -1f;
-        int numDirections = 8;
-
-        for (int i = 0; i < numDirections; i++) {
-            double angle = 2 * Math.PI * i / numDirections;
-            float dx = (float) Math.cos(angle);
-            float dy = (float) Math.sin(angle);
-            Vector2 dir = new Vector2(dx, dy);
-
-            // Thăm dò khoảng trống theo hướng này (probe 40px)
-            float probeLen = 40f;
-            float clearDist = probeLen;
-
-            if (w != null && w.getSpatialGrid() != null) {
-                Vector2 probeEnd = new Vector2(
-                    this.position.x + dx * probeLen,
-                    this.position.y + dy * probeLen
-                );
-                if (!w.isValidPositionFor(this, probeEnd)) {
-                    clearDist = 0;
-                }
-                java.util.List<model.entity.Entity> nearby =
-                    w.getSpatialGrid().getNeighbors(probeEnd, this.size);
-                for (model.entity.Entity e : nearby) {
-                    if (e != this && e.isSolid() && e.isAlive()) {
-                        float d = this.position.distanceTo(e.getPosition()) - this.size / 2 - e.getSize() / 2;
-                        if (d < clearDist) clearDist = d;
-                    }
-                }
-            }
-
-            if (clearDist > maxClearDist) {
-                maxClearDist = clearDist;
-                bestDir = dir;
-            }
-        }
-        return bestDir;
-    }
-
-    /** Thực hiện di chuyển thoát khẩn cấp. */
-    private void doEmergencyEscape(float deltaTime) {
-        escapeTimer -= deltaTime;
-        if (escapeDir != null) {
-            setActionState("run");
-            setSpeed(baseSpeed * 1.5f);
-            if (escapeDir.x > 0) setFacingRight(true);
-            else if (escapeDir.x < 0) setFacingRight(false);
-            super.move(escapeDir, deltaTime);
-            isMoving = true;
-        }
-        if (escapeTimer <= 0) {
-            escapeDir = null;
-            stuckCheckPos = this.position.copy();
-        }
     }
 
     /** Lấy World hiện tại — override ở subclass nếu cần (mặc định null-safe). */
@@ -300,6 +226,12 @@ public abstract class Animal extends LivingBeing {
      */
     protected boolean detectDangerousThreats() {
         if (!getProfile().canBeScared()) return false;
+        
+        if (radarCooldown > 0) {
+            return cachedThreat;
+        }
+        radarCooldown = 0.5f; // Quét 0.5s 1 lần
+
         if (worldRef == null || worldRef.getSpatialGrid() == null) return false;
 
         java.util.List<model.entity.Entity> neighbors =
@@ -309,9 +241,11 @@ public abstract class Animal extends LivingBeing {
             if (!(e instanceof Animal) || e == this || !e.isAlive()) continue;
             Animal other = (Animal) e;
             if (isThreatenedBy(other)) {
+                cachedThreat = true;
                 return true; // Chỉ sợ thú ăn thịt ở cấp cao hơn
             }
         }
+        cachedThreat = false;
         return false;
     }
 
@@ -425,13 +359,14 @@ public abstract class Animal extends LivingBeing {
 
         exitBush();
 
-        if (world != null && this.position != null) {
+        model.world.World currentWorld = getCurrentWorld();
+        if (currentWorld != null && this.position != null) {
             model.items.Carcass carcass = createCarcass();
             if (carcass != null) {
-                carcass.setWorld(world); // Gắn world để Carcass rớt xương khi phân hủy
-                world.addEntity(carcass);
+                carcass.setWorld(currentWorld); // Gắn world để Carcass rớt xương khi phân hủy
+                currentWorld.addEntity(carcass);
             }
-            world.publishEvent(WorldEventType.ANIMAL_DIED, this, reason);
+            currentWorld.publishEvent(WorldEventType.ANIMAL_DIED, this, reason);
         }
     }
 
@@ -518,8 +453,7 @@ public abstract class Animal extends LivingBeing {
         this.actionState = "idle";
         this.speed = 0;
         this.currentVelocity.set(0, 0);
-        this.escapeTimer = 0;
-        this.escapeDir = null;
+        stuckDetector.reset(); // Reset escape state khi ẩn vào bụi
         if (bush != null) {
             bush.setOccupied(true);
             this.setPosition(bush.getPosition());

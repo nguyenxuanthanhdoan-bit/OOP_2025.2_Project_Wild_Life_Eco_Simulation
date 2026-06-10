@@ -61,8 +61,7 @@ public class Deer extends HerbivoreAnimal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        // Giảm kích thước hiển thị của miếng thịt từ 20.0f xuống 12.0f
-        return new model.items.Carcass(this.position.copy(), 12.0f, 80.0f, 90.0f, 80.0f, "Hươu");
+        return new model.items.Carcass(this.position.copy(), 25.0f, 80.0f, 90.0f, 80.0f, "Hươu");
     }
 
     @Override

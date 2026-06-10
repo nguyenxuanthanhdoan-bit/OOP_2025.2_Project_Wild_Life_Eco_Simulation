@@ -17,11 +17,13 @@ public abstract class Fish extends Animal {
         super(position, size, baseSpeed, speciesName, maxHealth, maxHunger, hungerDecayRate,
               maxThirst, thirstDecayRate, maxAge, visionRange, dietType);
         this.habitatRule = habitatRule;
+        this.profile = this.profile.toBuilder().isAquatic(true).build();
     }
 
     public Fish(Vector2 position, float size, float baseSpeed, DietType dietType, HabitatRule habitatRule) {
         super(position, size, baseSpeed, dietType);
         this.habitatRule = habitatRule;
+        this.profile = this.profile.toBuilder().isAquatic(true).build();
     }
 
     public HabitatRule getHabitatRule() {

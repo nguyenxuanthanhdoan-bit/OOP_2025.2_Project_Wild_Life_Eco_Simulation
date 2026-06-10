@@ -58,48 +58,15 @@ public class RenderSystem {
     private void loadAssets() {
         String path = "resources/assets/images/";
         
-        // Herbivores
+        // Animals & Fish (Refactored to use registerSpecies)
         String[] herbivores = {"rabbit", "deer", "elephant"};
-        for (String sp : herbivores) {
-            String capitalizedSp = sp.substring(0, 1).toUpperCase() + sp.substring(1);
-            String dirPath = path + "HerbivoreAnimal/" + capitalizedSp + "/";
-            String prefix = sp.equals("rabbit") ? "Rabbit_" : (sp + "_");
-            
-            tryLoadAsset(sp + "_west", dirPath + "west.png");
-            tryLoadAsset(sp + "_walk", dirPath + prefix + "walk.png");
-            if (!sp.equals("elephant")) {
-                tryLoadAsset(sp + "_run", dirPath + prefix + "run.png");
-            }
-            
-            if (sp.equals("rabbit") || sp.equals("deer")) {
-                tryLoadAsset(sp + "_eat", dirPath + sp + "_eating.png");
-            } else if (sp.equals("elephant")) {
-                tryLoadAsset(sp + "_eat", dirPath + sp + "_eat.png");
-            }
-            tryLoadAsset(sp + "_drink", dirPath + sp + "_drink.png");
-            tryLoadAsset(sp + "_drink", dirPath + sp + "_drinking.png");
-        }
+        for (String sp : herbivores) registerSpecies(sp, "HerbivoreAnimal");
         
-        // Carnivores
         String[] carnivores = {"tiger", "wolf"};
-        for (String sp : carnivores) {
-            String capitalizedSp = sp.substring(0, 1).toUpperCase() + sp.substring(1);
-            String dirPath = path + "CarnivoreAnimal/" + capitalizedSp + "/";
-            String prefix = sp + "_";
-            
-            tryLoadAsset(sp + "_west", dirPath + "west.png");
-            tryLoadAsset(sp + "_walk", dirPath + prefix + "walk.png");
-            tryLoadAsset(sp + "_run", dirPath + prefix + "run.png");
-            tryLoadAsset(sp + "_eat", dirPath + sp + "_eat.png");
-            tryLoadAsset(sp + "_eat", dirPath + sp + "_eating.png");
-            tryLoadAsset(sp + "_drink", dirPath + sp + "_drink.png");
-            tryLoadAsset(sp + "_drink", dirPath + sp + "_drinking.png");
-            
-            if (sp.equals("tiger")) {
-                tryLoadAsset(sp + "_attack", dirPath + "tiger_attack.png");
-                tryLoadAsset(sp + "_drink", dirPath + "tiger_drink.png");
-            }
-        }
+        for (String sp : carnivores) registerSpecies(sp, "CarnivoreAnimal");
+
+        String[] fishSpecies = {"clownfish", "shark", "sunfish"};
+        for (String sp : fishSpecies) registerSpecies(sp, "Fish");
 
         // Plants
         for (int i = 1; i <= 2; i++) tryLoadAsset("grass_" + i, path + "Plant/Grass/Grass_" + i + ".png");
@@ -115,10 +82,44 @@ public class RenderSystem {
         tryLoadAsset("meat", path + "Items/Meat/Meat.png");
         tryLoadAsset("bone", path + "Items/Bone/Bone.png");
 
-        // Fish
-        String[] fishSpecies = {"clownfish", "shark", "sunfish"};
-        for (String sp : fishSpecies) {
-            tryLoadAsset(sp + "_west", path + "Fish/" + sp + ".png");
+        // Lanterns
+        tryLoadAsset("lantern", path + "Structures/Lantern/lantern.png");
+    }
+
+    public void registerSpecies(String species, String category) {
+        if (assetMap.containsKey(species + "_west")) return; // already loaded
+
+        String path = "resources/assets/images/";
+        if (category.equals("Fish")) {
+            tryLoadAsset(species + "_west", path + "Fish/" + species + ".png");
+            return;
+        }
+
+        String capitalizedSp = species.substring(0, 1).toUpperCase() + species.substring(1);
+        String dirPath = path + category + "/" + capitalizedSp + "/";
+        String prefix = species.equals("rabbit") ? "Rabbit_" : (species + "_");
+        
+        tryLoadAsset(species + "_west", dirPath + "west.png");
+        tryLoadAsset(species + "_walk", dirPath + prefix + "walk.png");
+        if (!species.equals("elephant")) {
+            tryLoadAsset(species + "_run", dirPath + prefix + "run.png");
+        }
+        
+        if (species.equals("rabbit") || species.equals("deer") || species.equals("wolf")) {
+            tryLoadAsset(species + "_eat", dirPath + species + "_eating.png");
+        } 
+        if (species.equals("elephant") || species.equals("tiger") || species.equals("wolf")) {
+            tryLoadAsset(species + "_eat", dirPath + species + "_eat.png");
+        }
+        
+        tryLoadAsset(species + "_drink", dirPath + species + "_drink.png");
+        tryLoadAsset(species + "_drink", dirPath + species + "_drinking.png");
+        tryLoadAsset(species + "_sleep", dirPath + "sleep.png");
+        tryLoadAsset(species + "_sleep", dirPath + prefix + "sleep.png");
+        
+        if (species.equals("tiger")) {
+            tryLoadAsset(species + "_attack", dirPath + "tiger_attack.png");
+            tryLoadAsset(species + "_drink", dirPath + "tiger_drink.png");
         }
     }
 
@@ -190,7 +191,74 @@ public class RenderSystem {
         for (Entity e : animalLayer) renderEntity(e, g2d);
         for (Entity e : topLayer) renderEntity(e, g2d);
 
+        renderNightOverlay(world, g2d, entitiesToRender);
+
         renderMiniMap(world, g2d);
+    }
+
+    private float getDarknessAlpha(float timeOfDay) {
+        float darknessAlpha = 0f;
+        if (timeOfDay >= 18.0f && timeOfDay <= 20.0f) {
+            darknessAlpha = 0.75f * ((timeOfDay - 18.0f) / 2.0f);
+        } else if (timeOfDay > 20.0f || timeOfDay < 4.0f) {
+            darknessAlpha = 0.75f;
+        } else if (timeOfDay >= 4.0f && timeOfDay <= 6.0f) {
+            darknessAlpha = 0.75f * (1.0f - ((timeOfDay - 4.0f) / 2.0f));
+        }
+        return darknessAlpha;
+    }
+
+    private void renderNightOverlay(World world, Graphics2D g2d, List<Entity> entities) {
+        float timeOfDay = world.getTimeOfDay();
+        float darknessAlpha = getDarknessAlpha(timeOfDay);
+
+        if (darknessAlpha <= 0.01f) return; // Không cần vẽ nếu trời quá sáng
+
+        Rectangle clip = g2d.getClipBounds();
+        if (clip == null) clip = new Rectangle(0, 0, 800, 600);
+
+        // Tạo buffer cho màn đêm
+        BufferedImage nightBuffer = new BufferedImage(clip.width, clip.height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D ng = nightBuffer.createGraphics();
+        ng.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Vẽ màu nền đêm (Xanh đen đậm)
+        ng.setColor(new Color(10, 15, 35, (int)(255 * darknessAlpha)));
+        ng.fillRect(0, 0, clip.width, clip.height);
+
+        // Đục lỗ ánh sáng
+        ng.setComposite(AlphaComposite.DstOut);
+
+        float zoom = camera.getZoomLevel();
+
+        for (Entity e : entities) {
+            if (e instanceof model.structures.Lantern) {
+                Vector2 screenPos = camera.worldToScreen(e.getPosition());
+                float lightRadiusBase = 180f;
+                // Ánh sáng tỏa dần theo độ tối
+                int lightRadius = (int)(lightRadiusBase * zoom * (0.2f + 0.8f * (darknessAlpha / 0.75f)));
+                
+                // Mở rộng bán kính thêm chút để ánh sáng mềm hơn
+                if (lightRadius <= 0) continue;
+
+                float[] fractions = {0.0f, 1.0f};
+                // Tâm sáng nhất (xóa nhiều darkness nhất), viền mờ dần
+                Color[] colors = {new Color(0, 0, 0, 255), new Color(0, 0, 0, 0)};
+                
+                RadialGradientPaint rgp = new RadialGradientPaint(
+                    screenPos.x - clip.x, screenPos.y - clip.y, lightRadius, fractions, colors);
+                
+                ng.setPaint(rgp);
+                ng.fillOval((int)(screenPos.x - clip.x - lightRadius), 
+                            (int)(screenPos.y - clip.y - lightRadius), 
+                            lightRadius * 2, lightRadius * 2);
+            }
+        }
+
+        ng.dispose();
+
+        // Vẽ buffer màn đêm lên màn hình
+        g2d.drawImage(nightBuffer, clip.x, clip.y, null);
     }
 
     private void renderMap(Graphics2D g2d) {
@@ -324,6 +392,42 @@ public class RenderSystem {
                     int thirstFill = (int)(barW * (animal.getThirst() / animal.getMaxThirst()));
                     if (thirstFill > 0) g2d.fillRect(barX, thirstY, thirstFill, barH);
                 }
+            } else if (e instanceof model.structures.Lantern) {
+                model.structures.Lantern lantern = (model.structures.Lantern) e;
+                BufferedImage sheet = assetMap.get("lantern");
+                if (sheet != null) {
+                    int frameWidth = 30;
+                    int frameHeight = 49;
+                    int columns = sheet.getWidth() / frameWidth;
+                    
+                    float darknessAlpha = 0f;
+                    if (e.getWorld() != null) {
+                        darknessAlpha = getDarknessAlpha(e.getWorld().getTimeOfDay());
+                    }
+                    
+                    int frameIndex;
+                    if (darknessAlpha <= 0.01f) {
+                        frameIndex = 0; // Trời sáng -> Đèn tắt (khung hình 0)
+                    } else {
+                        int animatedFrames = 2; // 3 frames total (1 unlit + 2 lit)
+                        float animTime = lantern.getAnimationTime();
+                        frameIndex = 1 + ((int)(animTime * 5) % animatedFrames); // 5 fps
+                    }
+                    
+                    int col = frameIndex % columns;
+                    int row = frameIndex / columns;
+                    
+                    int srcX = col * frameWidth;
+                    int srcY = row * frameHeight;
+                    
+                    int w = (int) (16 * zoom); // Lantern visual width
+                    int h = (int) (16 * 49f / 30f * zoom); // Maintain aspect ratio
+                    
+                    g2d.drawImage(sheet, 
+                        (int)screenPos.x - w/2, (int)screenPos.y - h/2, 
+                        (int)screenPos.x + w/2, (int)screenPos.y + h/2,
+                        srcX, srcY, srcX + frameWidth, srcY + frameHeight, null);
+                }
             } else {
                 BufferedImage img = null;
                 String variant = e.getImageVariant();
@@ -456,7 +560,7 @@ public class RenderSystem {
         // Suy diễn trạng thái
         String state = animal.getActionState();
         boolean moving = animal.isMoving();
-        if ("attack".equals(state) || "eat".equals(state) || "drink".equals(state)) {
+        if ("attack".equals(state) || "eat".equals(state) || "drink".equals(state) || "sleep".equals(state)) {
             // Giữ các animation hành động ngay cả khi đứng tại chỗ.
         } else if (moving) {
             if ("run".equals(state) || animal.getSpeed() > animal.getBaseSpeed() * 1.1f) {
@@ -487,7 +591,7 @@ public class RenderSystem {
         }
         if (sheet == null) return;
         
-        // Lấy frame chuẩn
+        // Lấy frame chuẩn để tham chiếu kích thước của các hoạt ảnh chuẩn (walk, run, v.v.)
         BufferedImage base = assetMap.get(species + "_west");
         if (base == null) base = sheet; // Dự phòng
         
@@ -495,6 +599,16 @@ public class RenderSystem {
         int frameH = base.getHeight();
         int cols = sheet.getWidth() / frameW;
         int rows = sheet.getHeight() / frameH;
+        
+        // Ngoại lệ: Ảnh ngủ do người dùng mới thêm có kích thước khác (32x32) và là 1 frame hoặc 1 dải ngang.
+        if ("sleep".equals(state)) {
+            frameH = sheet.getHeight();
+            frameW = sheet.getHeight();
+            if (sheet.getWidth() < frameW) frameW = sheet.getWidth();
+            cols = sheet.getWidth() / frameW;
+            rows = 1;
+        }
+        
         int totalFrames = cols * rows;
         if (totalFrames <= 0) totalFrames = 1;
         
@@ -537,8 +651,8 @@ public class RenderSystem {
         // [MỚI] Procedural Animation (Hoạt ảnh bằng Code) cho các loài Cá
         java.awt.geom.AffineTransform oldTransform = g2d.getTransform();
         if (animal instanceof model.living_beings.Fish && moving) {
-            // Hàm Sin tạo dao động tuần hoàn. Giảm biên độ xuống khoảng 8 độ (Math.toRadians(8))
-            double swimWobble = Math.sin(animationTimer * 15.0) * Math.toRadians(8); 
+            // Hàm Sin tạo dao động tuần hoàn. Giảm biên độ xuống khoảng 5 độ (Math.toRadians(5))
+            double swimWobble = Math.sin(animationTimer * 15.0) * Math.toRadians(5); 
             g2d.rotate(swimWobble, screenPos.x, screenPos.y);
         }
 
