@@ -62,9 +62,11 @@ public abstract class Animal extends LivingBeing {
     protected AnimalProfile profile;
     private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
 
-    // Radar cooldown
-    private float radarCooldown = 0f;
-    private boolean cachedThreat = false;
+    // Caching for threats
+    protected float radarCooldown = 0f;
+    protected boolean cachedThreat = false;
+    protected float gardenThreatCooldown = 0f;
+    protected boolean cachedGardenThreat = false;
 
     // Cache to avoid object allocation in update
     private final Vector2 oldPosCache = new Vector2(0, 0);
@@ -138,6 +140,9 @@ public abstract class Animal extends LivingBeing {
         updateUnsafeFoodMemory(deltaTime);
         if (radarCooldown > 0) {
             radarCooldown -= deltaTime;
+        }
+        if (gardenThreatCooldown > 0) {
+            gardenThreatCooldown -= deltaTime;
         }
 
         boolean isNight = (worldRef != null) && (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
@@ -251,6 +256,30 @@ public abstract class Animal extends LivingBeing {
 
     public boolean hasDangerousThreats() {
         return detectDangerousThreats();
+    }
+
+    public boolean hasGardenThreat() {
+        if (gardenThreatCooldown > 0) {
+            return cachedGardenThreat;
+        }
+        gardenThreatCooldown = 0.5f;
+        cachedGardenThreat = false;
+
+        if (worldRef == null || worldRef.getSpatialGrid() == null) return false;
+        
+        java.util.List<model.entity.Entity> neighbors = worldRef.getSpatialGrid().getNeighbors(this.position, (float) this.visionRange);
+        for (model.entity.Entity e : neighbors) {
+            if (e instanceof Human) {
+                Human h = (Human) e;
+                for (model.structures.GardenBed bed : worldRef.getCropManager().getGardens()) {
+                    if (h.getPosition().distanceTo(bed.getPosition()) < 250f) {
+                        cachedGardenThreat = true;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // =========================================================

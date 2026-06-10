@@ -1,10 +1,13 @@
 package model.strategies;
 
+import core.GameConfig;
 import core.Vector2;
 import model.living_beings.Human;
 import model.living_beings.LivingBeing;
 import model.navigation.PathNavigator;
+import model.world.CoastalManager;
 import model.world.World;
+import java.util.List;
 import java.util.Random;
 
 public class PassiveStrategy implements IStrategy {
@@ -100,22 +103,18 @@ public class PassiveStrategy implements IStrategy {
         boolean outsideHome = !human.isInHomeArea();
 
         if (stateTimer <= 0) {
-            if (outsideHome) {
-                isIdling = false;
-                wanderTarget = randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.25f);
-                stateTimer = 2.0f + random.nextFloat();
-            } else {
-                isIdling = random.nextFloat() < 0.45f;
-                if (isIdling) {
-                    wanderTarget = null;
-                    wanderNavigator.clear();
-                    stateTimer = 1.0f + random.nextFloat() * 1.5f;
-                } else {
-                    wanderTarget = randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.65f);
-                    stateTimer = 2.0f + random.nextFloat() * 2.0f;
-                }
-            }
+            // Quyết định điểm đến tiếp theo
+            wanderTarget = chooseHumanTarget(human, world, outsideHome);
+
             if (wanderTarget != null && world != null) clampToWorld(wanderTarget, human, world);
+
+            if (wanderTarget == null) {
+                isIdling = true;
+                stateTimer = 1.0f + random.nextFloat() * 1.5f;
+            } else {
+                isIdling = false;
+                stateTimer = 2.5f + random.nextFloat() * 2.5f;
+            }
         }
 
         if (isIdling) {
@@ -141,6 +140,41 @@ public class PassiveStrategy implements IStrategy {
                 wanderNavigator.clear();
             }
         }
+    }
+
+    /**
+     * Chọn điểm đến cho Human ban ngày.
+     *
+     * Logic:
+     *   - 35% xác suất (HUMAN_COASTAL_VISIT_CHANCE) → chọn POI ven biển (nhà chài / thuyền)
+     *   - Phần còn lại → lang thang trong homeArea như cũ
+     *   - Nếu đi ra ngoài homeArea → ưu tiên quay về làng
+     */
+    private Vector2 chooseHumanTarget(Human human, World world, boolean outsideHome) {
+        // Nếu ra ngoài homeArea → quay về
+        if (outsideHome) {
+            return randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.25f);
+        }
+
+        // Kiểm tra có điểm ven biển không
+        if (world != null && world.getCoastalManager() != null
+                && world.getCoastalManager().hasCoastalPOIs()) {
+            float chance = GameConfig.getInstance().HUMAN_COASTAL_VISIT_CHANCE;
+            if (random.nextFloat() < chance) {
+                Vector2 coastalPt = world.getCoastalManager().randomCoastalPoint();
+                if (coastalPt != null) {
+                    // Nhà chài nằm trên bờ — đi đến thẳng
+                    // Thuyền trên nước — Human sẽ đến bờ gần nhất (bị nước chặn rồi đứng lại)
+                    return coastalPt;
+                }
+            }
+        }
+
+        // Lang thang bình thường trong làng
+        if (random.nextFloat() < 0.45f) {
+            return null; // Đứng yên nghỉ
+        }
+        return randomPointAround(human.getHomeCenter(), human.getHomeRadius() * 0.65f);
     }
 
     private Vector2 randomPointAround(Vector2 center, float radius) {

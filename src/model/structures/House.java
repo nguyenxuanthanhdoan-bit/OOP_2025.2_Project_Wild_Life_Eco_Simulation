@@ -24,6 +24,8 @@ public class House extends Structure {
     public House(Vector2 position, int variant, int capacity) {
         super(position, GameConfig.getInstance().HOUSE_SIZE, "HOUSE", "house_" + normalizeVariant(variant), true);
         this.capacity = Math.max(1, capacity);
+        // Tăng bán kính va chạm để động vật không đi xuyên nhà
+        this.setCollider(new model.collision.Collider(this, GameConfig.getInstance().HOUSE_SIZE * 0.6f, model.collision.CollisionLayer.OBSTACLE));
     }
 
     public boolean enter(Entity entity) {

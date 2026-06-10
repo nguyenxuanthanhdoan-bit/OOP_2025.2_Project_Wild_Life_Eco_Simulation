@@ -57,6 +57,12 @@ public class World {
     // Quản lý khu dân cư (Settlement System)
     private final SettlementManager settlementManager = new SettlementManager();
 
+    // Quản lý điểm thu hút ven biển (thuyền, nhà chài)
+    private final CoastalManager coastalManager = new CoastalManager();
+
+    // Quản lý các mảnh vườn (Garden)
+    private final model.garden.CropManager cropManager = new model.garden.CropManager();
+
     public World() {
         this.entities = new ArrayList<>();
         this.eventSystem = new WorldEventSystem();
@@ -146,6 +152,9 @@ public class World {
                 i--; // Lùi index lại để không bị bỏ sót phần tử tiếp theo
             }
         }
+
+        // Cập nhật cây trồng trong vườn
+        cropManager.update(deltaTime);
 
         fishPopulationManager.update(deltaTime);
 
@@ -249,6 +258,11 @@ public class World {
             return false;
         }
 
+        // [MỚI] Chặn động vật dẫm lên vườn
+        if (isAnimalBlockedFromGarden(entity) && cropManager.isInsideGarden(pos)) {
+            return false;
+        }
+
         // Phân loại logic cho động vật dưới nước và trên cạn
         if (gameMap != null) {
             if (entity instanceof model.living_beings.Fish) {
@@ -269,11 +283,13 @@ public class World {
 
                 // Kiểm tra chính xác vị trí hiện tại và các góc của hitbox động vật
                 float m = entity.getSize() / 2;
-                boolean inWater = gameMap.isPositionInWater(pos.x,     pos.y)     ||
-                                  gameMap.isPositionInWater(pos.x - m, pos.y - m) ||
-                                  gameMap.isPositionInWater(pos.x + m, pos.y - m) ||
-                                  gameMap.isPositionInWater(pos.x - m, pos.y + m) ||
-                                  gameMap.isPositionInWater(pos.x + m, pos.y + m);
+                
+                // Trả về true nếu vị trí là nước nhưng KHÔNG phải cầu
+                boolean inWater = (gameMap.isPositionInWater(pos.x,     pos.y)     && !gameMap.isBridgeTile(pos.x,     pos.y))     ||
+                                  (gameMap.isPositionInWater(pos.x - m, pos.y - m) && !gameMap.isBridgeTile(pos.x - m, pos.y - m)) ||
+                                  (gameMap.isPositionInWater(pos.x + m, pos.y - m) && !gameMap.isBridgeTile(pos.x + m, pos.y - m)) ||
+                                  (gameMap.isPositionInWater(pos.x - m, pos.y + m) && !gameMap.isBridgeTile(pos.x - m, pos.y + m)) ||
+                                  (gameMap.isPositionInWater(pos.x + m, pos.y + m) && !gameMap.isBridgeTile(pos.x + m, pos.y + m));
                 if (inWater) return false;
             }
         }
@@ -301,6 +317,18 @@ public class World {
             // (Wolf/Tiger/Elephant: CARNIVORE/APEX; Deer: HERBIVORE)
             int level = entity.getEntityLevel();
             return level >= model.entity.Entity.LEVEL_HERBIVORE;
+        }
+        return false;
+    }
+
+    private boolean isAnimalBlockedFromGarden(model.living_beings.LivingBeing entity) {
+        if (entity instanceof model.living_beings.Human) return false;
+        if (entity instanceof model.living_beings.Fish) return false;
+        if (entity instanceof model.living_beings.Deer) {
+            return !GameConfig.getInstance().ALLOW_DEER_ENTER_GARDEN;
+        }
+        if (entity instanceof model.living_beings.Animal) {
+            return true; // Tất cả thú dữ đều bị chặn khỏi vườn
         }
         return false;
     }
@@ -343,6 +371,15 @@ public class World {
     /** Getter cho SettlementManager — dùng bởi GoHomeStrategy và BiomeGenerator. */
     public SettlementManager getSettlementManager() {
         return settlementManager;
+    }
+
+    /** Getter cho CoastalManager — dùng bởi PassiveStrategy (AI ban ngày) và BiomeGenerator. */
+    public CoastalManager getCoastalManager() {
+        return coastalManager;
+    }
+
+    public model.garden.CropManager getCropManager() {
+        return cropManager;
     }
 
     public WorldEventSystem getEventSystem() {
@@ -426,6 +463,9 @@ public class World {
             this.spatialGrid.clear();
         }
         this.settlementManager.clear();
+        this.coastalManager.clear();
+        this.cropManager.clear();
+
         this.gameDay = 1;
         this.dayTimer = 0.0f;
         this.currentSeason = Season.SPRING;

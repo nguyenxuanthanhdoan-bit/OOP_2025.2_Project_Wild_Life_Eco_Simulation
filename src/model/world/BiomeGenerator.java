@@ -16,11 +16,14 @@ import model.living_beings.Hunter;
 import model.living_beings.Tiger;
 import model.living_beings.Wolf;
 import model.structures.Bush;
+import model.structures.Boat;
 import model.structures.DecorativeStructure;
+import model.structures.FishingHut;
 import model.structures.FoodStorage;
 import model.structures.House;
 import model.structures.Rock;
 import model.structures.Well;
+import model.structures.GardenBed;
 import model.entity.Entity;
 import model.entity.Structure;
 
@@ -80,6 +83,9 @@ public class BiomeGenerator {
         // Sinh dân làng/thợ săn trong Village object layer
         spawnVillagePeople(world, gameMap, villagePolygons, rand);
         spawnLanterns(world, gameMap, rand);
+
+        // Sinh thuyền và nhà chài ven biển
+        spawnCoastal(world, gameMap, rand);
     }
 
     private static List<MapPolygonObject> createFallbackZone(World world, ZoneType type) {
@@ -106,6 +112,227 @@ public class BiomeGenerator {
         list.add(poly);
         return list;
     }
+
+    // =========================================================
+    // SPAWN VEN BIỂN (THUYỀN + NHÀ CHÀI)
+    // =========================================================
+
+    /**
+     * Spawn thuyền trên mặt nước và nhà chài gần mép biển.
+     * Đăng ký với CoastalManager để AI Human có thể tìm đến ban ngày.
+     */
+    private static void spawnCoastal(World world, GameMap gameMap, Random rand) {
+        GameConfig config = GameConfig.getInstance();
+        // Đảo thứ tự: sinh nhà chài trước để làm mốc cho thuyền
+        spawnFishingHuts(world, gameMap, rand, config.FISHING_HUT_COUNT);
+        spawnBoats(world, gameMap, rand, config.BOAT_COUNT);
+    }
+
+    private static void spawnFarmForVillage(World world, GameMap gameMap, model.world.Settlement settlement, Random rand) {
+        if (settlement.getHouses().isEmpty()) return;
+        GameConfig config = GameConfig.getInstance();
+        float gSize = config.GARDEN_BED_SIZE;
+        float margin = gSize * 0.5f + 5f;
+        
+        // Tạo một trang trại lớn (3 hàng x 4 cột = 12 chậu)
+        int cols = 4;
+        int rows = 3;
+        
+        float farmWidth = cols * gSize;
+        float farmHeight = rows * gSize;
+
+        // Tính bounding box của nhà trong làng
+        float hMinX = Float.MAX_VALUE, hMaxX = -Float.MAX_VALUE;
+        float hMinY = Float.MAX_VALUE, hMaxY = -Float.MAX_VALUE;
+        for (House h : settlement.getHouses()) {
+            if (h.getPosition().x < hMinX) hMinX = h.getPosition().x;
+            if (h.getPosition().x > hMaxX) hMaxX = h.getPosition().x;
+            if (h.getPosition().y < hMinY) hMinY = h.getPosition().y;
+            if (h.getPosition().y > hMaxY) hMaxY = h.getPosition().y;
+        }
+
+        // Hàng rào làng có padding là 100f, nên ta đặt vườn cách 120f để nằm sát mép ngoài hàng rào làng
+        float padding = 120f;
+        core.Vector2[] testStarts = {
+            new core.Vector2(hMinX, hMaxY + padding), // Dưới
+            new core.Vector2(hMinX, hMinY - padding - farmHeight), // Trên
+            new core.Vector2(hMaxX + padding, hMinY), // Phải
+            new core.Vector2(hMinX - padding - farmWidth, hMinY) // Trái
+        };
+
+        // Thử tìm vị trí nằm sát ngay rìa làng
+        for (core.Vector2 start : testStarts) {
+            float startX = start.x;
+            float startY = start.y;
+            
+            // Kiểm tra toàn bộ các ô trong grid xem có hợp lệ (không dính nước) không
+            boolean valid = true;
+            for (int row = 0; row < rows; row++) {
+                for (int col = 0; col < cols; col++) {
+                    float px = startX + col * gSize + gSize / 2;
+                    float py = startY + row * gSize + gSize / 2;
+                    if (!world.isValidGroundSpawnPosition(px, py, margin)) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (!valid) break;
+            }
+            
+            if (valid) {
+                // Đủ diện tích, tiến hành spawn các chậu cây
+                for (int row = 0; row < rows; row++) {
+                    for (int col = 0; col < cols; col++) {
+                        float px = startX + col * gSize + gSize / 2;
+                        float py = startY + row * gSize + gSize / 2;
+                        GardenBed bed = new GardenBed(new core.Vector2(px, py));
+                        world.addEntity(bed);
+                        world.getCropManager().addGardenBed(bed);
+                    }
+                }
+                
+                break; // Chỉ cần 1 trang trại lớn cho mỗi làng là đủ
+            }
+        }
+    }
+
+    // Đã gỡ bỏ spawnVillageFences theo yêu cầu của người chơi
+
+    /**
+     * Spawn thuyền tại các ô nước ngẫu nhiên trên bản đồ.
+     * Thuyền không cản đường — chỉ là vật trang trí trên nước.
+     */
+    private static void spawnBoats(World world, GameMap gameMap, Random rand, int count) {
+        if (gameMap == null || count <= 0) return;
+        GameConfig config = GameConfig.getInstance();
+        CoastalManager coastal = world.getCoastalManager();
+
+        List<FishingHut> huts = coastal.getFishingHuts();
+
+        int spawned = 0;
+        int attempts = 0;
+        int maxAttempts = count * 80;
+
+        while (spawned < count && attempts < maxAttempts) {
+            attempts++;
+            
+            float x, y;
+            if (!huts.isEmpty()) {
+                // Chọn một nhà chài ngẫu nhiên và sinh thuyền quanh nó
+                FishingHut hut = huts.get(rand.nextInt(huts.size()));
+                float angle = rand.nextFloat() * (float)Math.PI * 2;
+                float dist = 40f + rand.nextFloat() * 100f; // Thuyền nằm sát nhà chài hơn
+                x = hut.getPosition().x + (float)Math.cos(angle) * dist;
+                y = hut.getPosition().y + (float)Math.sin(angle) * dist;
+            } else {
+                x = rand.nextFloat() * world.getWidth();
+                y = rand.nextFloat() * world.getHeight();
+            }
+
+            // Phải là ô nước
+            if (!gameMap.isPositionInWater(x, y)) continue;
+
+            // Không được quá gần bờ (tránh thuyền mắc cạn trông kỳ)
+            boolean deepEnough = gameMap.isPositionInWater(x - 32, y) &&
+                                 gameMap.isPositionInWater(x + 32, y) &&
+                                 gameMap.isPositionInWater(x, y - 32) &&
+                                 gameMap.isPositionInWater(x, y + 32);
+            if (!deepEnough) continue;
+
+            Vector2 pos = new Vector2(x, y);
+
+            // Kiểm tra khoảng cách tối thiểu với thuyền khác
+            if (!isFarFromBoats(coastal, pos, config.BOAT_MIN_DISTANCE)) continue;
+
+            Boat boat = new Boat(pos);
+            world.addEntity(boat);
+            coastal.addBoat(boat);
+            spawned++;
+        }
+        System.out.println("[CoastalManager] Spawned " + spawned + " boats.");
+    }
+
+    /**
+     * Spawn nhà chài gần mép biển: nằm trên đất, trong khoảng cách
+     * FISHING_HUT_SHORE_MAX_DIST tính từ mép nước.
+     */
+    private static void spawnFishingHuts(World world, GameMap gameMap, Random rand, int count) {
+        if (gameMap == null || count <= 0) return;
+        GameConfig config = GameConfig.getInstance();
+        CoastalManager coastal = world.getCoastalManager();
+        float shoreMaxDist = config.FISHING_HUT_SHORE_MAX_DIST;
+        float minDist = config.FISHING_HUT_MIN_DISTANCE;
+
+        int spawned = 0;
+        int attempts = 0;
+        int maxAttempts = count * 120;
+
+        while (spawned < count && attempts < maxAttempts) {
+            attempts++;
+            float x = rand.nextFloat() * world.getWidth();
+            float y = rand.nextFloat() * world.getHeight();
+
+            // Phải là đất hợp lệ (không nước)
+            if (!gameMap.isValidGroundSpawnPosition(x, y, config.GROUND_SPAWN_MARGIN)) continue;
+
+            // Phải đủ gần mép nước
+            if (!isNearWater(gameMap, x, y, shoreMaxDist)) continue;
+
+            Vector2 pos = new Vector2(x, y);
+
+            // Khoảng cách tối thiểu với nhà chài khác
+            if (!isFarFromFishingHuts(coastal, pos, minDist)) continue;
+
+            // Không va chạm với các structure khác
+            if (!isFarFromExistingStructures(world, pos, minDist * 0.5f)) continue;
+
+            FishingHut hut = new FishingHut(pos);
+            world.addEntity(hut);
+            coastal.addFishingHut(hut);
+            spawned++;
+        }
+        System.out.println("[CoastalManager] Spawned " + spawned + " fishing huts.");
+    }
+
+    /**
+     * Kiểm tra vị trí có nằm gần mép nước trong khoảng maxDist không.
+     * Quét theo 8 hướng với bước stepSize để tìm ô nước gần nhất.
+     */
+    private static boolean isNearWater(GameMap gameMap, float x, float y, float maxDist) {
+        int steps = (int) (maxDist / 32) + 1;
+        float step = maxDist / steps;
+        for (int i = 1; i <= steps; i++) {
+            float r = step * i;
+            // Quét 8 hướng
+            if (gameMap.isPositionInWater(x + r, y)) return true;
+            if (gameMap.isPositionInWater(x - r, y)) return true;
+            if (gameMap.isPositionInWater(x, y + r)) return true;
+            if (gameMap.isPositionInWater(x, y - r)) return true;
+            if (gameMap.isPositionInWater(x + r, y + r)) return true;
+            if (gameMap.isPositionInWater(x - r, y - r)) return true;
+            if (gameMap.isPositionInWater(x + r, y - r)) return true;
+            if (gameMap.isPositionInWater(x - r, y + r)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isFarFromBoats(CoastalManager coastal, Vector2 pos, float minDist) {
+        for (Boat b : coastal.getBoats()) {
+            if (pos.distanceTo(b.getPosition()) < minDist) return false;
+        }
+        return true;
+    }
+
+    private static boolean isFarFromFishingHuts(CoastalManager coastal, Vector2 pos, float minDist) {
+        for (FishingHut h : coastal.getFishingHuts()) {
+            if (pos.distanceTo(h.getPosition()) < minDist) return false;
+        }
+        return true;
+    }
+
+    // =========================================================
+    // SPAWN ĐỘNG VẬT
+    // =========================================================
 
     private static void spawnAnimals(World world, GameMap gameMap, List<MapPolygonObject> plain,
                                      List<MapPolygonObject> forest, List<MapPolygonObject> excludedZones, Random rand) {
@@ -291,11 +518,15 @@ public class BiomeGenerator {
                 for (int i = entityCountBefore; i < allEntities.size(); i++) {
                     model.entity.Entity e = allEntities.get(i);
                     if (e instanceof House) {
-                        settlement.addHouse((House) e);
+                        House h = (House) e;
+                        settlement.addHouse(h);
                     }
                 }
 
                 world.getSettlementManager().addSettlement(settlement);
+                
+                // Sau khi thiết lập xong làng, tạo 1 trang trại chung cho cả làng
+                spawnFarmForVillage(world, gameMap, settlement, rand);
             }
         }
     }

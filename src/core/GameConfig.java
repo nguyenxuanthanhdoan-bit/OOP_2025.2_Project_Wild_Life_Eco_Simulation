@@ -105,6 +105,34 @@ public class GameConfig {
     public final float SETTLEMENT_SAFE_RADIUS_PADDING = 100.0f;
 
     // ==========================================
+    // CẤU HÌNH VƯỜN (GARDEN)
+    // ==========================================
+    public final float GARDEN_BED_SIZE = 40.0f;
+    public final boolean ALLOW_DEER_ENTER_GARDEN = false;
+
+    // ==========================================
+    // CẤU HÌNH VEN BIỂN (COASTAL / FISHING)
+    // ==========================================
+    /** Số thuyền cần spawn trên biển. */
+    public final int BOAT_COUNT = 10;
+    /** Số nhà chài cần spawn gần mép biển. */
+    public final int FISHING_HUT_COUNT = 10;
+    /**
+     * Khoảng cách tối thiểu từ mép nước để tìm vị trí đặt nhà chài (pixels).
+     * Nhà chài nằm trên đất nhưng sát biển.
+     */
+    public final float FISHING_HUT_SHORE_MAX_DIST = 80.0f;
+    /** Khoảng cách tối thiểu giữa các nhà chài (pixels). */
+    public final float FISHING_HUT_MIN_DISTANCE = 150.0f;
+    /** Khoảng cách tối thiểu giữa các thuyền (pixels). */
+    public final float BOAT_MIN_DISTANCE = 120.0f;
+    /**
+     * Xác suất (0-1) Human ban ngày chọn đích là điểm ven biển thay vì lang thang trong làng.
+     * 0.35 = 35% mỗi lần chọn đích mới sẽ hướng ra biển.
+     */
+    public final float HUMAN_COASTAL_VISIT_CHANCE = 0.35f;
+
+    // ==========================================
     // CẤU HÌNH QUẦN THỂ / SINH SẢN
     // ==========================================
     public final int MIN_SPECIES_POPULATION = 15;

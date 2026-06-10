@@ -23,6 +23,11 @@ public final class StrategySelector {
         boolean isAquatic = animal.getProfile().isAquatic();
         boolean isNocturnal = animal.getProfile().isNocturnal();
 
+        // [MỚI] Động vật (kể cả thú ăn thịt) sẽ bỏ chạy nếu thấy người gần vườn
+        if (!isAquatic && !(animal instanceof Human) && animal.hasGardenThreat()) {
+            return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
+        }
+
         if (animal.hasDangerousThreats() && animal.canUseStrategy(ScaredStrategy.class)) {
             return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
         }
@@ -50,6 +55,18 @@ public final class StrategySelector {
                 }
             }
 
+
+            // 2. HARVEST: Thu hoạch ban ngày nếu có cây trưởng thành
+            if (!isNight && animal.getWorld() != null) {
+                // Ưu tiên thu hoạch nếu có chậu cây trưởng thành gần đây
+                if (animal.getCurrentStrategy() instanceof HarvestStrategy) {
+                    return animal.getCurrentStrategy();
+                }
+                model.structures.GardenBed bed = animal.getWorld().getCropManager().findNearestMatureCrop(animal.getPosition());
+                if (bed != null) {
+                    return new HarvestStrategy(bed);
+                }
+            }
 
             // 3. Logic Hunter ban ngày
             if (human.isHunter() && shouldHunterReturnFood(human)) {

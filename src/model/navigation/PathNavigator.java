@@ -20,6 +20,7 @@ public class PathNavigator {
     private Vector2 lastTarget = null;
     private float repathTimer = 0.0f;
     private boolean blocked = false;
+    private float stuckTimer = 0.0f;
 
     public boolean moveTo(Animal animal, World world, Vector2 target, float deltaTime,
                           float reachDistance, float repathInterval) {
@@ -80,6 +81,7 @@ public class PathNavigator {
         lastTarget = null;
         repathTimer = 0.0f;
         blocked = false;
+        stuckTimer = 0.0f;
     }
 
     private boolean needsRepath(Vector2 target, float repathInterval) {
@@ -113,9 +115,18 @@ public class PathNavigator {
         animal.move(finalDir, deltaTime);
 
         Vector2 actualMove = animal.getPosition().copy().subtract(beforeMove);
-        if (actualMove.lengthSquared() > 0.25f) {
+        if (actualMove.lengthSquared() > 0.1f) {
             if (actualMove.x > 0) animal.setFacingRight(true);
             else if (actualMove.x < 0) animal.setFacingRight(false);
+            stuckTimer = 0.0f;
+        } else {
+            // Khả năng đang bị kẹt
+            stuckTimer += deltaTime;
+            if (stuckTimer > 1.0f) {
+                blocked = true;
+                path.clear();
+                stuckTimer = 0.0f;
+            }
         }
     }
 

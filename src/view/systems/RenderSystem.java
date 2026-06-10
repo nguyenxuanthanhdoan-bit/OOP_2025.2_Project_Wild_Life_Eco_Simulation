@@ -94,6 +94,7 @@ public class RenderSystem {
         // Structures
         for (int i = 1; i <= 2; i++) tryLoadAsset("bush_" + i, path + "Structures/Bush/Bush_" + i + ".png");
         for (int i = 1; i <= 3; i++) tryLoadAsset("rock_" + i, path + "Structures/Rock/Rock_" + i + ".png");
+        
         loadAssetsFromDirectory(path + "village/");
 
         // Items
@@ -220,6 +221,9 @@ public class RenderSystem {
                         e instanceof model.entity.Structure ||
                         e instanceof model.structures.Lantern) {
                     worldLayer.add(e);
+                } else if (e instanceof model.living_beings.Fish) {
+                    // Cá luôn ở dưới nước nên vẽ ở groundLayer để bị lấp bởi thuyền
+                    groundLayer.add(e);
                 } else if (e instanceof model.living_beings.Animal) {
                     model.living_beings.Animal a = (model.living_beings.Animal) e;
                     if (a.isHidden()) {
@@ -409,6 +413,7 @@ public class RenderSystem {
                     float aspect = (float) img.getHeight() / img.getWidth();
                     int w = (int) (e.getSize() * zoom);
                     int h = (int) (w * aspect);
+                    
                     g2d.drawImage(img, (int)screenPos.x - w/2, (int)screenPos.y - h/2, w, h, null);
                 }
             }

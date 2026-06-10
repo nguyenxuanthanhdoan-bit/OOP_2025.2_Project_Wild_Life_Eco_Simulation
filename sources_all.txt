@@ -16,6 +16,9 @@ D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\collision\Collision
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\collision\CollisionManager.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\entity\Entity.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\entity\Structure.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\garden\CropManager.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\garden\CropState.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\garden\CropType.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\items\Bone.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\items\Carcass.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\items\FireballProjectile.java
@@ -61,6 +64,7 @@ D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\Avoidanc
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\FlockingStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\ForageStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\GoHomeStrategy.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\HarvestStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\HunterStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\IStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\MatingStrategy.java
@@ -69,15 +73,19 @@ D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\ScaredSt
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\SleepStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\SteeringBehavior.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\StrategySelector.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\Boat.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\Bush.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\DecorativeStructure.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\FishingHut.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\FoodStorage.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\GardenBed.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\House.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\Lantern.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\Rock.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\structures\Well.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\Biome.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\BiomeGenerator.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\CoastalManager.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\DenseForest.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\EntityFactory.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\world\FishPopulationManager.java
