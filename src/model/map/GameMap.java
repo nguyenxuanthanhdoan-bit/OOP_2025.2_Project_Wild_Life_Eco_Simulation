@@ -346,6 +346,13 @@ public class GameMap {
         return false;
     }
 
+    public boolean isSandTile(float worldX, float worldY) {
+        int col = (int) (worldX / 32);
+        int row = (int) (worldY / 32);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+        return hasTileOnLayer(col, row, "sand");
+    }
+
     /**
      * Kiểm tra ô gạch tại vị trí thế giới có phải là nước hay không.
      * Ưu tiên dùng layer có tên "Water" nếu tìm thấy.

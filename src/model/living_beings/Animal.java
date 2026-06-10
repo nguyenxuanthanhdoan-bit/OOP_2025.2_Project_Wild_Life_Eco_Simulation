@@ -166,6 +166,17 @@ public abstract class Animal extends LivingBeing {
         if (isNight && isFish) {
             moveDeltaTime *= 0.5f; // Cá bơi chậm lại 50% vào ban đêm
         }
+
+        // Kiểm tra xem có đang trên cát và không thích nghi sa mạc
+        boolean onSand = false;
+        if (worldRef != null && worldRef.getGameMap() != null) {
+            onSand = worldRef.getGameMap().isSandTile(this.position.x, this.position.y);
+        }
+        boolean isDesertAdapted = this.getProfile() != null && this.getProfile().isDesertAdapted();
+
+        if (onSand && !isDesertAdapted) {
+            moveDeltaTime *= 0.6f; // Giảm tốc độ 40%
+        }
         
         super.update(moveDeltaTime);
 
@@ -173,6 +184,10 @@ public abstract class Animal extends LivingBeing {
         float distSq = this.position.distanceSquared(oldPosCache);
         this.isMoving = distSq > 0.0001f;
         float decayMultiplier = this.isMoving ? 1.5f : 1.0f;
+
+        if (onSand && !isDesertAdapted) {
+            decayMultiplier *= 2.0f; // Khát nhanh gấp đôi
+        }
 
         // Suy giảm sinh học (× 0.25 để thanh đói/khát tụt chậm hơn 4 lần)
         this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime * 0.25f));

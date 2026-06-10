@@ -74,7 +74,7 @@ public class RenderSystem {
         String[] herbivores = {"rabbit", "deer", "elephant"};
         for (String sp : herbivores) registerSpecies(sp, "HerbivoreAnimal");
 
-        String[] carnivores = {"tiger", "wolf"};
+        String[] carnivores = {"tiger", "wolf", "fox"};
         for (String sp : carnivores) registerSpecies(sp, "CarnivoreAnimal");
 
         String[] fishSpecies = {"clownfish", "shark", "sunfish"};
@@ -95,6 +95,8 @@ public class RenderSystem {
         for (int i = 1; i <= 2; i++) tryLoadAsset("bush_" + i, path + "Structures/Bush/Bush_" + i + ".png");
         for (int i = 1; i <= 3; i++) tryLoadAsset("rock_" + i, path + "Structures/Rock/Rock_" + i + ".png");
         loadAssetsFromDirectory(path + "village/");
+        loadAssetsFromDirectory(path + "desert/");
+        loadAssetsFromDirectory(path + "sea/");
 
         // Items
         for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
@@ -117,6 +119,7 @@ public class RenderSystem {
         String capitalizedSp = species.substring(0, 1).toUpperCase() + species.substring(1);
         String dirPath = path + category + "/" + capitalizedSp + "/";
         String prefix = species.equals("rabbit") ? "Rabbit_" : (species + "_");
+        if (species.equals("fox")) prefix = ""; // Ảnh của Fox không có tiền tố fox_
 
         tryLoadAsset(species + "_west", dirPath + "west.png");
         tryLoadAsset(species + "_walk", dirPath + prefix + "walk.png");
@@ -129,6 +132,9 @@ public class RenderSystem {
         }
         if (species.equals("elephant") || species.equals("tiger") || species.equals("wolf")) {
             tryLoadAsset(species + "_eat", dirPath + species + "_eat.png");
+        }
+        if (species.equals("fox")) {
+            tryLoadAsset(species + "_eat", dirPath + "eat.png");
         }
 
         tryLoadAsset(species + "_drink", dirPath + species + "_drink.png");
@@ -409,7 +415,17 @@ public class RenderSystem {
                     float aspect = (float) img.getHeight() / img.getWidth();
                     int w = (int) (e.getSize() * zoom);
                     int h = (int) (w * aspect);
+                    
+                    java.awt.Composite originalComposite = g2d.getComposite();
+                    if (e instanceof model.plants.Seaweed) {
+                        g2d.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.65f));
+                    }
+                    
                     g2d.drawImage(img, (int)screenPos.x - w/2, (int)screenPos.y - h/2, w, h, null);
+                    
+                    if (e instanceof model.plants.Seaweed) {
+                        g2d.setComposite(originalComposite);
+                    }
                 }
             }
         } else {

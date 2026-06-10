@@ -22,6 +22,7 @@ public final class AnimalProfile {
     private final Set<Class<? extends Plant>> ediblePlantTypes;
     private final boolean isAquatic;
     private final boolean isNocturnal;
+    private final boolean isDesertAdapted;
 
     private AnimalProfile(Builder builder) {
         this.entityLevel = builder.entityLevel;
@@ -38,6 +39,7 @@ public final class AnimalProfile {
         this.ediblePlantTypes = Collections.unmodifiableSet(new HashSet<>(builder.ediblePlantTypes));
         this.isAquatic = builder.isAquatic;
         this.isNocturnal = builder.isNocturnal;
+        this.isDesertAdapted = builder.isDesertAdapted;
     }
 
     public static AnimalProfile defaultFor(DietType dietType) {
@@ -82,7 +84,8 @@ public final class AnimalProfile {
             .maxPreySizeMultiplier(this.maxPreySizeMultiplier)
             .flockingMode(this.flockingMode)
             .isAquatic(this.isAquatic)
-            .isNocturnal(this.isNocturnal);
+            .isNocturnal(this.isNocturnal)
+            .isDesertAdapted(this.isDesertAdapted);
         for (Class<? extends Plant> pt : this.ediblePlantTypes) {
             b.ediblePlants(pt);
         }
@@ -111,6 +114,7 @@ public final class AnimalProfile {
     public FlockingMode getFlockingMode() { return flockingMode; }
     public boolean isAquatic() { return isAquatic; }
     public boolean isNocturnal() { return isNocturnal; }
+    public boolean isDesertAdapted() { return isDesertAdapted; }
 
     public static final class Builder {
         private int entityLevel = Entity.LEVEL_UNCLASSIFIED;
@@ -127,6 +131,7 @@ public final class AnimalProfile {
         private final Set<Class<? extends Plant>> ediblePlantTypes = new HashSet<>();
         private boolean isAquatic = false;
         private boolean isNocturnal = false;
+        private boolean isDesertAdapted = false;
 
         public Builder entityLevel(int entityLevel) {
             this.entityLevel = entityLevel;
@@ -199,6 +204,11 @@ public final class AnimalProfile {
 
         public Builder isNocturnal(boolean isNocturnal) {
             this.isNocturnal = isNocturnal;
+            return this;
+        }
+
+        public Builder isDesertAdapted(boolean isDesertAdapted) {
+            this.isDesertAdapted = isDesertAdapted;
             return this;
         }
 

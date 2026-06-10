@@ -124,6 +124,22 @@ public class BiomeGenerator {
         spawnSpecies(world, gameMap, plain, excludedZones, 10, 1, rand, (pos, index) -> new Wolf(pos));
         spawnSpecies(world, gameMap, forest, excludedZones, 18, 3, rand, (pos, index) -> new Wolf(pos));
 
+        // --- MỚI: Sinh Cáo ở sa mạc ---
+        int foxCountToSpawn = 5 + rand.nextInt(4); // 5 đến 8 con
+        int foxesSpawned = 0;
+        int maxAttempts = 1500;
+        while (foxesSpawned < foxCountToSpawn && maxAttempts > 0) {
+            maxAttempts--;
+            float x = rand.nextFloat() * world.getWidth();
+            float y = rand.nextFloat() * world.getHeight();
+            if (gameMap != null && gameMap.isSandTile(x, y)) {
+                Vector2 pos = new Vector2(x, y);
+                model.living_beings.Fox fox = new model.living_beings.Fox(pos);
+                addSpawnedAnimal(world, fox, rand);
+                foxesSpawned++;
+            }
+        }
+
         spawnMapWideWildlife(world, gameMap, excludedZones, rand, GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT);
     }
 
@@ -233,6 +249,24 @@ public class BiomeGenerator {
             if (pos != null) {
                 int type = normalTrees[rand.nextInt(normalTrees.length)];
                 world.addEntity(new FruitTree(pos, type));
+            }
+        }
+
+        // --- MỚI: Sinh thực vật sa mạc ---
+        int desertVegetationSpawned = 0;
+        int maxAttempts = 1500;
+        while (desertVegetationSpawned < 40 && maxAttempts > 0) {
+            maxAttempts--;
+            float x = rand.nextFloat() * world.getWidth();
+            float y = rand.nextFloat() * world.getHeight();
+            if (gameMap != null && gameMap.isSandTile(x, y)) {
+                Vector2 pos = new Vector2(x, y);
+                if (rand.nextFloat() < 0.6f) { // 60% xương rồng
+                    world.addEntity(new model.plants.Cactus(pos));
+                } else { // 40% cỏ khô
+                    world.addEntity(new model.plants.Straw(pos));
+                }
+                desertVegetationSpawned++;
             }
         }
     }
