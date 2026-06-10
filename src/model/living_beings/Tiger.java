@@ -13,6 +13,8 @@ public class Tiger extends CarnivoreAnimal {
             .canEatMeat(true)
             .attackDamagePerSecond(100.0f)
             .maxPreySizeMultiplier(1.5f)
+            .avoidsGuardedGardens(true)
+            .settlementPolicy(AnimalProfile.SettlementPolicy.AVOID)
             .build();
 
     public Tiger(Vector2 position) {

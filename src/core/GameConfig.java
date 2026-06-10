@@ -70,8 +70,10 @@ public class GameConfig {
     public final float DECORATIVE_STRUCTURE_SIZE = 50.0f;
     public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 70.0f;
     public final float VILLAGE_STRUCTURE_CLUSTER_RADIUS = 200.0f;
-    public final int HUMANS_PER_VILLAGE = 14;
+    public final int VILLAGERS_PER_VILLAGE = 10; // Số dân làng (Villager) mỗi làng (5 nam + 5 nữ)
     public final int HUNTERS_PER_VILLAGE = 2;
+    public final int FISHERMEN_PER_VILLAGE = 4; // Số ngư dân mỗi làng
+    public final boolean ENABLE_FALLBACK_VILLAGES = false;
     public final float HUMAN_CARRY_CAPACITY = 45.0f;
     public final float HUNTER_CARRY_CAPACITY = 180.0f;
     public final float VILLAGE_HOME_RADIUS_PADDING = 80.0f;

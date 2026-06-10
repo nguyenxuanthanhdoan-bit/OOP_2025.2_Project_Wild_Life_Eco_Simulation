@@ -1,7 +1,9 @@
 package model.navigation;
 
 import core.Vector2;
+import model.living_beings.Animal;
 import model.living_beings.LivingBeing;
+import model.navigation.PathNavigator.MovementContext;
 import model.world.World;
 
 import java.util.ArrayList;
@@ -24,6 +26,11 @@ public class TerrainNavigator {
     }
 
     public static boolean hasWalkableLine(World world, LivingBeing entity, Vector2 from, Vector2 to) {
+        return hasWalkableLine(world, entity, from, to, MovementContext.NORMAL);
+    }
+
+    public static boolean hasWalkableLine(World world, LivingBeing entity, Vector2 from, Vector2 to,
+                                          MovementContext context) {
         if (world == null || entity == null || from == null || to == null) return false;
 
         float dist = from.distanceTo(to);
@@ -35,6 +42,9 @@ public class TerrainNavigator {
                     from.y + (to.y - from.y) * t
             );
             if (!isWalkable(world, entity, sample)) {
+                return false;
+            }
+            if (traversalMultiplier(world, entity, sample, context) > 1.0f) {
                 return false;
             }
         }
@@ -76,10 +86,20 @@ public class TerrainNavigator {
     }
 
     public static List<Vector2> findPath(World world, LivingBeing entity, Vector2 target) {
-        return findPath(world, entity, target, DEFAULT_MAX_SEARCH_TILES);
+        return findPath(world, entity, target, DEFAULT_MAX_SEARCH_TILES, MovementContext.NORMAL);
+    }
+
+    public static List<Vector2> findPath(World world, LivingBeing entity, Vector2 target,
+                                         MovementContext context) {
+        return findPath(world, entity, target, DEFAULT_MAX_SEARCH_TILES, context);
     }
 
     public static List<Vector2> findPath(World world, LivingBeing entity, Vector2 target, int maxSearchTiles) {
+        return findPath(world, entity, target, maxSearchTiles, MovementContext.NORMAL);
+    }
+
+    public static List<Vector2> findPath(World world, LivingBeing entity, Vector2 target,
+                                         int maxSearchTiles, MovementContext context) {
         if (world == null || entity == null || entity.getPosition() == null || target == null) {
             return Collections.emptyList();
         }
@@ -116,7 +136,7 @@ public class TerrainNavigator {
             visited++;
 
             if (current.coord.equals(goal)) {
-                return smoothPath(reconstruct(current), world, entity);
+                return smoothPath(reconstruct(current), world, entity, context);
             }
 
             for (int[] step : DIRECTIONS) {
@@ -133,6 +153,7 @@ public class TerrainNavigator {
 
                 TileCoord nextCoord = new TileCoord(nx, ny);
                 float stepCost = (step[0] == 0 || step[1] == 0) ? 10.0f : 14.0f;
+                stepCost *= traversalMultiplier(world, entity, tileCenter(nx, ny), context);
                 float nextG = current.g + stepCost;
 
                 PathNode next = allNodes.get(nextCoord);
@@ -214,7 +235,8 @@ public class TerrainNavigator {
         return path;
     }
 
-    private static List<Vector2> smoothPath(List<Vector2> path, World world, LivingBeing entity) {
+    private static List<Vector2> smoothPath(List<Vector2> path, World world, LivingBeing entity,
+                                            MovementContext context) {
         if (path.size() < 3) return path;
 
         List<Vector2> smoothed = new ArrayList<>();
@@ -223,7 +245,7 @@ public class TerrainNavigator {
         while (i < path.size()) {
             int next = path.size() - 1;
             while (next > i) {
-                if (hasWalkableLine(world, entity, anchor, path.get(next))) break;
+                if (hasWalkableLine(world, entity, anchor, path.get(next), context)) break;
                 next--;
             }
             Vector2 waypoint = path.get(next);
@@ -232,6 +254,22 @@ public class TerrainNavigator {
             i = next + 1;
         }
         return smoothed;
+    }
+
+    private static float traversalMultiplier(World world, LivingBeing entity, Vector2 pos,
+                                             MovementContext context) {
+        if (!(entity instanceof Animal) || world.getSettlementManager() == null
+                || !world.getSettlementManager().isInsideSettlement(pos)) {
+            return 1.0f;
+        }
+
+        Animal animal = (Animal) entity;
+        if (animal.getProfile().getSettlementPolicy()
+                != model.living_beings.AnimalProfile.SettlementPolicy.AVOID) {
+            return 1.0f;
+        }
+        return context == MovementContext.HUNTING || context == MovementContext.FLEEING
+                ? 1.0f : 8.0f;
     }
 
     private static float heuristic(TileCoord a, TileCoord b) {

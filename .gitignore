@@ -28,3 +28,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Generated diagnostics ###
+game_output.log
+output.log
+sources_all.txt

@@ -32,7 +32,7 @@ public class HunterStrategy implements IStrategy {
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
-        if (ownerAnimal instanceof Human && ((Human) ownerAnimal).isHunter()) {
+        if (ownerAnimal instanceof Human && ((Human) ownerAnimal).canHuntRole()) {
             executeHumanHunter((Human) ownerAnimal, world, deltaTime);
             return;
         }
@@ -217,7 +217,8 @@ public class HunterStrategy implements IStrategy {
                 }
                 
                 targetNavigator.moveTo(ownerAnimal, world, targetFood.getPosition(), deltaTime,
-                        interactRange, targetFood instanceof Animal ? 0.6f : 1.2f);
+                        interactRange, targetFood instanceof Animal ? 0.6f : 1.2f,
+                        MovementContext.HUNTING);
                 if (targetNavigator.isBlocked()) {
                     targetFood = null;
                     ownerAnimal.setActionState("idle");
@@ -465,7 +466,8 @@ public class HunterStrategy implements IStrategy {
         }
 
         targetNavigator.moveTo(hunter, world, targetFood.getPosition(), deltaTime,
-                interactRange, targetFood instanceof Animal ? 0.5f : 1.0f);
+                interactRange, targetFood instanceof Animal ? 0.5f : 1.0f,
+                MovementContext.HUNTING);
         if (targetNavigator.isBlocked()) {
             targetFood = null;
             targetNavigator.clear();
@@ -502,7 +504,8 @@ public class HunterStrategy implements IStrategy {
         hunter.setHunger(hunter.getHunger() - extraHunger);
         hunter.setThirst(hunter.getThirst() - extraThirst);
 
-        targetNavigator.moveTo(hunter, world, prey.getPosition(), deltaTime, shootRange * 0.75f, 0.5f);
+        targetNavigator.moveTo(hunter, world, prey.getPosition(), deltaTime,
+                shootRange * 0.75f, 0.5f, MovementContext.HUNTING);
         if (targetNavigator.isBlocked()) {
             targetFood = null;
             targetNavigator.clear();
@@ -563,6 +566,9 @@ public class HunterStrategy implements IStrategy {
     }
 
     private FoodStorage findNearestHomeFoodStorage(Human hunter, World world) {
+        if (hunter.getHomeSettlement() != null) {
+            return hunter.getHomeSettlement().findNearestFoodStorage(hunter.getPosition(), false);
+        }
         List<Entity> candidates = world.getSpatialGrid() != null
                 ? world.getSpatialGrid().getNeighbors(hunter.getHomeCenter(), hunter.getHomeRadius())
                 : world.getEntities();

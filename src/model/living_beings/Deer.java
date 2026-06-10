@@ -25,6 +25,8 @@ public class Deer extends HerbivoreAnimal {
             .flockingMode(FlockingMode.BASIC)
             .canHide(true)
             .canBeScared(true)
+            .avoidsGuardedGardens(true)
+            .canEnterGardens(core.GameConfig.getInstance().ALLOW_DEER_ENTER_GARDEN)
             .build();
 
     public Deer(Vector2 position, int herdId) {

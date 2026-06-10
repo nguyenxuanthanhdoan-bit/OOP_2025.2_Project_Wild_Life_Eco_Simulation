@@ -2,6 +2,7 @@ package model.world;
 
 import core.Vector2;
 import model.entity.Entity;
+import model.living_beings.Human;
 import model.structures.Boat;
 import model.structures.FishingHut;
 
@@ -97,6 +98,26 @@ public class CoastalManager {
             if (d < bestDist) { bestDist = d; best = hut; }
         }
         return best;
+    }
+
+    public Boat reserveAvailableBoat(Human fisherman) {
+        if (fisherman == null) return null;
+
+        Boat best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (Boat boat : boats) {
+            if (!boat.isAlive() || !boat.canBoard()) continue;
+            float dist = fisherman.getPosition().distanceTo(boat.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = boat;
+            }
+        }
+        return best != null && best.reserveSeat(fisherman) ? best : null;
+    }
+
+    public void releaseBoatReservation(Boat boat, Human fisherman) {
+        if (boat != null) boat.releaseReservation(fisherman);
     }
 
     // =========================================================

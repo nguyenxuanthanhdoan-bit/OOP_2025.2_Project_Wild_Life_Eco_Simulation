@@ -13,7 +13,9 @@ public class PathNavigator {
     public enum MovementContext {
         NORMAL,
         SEEKING_WATER,
-        SEEKING_STRUCTURE
+        SEEKING_STRUCTURE,
+        HUNTING,
+        FLEEING
     }
 
     private final List<Vector2> path = new ArrayList<>();
@@ -40,7 +42,8 @@ public class PathNavigator {
 
         repathTimer -= deltaTime;
 
-        boolean direct = TerrainNavigator.hasWalkableLine(world, animal, animal.getPosition(), target);
+        boolean direct = TerrainNavigator.hasWalkableLine(
+                world, animal, animal.getPosition(), target, context);
         if (direct) {
             clear();
             moveAlong(animal, world, target, deltaTime, context);
@@ -49,7 +52,7 @@ public class PathNavigator {
 
         if (needsRepath(target, repathInterval)) {
             path.clear();
-            List<Vector2> newPath = TerrainNavigator.findPath(world, animal, target);
+            List<Vector2> newPath = TerrainNavigator.findPath(world, animal, target, context);
             path.addAll(newPath);
             lastTarget = target.copy();
             repathTimer = repathInterval;
@@ -67,7 +70,7 @@ public class PathNavigator {
 
         if (path.isEmpty()) return false;
 
-        skipVisibleWaypoints(animal, world);
+        skipVisibleWaypoints(animal, world, context);
         moveAlong(animal, world, path.get(0), deltaTime, context);
         return false;
     }
@@ -90,9 +93,10 @@ public class PathNavigator {
         return lastTarget.distanceSquared(target) > 64.0f * 64.0f;
     }
 
-    private void skipVisibleWaypoints(Animal animal, World world) {
+    private void skipVisibleWaypoints(Animal animal, World world, MovementContext context) {
         for (int i = path.size() - 1; i > 0; i--) {
-            if (TerrainNavigator.hasWalkableLine(world, animal, animal.getPosition(), path.get(i))) {
+            if (TerrainNavigator.hasWalkableLine(
+                    world, animal, animal.getPosition(), path.get(i), context)) {
                 for (int j = 0; j < i; j++) path.remove(0);
                 return;
             }

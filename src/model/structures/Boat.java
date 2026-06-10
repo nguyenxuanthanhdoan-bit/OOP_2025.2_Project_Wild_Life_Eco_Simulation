@@ -4,8 +4,11 @@ import core.Vector2;
 import model.entity.Structure;
 import model.living_beings.Human;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Thuyền đánh cá — có thể chứa tối đa 2 người và di chuyển ra biển thả lưới.
@@ -13,6 +16,7 @@ import java.util.Random;
 public class Boat extends Structure {
     public static final float BOAT_SIZE = 56.0f;
     public static final float DOCK_RADIUS = 80.0f;
+    private static final int CAPACITY = 2;
 
     public enum BoatState {
         DOCKED,
@@ -23,8 +27,9 @@ public class Boat extends Structure {
     }
 
     private BoatState state = BoatState.DOCKED;
-    private List<Human> passengers = new ArrayList<>();
-    private Vector2 dockPosition;
+    private final List<Human> passengers = new ArrayList<>();
+    private final Set<UUID> reservations = new HashSet<>();
+    private final Vector2 dockPosition;
     private Vector2 fishingSpot;
     private float timer = 0f;
     private Random rand = new Random();
@@ -36,20 +41,44 @@ public class Boat extends Structure {
 
     public BoatState getState() { return state; }
     public List<Human> getPassengers() { return passengers; }
+    public Vector2 getDockPosition() { return dockPosition.copy(); }
+
     public boolean canBoard() {
-        return (state == BoatState.DOCKED || state == BoatState.BOARDING) && passengers.size() < 2;
+        return canAcceptPassengers() && passengers.size() + reservations.size() < CAPACITY;
     }
 
-    public void board(Human h) {
-        if (!passengers.contains(h)) {
-            passengers.add(h);
-            state = BoatState.BOARDING;
-            timer = 10f; // Chờ thêm 10s cho người thứ 2
-        }
+    public boolean reserveSeat(Human human) {
+        if (human == null || passengers.contains(human)) return false;
+        if (reservations.contains(human.getId())) return true;
+        if (!canBoard()) return false;
+        return reservations.add(human.getId());
+    }
+
+    public void releaseReservation(Human human) {
+        if (human != null) reservations.remove(human.getId());
+    }
+
+    public boolean isReservedBy(Human human) {
+        return human != null && reservations.contains(human.getId());
+    }
+
+    public boolean board(Human human) {
+        if (human == null || passengers.contains(human) || !canAcceptPassengers()) return false;
+        if (!isReservedBy(human) && passengers.size() + reservations.size() >= CAPACITY) return false;
+        reservations.remove(human.getId());
+        passengers.add(human);
+        state = BoatState.BOARDING;
+        timer = 10f;
+        return true;
     }
     
-    public void unboard(Human h) {
-        passengers.remove(h);
+    public void unboard(Human human) {
+        passengers.remove(human);
+        releaseReservation(human);
+    }
+
+    private boolean canAcceptPassengers() {
+        return state == BoatState.DOCKED || state == BoatState.BOARDING;
     }
 
     @Override
@@ -59,7 +88,7 @@ public class Boat extends Structure {
         switch (state) {
             case BOARDING:
                 timer -= deltaTime;
-                if (passengers.size() == 2 || timer <= 0) {
+                if (passengers.size() == CAPACITY || (timer <= 0 && reservations.isEmpty())) {
                     state = BoatState.SAILING_OUT;
                     fishingSpot = findFishingSpot();
                 }

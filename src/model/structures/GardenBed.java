@@ -6,6 +6,8 @@ import model.entity.Structure;
 import model.garden.CropState;
 import model.garden.CropType;
 
+import java.util.UUID;
+
 /**
  * Một chậu cây trong vườn.
  * Có chức năng quản lý logic sinh trưởng của chính nó.
@@ -16,8 +18,7 @@ public class GardenBed extends Structure {
     private CropState currentState;
     private float growthTimer;
     
-    // Đánh dấu để AI biết chậu này đang được ai đó thu hoạch
-    private boolean beingHarvested = false;
+    private UUID reservedBy;
 
     public GardenBed(Vector2 position) {
         // Khởi tạo là một Structure với size = GARDEN_BED_SIZE, solid = false (để AI có thể đứng sát hoặc đi vào nếu cần)
@@ -49,11 +50,14 @@ public class GardenBed extends Structure {
         }
     }
 
-    public void harvest() {
-        this.beingHarvested = false;
+    public float harvest(model.entity.Entity owner) {
+        if (!isReservedBy(owner) || currentState != CropState.MATURE) return 0.0f;
+        float yield = currentCropType.getFoodYield();
+        this.reservedBy = null;
         this.currentState = CropState.SEED;
         this.growthTimer = 0f;
         this.imageVariant = currentCropType.getSpriteForState(CropState.SEED);
+        return yield;
     }
 
     public CropState getCurrentState() {
@@ -65,10 +69,23 @@ public class GardenBed extends Structure {
     }
 
     public boolean isBeingHarvested() {
-        return beingHarvested;
+        return reservedBy != null;
     }
 
-    public void setBeingHarvested(boolean beingHarvested) {
-        this.beingHarvested = beingHarvested;
+    public boolean reserve(model.entity.Entity owner) {
+        if (owner == null || !isMature()) return false;
+        if (reservedBy == null || reservedBy.equals(owner.getId())) {
+            reservedBy = owner.getId();
+            return true;
+        }
+        return false;
+    }
+
+    public void releaseReservation(model.entity.Entity owner) {
+        if (isReservedBy(owner)) reservedBy = null;
+    }
+
+    public boolean isReservedBy(model.entity.Entity owner) {
+        return owner != null && reservedBy != null && reservedBy.equals(owner.getId());
     }
 }

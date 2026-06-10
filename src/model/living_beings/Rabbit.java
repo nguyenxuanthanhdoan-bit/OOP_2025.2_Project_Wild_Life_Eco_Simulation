@@ -24,6 +24,7 @@ public class Rabbit extends HerbivoreAnimal {
             .flockingMode(FlockingMode.BASIC)
             .canHide(true)
             .canBeScared(true)
+            .avoidsGuardedGardens(true)
             .build();
 
     private final Random random = new Random();

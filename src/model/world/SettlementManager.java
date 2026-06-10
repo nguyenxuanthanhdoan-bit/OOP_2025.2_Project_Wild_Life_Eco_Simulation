@@ -13,7 +13,7 @@ import java.util.List;
  * Trách nhiệm:
  *   1. Lưu trữ danh sách {@link Settlement} được tạo ra khi khởi tạo map.
  *   2. Cung cấp API tìm nhà gần nhất với bất kỳ vị trí nào trên bản đồ.
- *   3. Kiểm tra xem một vị trí có nằm trong vùng cấm động vật nguy hiểm không.
+ *   3. Kiểm tra xem một vị trí có nằm trong phạm vi settlement không.
  *
  * Vòng đời:
  *   - {@link model.world.BiomeGenerator} gọi {@link #addSettlement(Settlement)}
@@ -120,13 +120,13 @@ public class SettlementManager {
 
     /**
      * Kiểm tra nhanh xem vị trí {@code pos} có nằm trong bất kỳ vùng
-     * Safe Zone (vùng cấm động vật nguy hiểm) nào không.
+     * phạm vi Settlement nào không.
      *
      * Được gọi bởi {@link model.world.World#isValidPositionFor()} để reject
      * movement của động vật nguy hiểm vào làng.
      *
      * @param pos Vị trí cần kiểm tra (world coordinates)
-     * @return {@code true} nếu nằm trong vùng cấm của ít nhất 1 settlement
+     * @return {@code true} nếu nằm trong ít nhất một settlement
      */
     public boolean isInsideSettlement(Vector2 pos) {
         if (pos == null || settlements.isEmpty()) return false;

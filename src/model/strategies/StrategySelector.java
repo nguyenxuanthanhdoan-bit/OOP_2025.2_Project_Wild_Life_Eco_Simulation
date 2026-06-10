@@ -9,6 +9,11 @@ public final class StrategySelector {
     public static IStrategy select(Animal animal) {
         if (animal == null || !animal.isAliveState()) return null;
 
+        IStrategy current = animal.getCurrentStrategy();
+        if (current != null && current.isInNonInterruptiblePhase()) {
+            return current;
+        }
+
         boolean criticalHunger = animal.getHunger() < animal.getMaxHunger() * Animal.CRITICAL_SURVIVAL_THRESHOLD;
         boolean criticalThirst = animal.getThirst() < animal.getMaxThirst() * Animal.CRITICAL_SURVIVAL_THRESHOLD;
         boolean hungry = animal.getHunger() < animal.getMaxHunger() * Animal.HUNGER_WARNING_THRESHOLD;
@@ -23,8 +28,7 @@ public final class StrategySelector {
         boolean isAquatic = animal.getProfile().isAquatic();
         boolean isNocturnal = animal.getProfile().isNocturnal();
 
-        // [MỚI] Động vật (kể cả thú ăn thịt) sẽ bỏ chạy nếu thấy người gần vườn
-        if (!isAquatic && !(animal instanceof Human) && animal.hasGardenThreat()) {
+        if (!isAquatic && animal.hasGardenThreat()) {
             return currentOrNew(animal, ScaredStrategy.class, new ScaredStrategy());
         }
 
@@ -35,85 +39,74 @@ public final class StrategySelector {
         if (animal instanceof Human) {
             Human human = (Human) animal;
 
-            // =============================================
-            // AI GOAL SYSTEM CHO HUMAN
-            // Con người là thực thể tối cao — không có kẻ thù.
-            // Priority: GO_HOME (ban đêm) > WANDER (ban ngày)
-            // =============================================
-
-            // 1. GO_HOME / SLEEP: Ban đêm → về nhà ngủ
-            if (isNight && !isAquatic) {
-                if (human.isVillager()) {
-                    return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
+            // 2. Đói cực kỳ nguy hiểm
+            if (criticalHunger) {
+                if (human.canHuntForVillage()) {
+                    return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
                 }
-                // Hunter ban đêm: săn nếu cần, còn không thì về nhà
-                if (human.isHunter()) {
-                    if (criticalHunger || hungry || human.shouldHuntForVillage()) {
-                        return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
-                    }
-                    return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
-                }
-            }
-
-
-            // 2. Phân công công việc ban ngày theo giới tính
-            if (!isNight && animal.getWorld() != null) {
-                if (human.getVariant() == Human.Variant.FEMALE) {
-                    // Phụ nữ ưu tiên thu hoạch chậu hoa trưởng thành
-                    if (animal.getCurrentStrategy() instanceof HarvestStrategy) {
-                        return animal.getCurrentStrategy();
-                    }
-                    model.structures.GardenBed bed = animal.getWorld().getCropManager().findNearestMatureCrop(animal.getPosition());
-                    if (bed != null) {
-                        return new HarvestStrategy(bed);
-                    }
-                } else if (human.getVariant() == Human.Variant.MALE) {
-                    if (human.getRole() == model.living_beings.HumanRole.FISHERMAN) {
-                        // Đàn ông đi chài lưới
-                        if (animal.getCurrentStrategy() instanceof BoardBoatStrategy) {
-                            return animal.getCurrentStrategy();
-                        }
-                        
-                        // Tìm thuyền đang neo bến
-                        model.structures.Boat targetBoat = null;
-                        for (model.entity.Entity e : animal.getWorld().getEntities()) {
-                            if (e instanceof model.structures.Boat) {
-                                model.structures.Boat b = (model.structures.Boat) e;
-                                if (b.canBoard() && b.getPosition().distanceTo(animal.getPosition()) < 1500f) {
-                                    targetBoat = b;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (targetBoat != null) {
-                            return new BoardBoatStrategy(targetBoat);
-                        }
-                    }
-                }
-            }
-
-            // 3. Logic Hunter ban ngày
-            if (human.isHunter() && shouldHunterReturnFood(human)) {
-                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
-            }
-            if (human.isHunter() && (criticalHunger || hungry || human.shouldHuntForVillage())) {
-                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
-            }
-
-            // 4. WANDER: Ban ngày → lang thang trong homeArea
-            if (criticalThirst) {
                 return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
             }
+
+            if (current != null && current.isCommittedTask()
+                    && !current.shouldInterrupt(animal, animal.getWorld())) {
+                return current;
+            }
+
+            // 3. Hunter đang mang thịt/hết đạn → về kho
+            if (human.canHuntRole() && shouldHunterReturnFood(human)) {
+                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+            }
+
+            // 4. Ban đêm: tất cả canUseHouse() về nhà ngủ
+            if (isNight && human.canUseHouse()) {
+                if (human.canHuntRole()) {
+                    // Hunter ban đêm: săn khi cần, còn không thì về nhà
+                    if (hungry || human.canHuntForVillage()) {
+                        return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+                    }
+                }
+                return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
+            }
+
+            // 5. Đói / khát thông thường
             if (hungry && human.canForageForFood()) {
                 return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
             }
             if (thirsty) {
                 return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
             }
+
+            // 6. Hunter ban ngày: săn mồi / về kho
+            if (human.canHuntRole() && (hungry || human.canHuntForVillage())) {
+                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+            }
+
+            // 7. Sinh sản (Villager và Fisherman)
             if (human.canReproduce()) {
                 return currentOrNew(animal, MatingStrategy.class, new MatingStrategy());
             }
+
+            // 8. Công việc theo capability của role (ban ngày)
+            if (!isNight && animal.getWorld() != null) {
+                // Harvest: giữ strategy nếu đang làm dở
+                if (human.canHarvest()) {
+                    model.structures.GardenBed bed = animal.getWorld().getCropManager()
+                            .reserveNearestMatureCrop(human);
+                    if (bed != null) {
+                        return new HarvestStrategy(bed);
+                    }
+                }
+
+                if (human.canFish()) {
+                    model.structures.Boat targetBoat = animal.getWorld().getCoastalManager()
+                            .reserveAvailableBoat(human);
+                    if (targetBoat != null) {
+                        return new BoardBoatStrategy(targetBoat);
+                    }
+                }
+            }
+
+            // 9. Passive — lang thang trong homeArea
             return currentOrNew(animal, PassiveStrategy.class, new PassiveStrategy());
         }
 
@@ -167,4 +160,5 @@ public final class StrategySelector {
         }
         return human.isCarryingFoodAtLeast(core.GameConfig.getInstance().HUNTER_RETURN_FOOD_RATIO);
     }
+
 }

@@ -27,10 +27,14 @@ public class Human extends Animal {
     }
 
     private static final float SIZE = 32.0f;
-    protected static final AnimalProfile VILLAGER_PROFILE = AnimalProfile.builder()
+    // Profile dùng chung cho Villager và Fisherman (cả hai đều là dân thường)
+    protected static final AnimalProfile CIVILIAN_PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_HERBIVORE)
+            .canBeScared(true)
+            .canHide(true)
             .canEatPlants(true)
             .ediblePlants(Fruit.class, Mushroom.class)
+            .canEnterGardens(true)
             .build();
     protected static final AnimalProfile HUNTER_PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_APEX_ANIMAL)
@@ -38,6 +42,7 @@ public class Human extends Animal {
             .canEatMeat(true)
             .attackDamagePerSecond(90.0f)
             .maxPreySizeMultiplier(2.0f)
+            .canEnterGardens(true)
             .build();
 
     private final String spriteKey;
@@ -48,7 +53,7 @@ public class Human extends Animal {
     private final float carryCapacity;
     private float carriedFood;
     private House hiddenInHouse = null;
-    private boolean isFishing = false;
+    private model.world.Settlement homeSettlement;
 
     public Human(Vector2 position) {
         this(position, Variant.MALE);
@@ -92,28 +97,28 @@ public class Human extends Animal {
         this.maxAge = 10000.0f;
         this.visionRange = 260.0f;
         this.adult = true;
-        this.profile = this.role == HumanRole.HUNTER ? HUNTER_PROFILE : VILLAGER_PROFILE;
+        this.profile = this.role.canHunt() ? HUNTER_PROFILE : CIVILIAN_PROFILE;
         setStrategy(new PassiveStrategy());
     }
 
     private static Variant resolveVariant(String spriteKey, HumanRole role) {
-        if (role == HumanRole.HUNTER) return null;
+        if (role.canHunt()) return null;
         return Variant.FEMALE.spriteKey.equals(spriteKey) ? Variant.FEMALE : Variant.MALE;
     }
 
     @Override
     public boolean canReproduce() {
-        return isVillager() && super.canReproduce();
+        return role.canReproduce() && super.canReproduce();
     }
 
     @Override
     public boolean canMateWith(Animal other) {
         if (!(other instanceof Human) || !super.canMateWith(other)) return false;
         Human human = (Human) other;
-        return isVillager()
-                && human.isVillager()
-                && isInHomeArea(human.getPosition())
-                && human.isInHomeArea(getPosition())
+        return role.canReproduce()
+                && human.role.canReproduce()
+                && homeSettlement != null
+                && homeSettlement == human.homeSettlement
                 && variant != null
                 && human.variant != null
                 && variant != human.variant;
@@ -140,6 +145,17 @@ public class Human extends Animal {
     public boolean isHunter() {
         return role == HumanRole.HUNTER;
     }
+
+    // =========================================================
+    // CAPABILITY METHODS — delegate to role
+    // =========================================================
+
+    public boolean canHarvest()        { return role.canHarvest(); }
+    public boolean canFish()           { return role.canFish(); }
+    public boolean canHuntRole()       { return role.canHunt(); }
+    public boolean canHuntForVillage() { return role.canHunt() && shouldHuntForVillage(); }
+    public boolean canUseHouse()       { return role.canUseHouse(); }
+    public boolean canReproduceRole()  { return role.canReproduce(); }
 
     public Variant getVariant() {
         return variant;
@@ -177,12 +193,12 @@ public class Human extends Animal {
         return carryCapacity;
     }
 
-    public boolean isFishing() {
-        return isFishing;
+    public model.world.Settlement getHomeSettlement() {
+        return homeSettlement;
     }
 
-    public void setFishing(boolean fishing) {
-        this.isFishing = fishing;
+    public void setHomeSettlement(model.world.Settlement settlement) {
+        this.homeSettlement = settlement;
     }
 
     public boolean hasCarriedFood() {
@@ -233,7 +249,7 @@ public class Human extends Animal {
     }
 
     public boolean shouldHuntForVillage() {
-        if (!isHunter() || carriedFood > 0.01f) return false;
+        if (!role.canHunt() || carriedFood > 0.01f) return false;
         if (hunger < maxHunger * 0.95) return true;
         FoodStorage storage = findHomeFoodStorage();
         return storage != null && storage.getStoredFood() < storage.getCapacity() * 0.35f;
@@ -241,6 +257,9 @@ public class Human extends Animal {
 
     private FoodStorage findHomeFoodStorage() {
         if (worldRef == null) return null;
+        if (homeSettlement != null) {
+            return homeSettlement.findNearestFoodStorage(position, false);
+        }
         Iterable<Entity> candidates = worldRef.getSpatialGrid() != null
                 ? worldRef.getSpatialGrid().getNeighbors(homeCenter, homeRadius)
                 : worldRef.getEntities();
@@ -263,7 +282,9 @@ public class Human extends Animal {
      * Yêu cầu phải đứng gần nhà đủ để vào.
      */
     public boolean enterHouse(House house) {
-        if (house == null || !house.hasSpace() || !isNearStructure(house, house.getSize() * 0.2f)) {
+        if (house == hiddenInHouse) return true;
+        if (house == null || !house.hasSpace()
+                || !isNearStructure(house, house.getSize() * 0.2f)) {
             return false;
         }
         if (!house.enter(this)) return false;
@@ -291,7 +312,11 @@ public class Human extends Animal {
      */
     public boolean isTouchingHouse(House house) {
         if (house == null) return false;
-        float touchDist = this.getSize() / 2.0f + house.getSize() / 2.0f;
+        float humanRadius = getCollider() != null
+                ? getCollider().getRadius() : getSize() * 0.4f;
+        float houseRadius = house.getCollider() != null
+                ? house.getCollider().getRadius() : house.getSize() * 0.4f;
+        float touchDist = humanRadius + houseRadius + 2.0f;
         return this.getPosition().distanceTo(house.getPosition()) <= touchDist;
     }
 
@@ -314,6 +339,15 @@ public class Human extends Animal {
         this.setSpeed(this.baseSpeed);
     }
 
+    public boolean tryExitHouseSafely() {
+        if (hiddenInHouse == null) return true;
+        Vector2 exitPosition = findWakeupPosition(hiddenInHouse);
+        if (exitPosition == null) return false;
+        exitHouse();
+        setPosition(exitPosition);
+        return true;
+    }
+
     public House getHiddenInHouse() {
         return hiddenInHouse;
     }
@@ -328,6 +362,7 @@ public class Human extends Animal {
     public Animal reproduce() {
         Variant childVariant = Math.random() < 0.5 ? Variant.MALE : Variant.FEMALE;
         Human child = new Human(getPosition().copy(), childVariant, homeCenter, homeRadius);
+        child.setHomeSettlement(homeSettlement);
         child.setAge(0);
         child.size = SIZE * 0.55f;
         child.setAdult(false);
@@ -336,7 +371,8 @@ public class Human extends Animal {
 
     @Override
     protected model.items.Carcass createCarcass() {
-        return new model.items.Carcass(position.copy(), 24.0f, 80.0f, 120.0f, 80.0f, speciesName);
+        return new model.items.Carcass(
+                position.copy(), 24.0f, 80.0f, 120.0f, 80.0f, speciesName, true);
     }
 
     /**
@@ -356,14 +392,7 @@ public class Human extends Animal {
 
             // Chỉ thoát nhà khi trời sáng VÀ an toàn
             if (!isNight && !threatened) {
-                House wasIn = hiddenInHouse;
-                exitHouse();
-
-                // Spawn lại gần cửa nhà
-                Vector2 wakePos = findWakeupPosition(wasIn);
-                if (wakePos != null) {
-                    setPosition(wakePos);
-                }
+                tryExitHouseSafely();
             }
         }
         super.update(deltaTime);
@@ -377,23 +406,23 @@ public class Human extends Animal {
     private Vector2 findWakeupPosition(House house) {
         if (house == null) return null;
         Vector2 housePos = house.getPosition();
-        if (worldRef == null) return housePos.copy();
+        model.world.World currentWorld = worldRef != null ? worldRef : getWorld();
+        if (currentWorld == null) return null;
 
         Random rng = new Random();
         float spawnRadius = house.getSize() + this.size + 20.0f;
 
-        for (int attempt = 0; attempt < 12; attempt++) {
+        for (int attempt = 0; attempt < 32; attempt++) {
             double angle = rng.nextDouble() * Math.PI * 2.0;
             double dist  = spawnRadius * (0.6 + rng.nextDouble() * 0.6);
             float cx = (float) (housePos.x + Math.cos(angle) * dist);
             float cy = (float) (housePos.y + Math.sin(angle) * dist);
             Vector2 candidate = new Vector2(cx, cy);
-            if (worldRef.isValidPositionFor(this, candidate)) {
+            if (currentWorld.isValidPositionFor(this, candidate)) {
                 return candidate;
             }
         }
-        // Fallback: spawn ngay tại vị trí nhà
-        return housePos.copy();
+        return null;
     }
 
     /**
@@ -410,21 +439,17 @@ public class Human extends Animal {
     }
 
     /**
-     * Con người là thực thể tối cao — không loài động vật nào có thể săn được.
+     * Con người có thể bị săn bởi động vật dựa theo role:
+     * Villager và Fisherman có thể bị săn; Hunter không thể bị săn.
      */
     @Override
     public boolean canBeHuntedBy(Animal predator) {
-        return false;
+        return role.canBeHunted();
     }
 
     @Override
     public boolean canEatFoodSource(FoodSource food) {
-        if (food instanceof Carcass) {
-            String sourceSpecies = ((Carcass) food).getSourceSpecies();
-            if ("Dân làng".equals(sourceSpecies) || "Thợ săn".equals(sourceSpecies)) {
-                return false;
-            }
-        }
+        if (food instanceof Carcass && ((Carcass) food).isHumanSource()) return false;
         return super.canEatFoodSource(food);
     }
 

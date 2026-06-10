@@ -133,7 +133,14 @@ public abstract class LivingBeing extends Entity {
     protected model.strategies.IStrategy currentStrategy;
 
     public void setStrategy(model.strategies.IStrategy strategy) {
+        if (strategy == this.currentStrategy) return; // tránh reset strategy đang chạy
+        if (this.currentStrategy != null) {
+            this.currentStrategy.onExit(this, this.world);
+        }
         this.currentStrategy = strategy;
+        if (this.currentStrategy != null) {
+            this.currentStrategy.onEnter(this, this.world);
+        }
     }
 
     public model.strategies.IStrategy getCurrentStrategy() {

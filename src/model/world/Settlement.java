@@ -1,7 +1,10 @@
 package model.world;
 
 import core.Vector2;
+import model.structures.FoodStorage;
+import model.structures.GardenBed;
 import model.structures.House;
+import model.structures.Well;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,18 +18,20 @@ import java.util.List;
  *   - Quản lý danh sách các ngôi nhà thuộc khu dân cư đó.
  *   - Cung cấp API tìm ngôi nhà gần nhất với một vị trí cho trước.
  *
- * Động vật nguy hiểm (Wolf, Tiger, Elephant, Deer) KHÔNG được phép
- * di chuyển vào vùng này — kiểm tra qua {@link #isInsideSafeZone(Vector2)}.
+ * Quyền đi qua vùng làng do AnimalProfile và navigation context quyết định.
  */
 public class Settlement {
 
     private final Vector2 center;
     private final float safeRadius;
     private final List<House> houses = new ArrayList<>();
+    private final List<Well> wells = new ArrayList<>();
+    private final List<FoodStorage> foodStorages = new ArrayList<>();
+    private final List<GardenBed> gardenBeds = new ArrayList<>();
 
     /**
      * @param center     Tâm của khu dân cư (thường là clusterCenter của polygon làng)
-     * @param safeRadius Bán kính vùng cấm động vật nguy hiểm
+     * @param safeRadius Bán kính phạm vi settlement
      */
     public Settlement(Vector2 center, float safeRadius) {
         this.center = center == null ? new Vector2(0, 0) : center.copy();
@@ -51,6 +56,30 @@ public class Settlement {
      */
     public List<House> getHouses() {
         return Collections.unmodifiableList(houses);
+    }
+
+    public void addWell(Well well) {
+        if (well != null && !wells.contains(well)) wells.add(well);
+    }
+
+    public void addFoodStorage(FoodStorage storage) {
+        if (storage != null && !foodStorages.contains(storage)) foodStorages.add(storage);
+    }
+
+    public void addGardenBed(GardenBed bed) {
+        if (bed != null && !gardenBeds.contains(bed)) gardenBeds.add(bed);
+    }
+
+    public List<Well> getWells() {
+        return Collections.unmodifiableList(wells);
+    }
+
+    public List<FoodStorage> getFoodStorages() {
+        return Collections.unmodifiableList(foodStorages);
+    }
+
+    public List<GardenBed> getGardenBeds() {
+        return Collections.unmodifiableList(gardenBeds);
     }
 
     // =========================================================
@@ -87,6 +116,53 @@ public class Settlement {
         }
 
         return bestWithSpace != null ? bestWithSpace : bestAny;
+    }
+
+    public House findNearestAvailableHouse(Vector2 position) {
+        if (position == null) return null;
+        House best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (House house : houses) {
+            if (!house.isAlive() || !house.hasSpace()) continue;
+            float dist = position.distanceTo(house.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = house;
+            }
+        }
+        return best;
+    }
+
+    public boolean containsHouse(House house) {
+        return house != null && houses.contains(house);
+    }
+
+    public Well findNearestWell(Vector2 position) {
+        Well best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (Well well : wells) {
+            if (!well.isAlive()) continue;
+            float dist = position.distanceTo(well.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = well;
+            }
+        }
+        return best;
+    }
+
+    public FoodStorage findNearestFoodStorage(Vector2 position, boolean requireFood) {
+        FoodStorage best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (FoodStorage storage : foodStorages) {
+            if (!storage.isAlive() || (requireFood && !storage.hasFood())) continue;
+            float dist = position.distanceTo(storage.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = storage;
+            }
+        }
+        return best;
     }
 
     // =========================================================

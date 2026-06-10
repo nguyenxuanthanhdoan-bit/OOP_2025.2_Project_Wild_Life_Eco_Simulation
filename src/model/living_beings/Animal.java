@@ -61,6 +61,7 @@ public abstract class Animal extends LivingBeing {
     protected String actionState = "idle";
     protected AnimalProfile profile;
     private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
+    private float reproductionCooldown = 0.0f;
 
     // Caching for threats
     protected float radarCooldown = 0f;
@@ -138,6 +139,7 @@ public abstract class Animal extends LivingBeing {
         if (!alive) return;
 
         updateUnsafeFoodMemory(deltaTime);
+        reproductionCooldown = Math.max(0.0f, reproductionCooldown - deltaTime);
         if (radarCooldown > 0) {
             radarCooldown -= deltaTime;
         }
@@ -259,27 +261,17 @@ public abstract class Animal extends LivingBeing {
     }
 
     public boolean hasGardenThreat() {
+        if (!getProfile().avoidsGuardedGardens()) return false;
         if (gardenThreatCooldown > 0) {
             return cachedGardenThreat;
         }
         gardenThreatCooldown = 0.5f;
         cachedGardenThreat = false;
 
-        if (worldRef == null || worldRef.getSpatialGrid() == null) return false;
-        
-        java.util.List<model.entity.Entity> neighbors = worldRef.getSpatialGrid().getNeighbors(this.position, (float) this.visionRange);
-        for (model.entity.Entity e : neighbors) {
-            if (e instanceof Human) {
-                Human h = (Human) e;
-                for (model.structures.GardenBed bed : worldRef.getCropManager().getGardens()) {
-                    if (h.getPosition().distanceTo(bed.getPosition()) < 250f) {
-                        cachedGardenThreat = true;
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        if (worldRef == null) return false;
+        cachedGardenThreat = worldRef.getCropManager()
+                .isGuardedGardenNear(worldRef, position, (float) visionRange);
+        return cachedGardenThreat;
     }
 
     // =========================================================
@@ -320,6 +312,10 @@ public abstract class Animal extends LivingBeing {
         if (prey.isHidden()) return false;
         if (!prey.canBeHuntedBy(this)) return false;
         if (!getProfile().canEatOwnSpecies() && prey.getSpeciesName().equals(this.getSpeciesName())) return false;
+
+        // Kẻ săn mồi và con mồi phải cùng môi trường sống (Cạn - Cạn, Nước - Nước)
+        if (this.getProfile().isAquatic() != prey.getProfile().isAquatic()) return false;
+
         if (prey.getEntityLevel() >= this.getEntityLevel()) return false;
         return prey.getSize() <= this.getSize() * getProfile().getMaxPreySizeMultiplier();
     }
@@ -389,6 +385,7 @@ public abstract class Animal extends LivingBeing {
     /** Kết thúc vòng đời — rớt thịt và xương. */
     public void die(String reason) {
         if (!alive) return;
+        setStrategy(null);
         this.alive = false;
         this.isAlive = false;
 
@@ -435,9 +432,14 @@ public abstract class Animal extends LivingBeing {
     /** Kiểm tra điều kiện đủ để sinh sản. */
     public boolean canReproduce() {
         if (!alive || !adult) return false;
+        if (reproductionCooldown > 0.0f) return false;
         if (age < maxAge * 0.2 || age > maxAge * 0.8) return false;
         if (hunger < maxHunger * 0.7 || thirst < maxThirst * 0.7) return false;
         return true;
+    }
+
+    public void startReproductionCooldown() {
+        reproductionCooldown = core.GameConfig.getInstance().REPRODUCTION_COOLDOWN_SECONDS;
     }
 
     public boolean canMateWith(Animal other) {

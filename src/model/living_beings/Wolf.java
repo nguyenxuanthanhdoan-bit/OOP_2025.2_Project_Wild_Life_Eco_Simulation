@@ -13,6 +13,8 @@ public class Wolf extends CarnivoreAnimal {
             .canEatMeat(true)
             .attackDamagePerSecond(80.0f)
             .maxPreySizeMultiplier(1.5f)
+            .avoidsGuardedGardens(true)
+            .settlementPolicy(AnimalProfile.SettlementPolicy.AVOID)
             .build();
 
     public Wolf(Vector2 position) {

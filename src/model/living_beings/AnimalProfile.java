@@ -8,6 +8,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class AnimalProfile {
+
+    /**
+     * Chính sách di chuyển của loài khi gặp Settlement:
+     *   ALLOW — đi qua bình thường (Human, Rabbit, Deer, Elephant)
+     *   AVOID — tránh làng khi di chuyển thường, nhưng có thể vào khi đang săn (Wolf, Tiger)
+     *   BLOCK — tuyệt đối không được vào (dành cho mở rộng sau)
+     */
+    public enum SettlementPolicy { ALLOW, AVOID, BLOCK }
+
     private final int entityLevel;
     private final boolean canHunt;
     private final boolean canEatMeat;
@@ -22,6 +31,9 @@ public final class AnimalProfile {
     private final Set<Class<? extends Plant>> ediblePlantTypes;
     private final boolean isAquatic;
     private final boolean isNocturnal;
+    private final boolean avoidsGuardedGardens;
+    private final boolean canEnterGardens;
+    private final SettlementPolicy settlementPolicy;
 
     private AnimalProfile(Builder builder) {
         this.entityLevel = builder.entityLevel;
@@ -38,6 +50,9 @@ public final class AnimalProfile {
         this.ediblePlantTypes = Collections.unmodifiableSet(new HashSet<>(builder.ediblePlantTypes));
         this.isAquatic = builder.isAquatic;
         this.isNocturnal = builder.isNocturnal;
+        this.avoidsGuardedGardens = builder.avoidsGuardedGardens;
+        this.canEnterGardens = builder.canEnterGardens;
+        this.settlementPolicy = builder.settlementPolicy;
     }
 
     public static AnimalProfile defaultFor(DietType dietType) {
@@ -82,10 +97,13 @@ public final class AnimalProfile {
             .maxPreySizeMultiplier(this.maxPreySizeMultiplier)
             .flockingMode(this.flockingMode)
             .isAquatic(this.isAquatic)
-            .isNocturnal(this.isNocturnal);
+            .isNocturnal(this.isNocturnal)
+            .avoidsGuardedGardens(this.avoidsGuardedGardens)
+            .canEnterGardens(this.canEnterGardens);
         for (Class<? extends Plant> pt : this.ediblePlantTypes) {
             b.ediblePlants(pt);
         }
+        b.settlementPolicy(this.settlementPolicy);
         return b;
     }
 
@@ -111,6 +129,9 @@ public final class AnimalProfile {
     public FlockingMode getFlockingMode() { return flockingMode; }
     public boolean isAquatic() { return isAquatic; }
     public boolean isNocturnal() { return isNocturnal; }
+    public boolean avoidsGuardedGardens() { return avoidsGuardedGardens; }
+    public boolean canEnterGardens() { return canEnterGardens; }
+    public SettlementPolicy getSettlementPolicy() { return settlementPolicy; }
 
     public static final class Builder {
         private int entityLevel = Entity.LEVEL_UNCLASSIFIED;
@@ -127,6 +148,9 @@ public final class AnimalProfile {
         private final Set<Class<? extends Plant>> ediblePlantTypes = new HashSet<>();
         private boolean isAquatic = false;
         private boolean isNocturnal = false;
+        private boolean avoidsGuardedGardens = false;
+        private boolean canEnterGardens = false;
+        private SettlementPolicy settlementPolicy = SettlementPolicy.ALLOW;
 
         public Builder entityLevel(int entityLevel) {
             this.entityLevel = entityLevel;
@@ -199,6 +223,21 @@ public final class AnimalProfile {
 
         public Builder isNocturnal(boolean isNocturnal) {
             this.isNocturnal = isNocturnal;
+            return this;
+        }
+
+        public Builder avoidsGuardedGardens(boolean avoidsGuardedGardens) {
+            this.avoidsGuardedGardens = avoidsGuardedGardens;
+            return this;
+        }
+
+        public Builder canEnterGardens(boolean canEnterGardens) {
+            this.canEnterGardens = canEnterGardens;
+            return this;
+        }
+
+        public Builder settlementPolicy(SettlementPolicy policy) {
+            this.settlementPolicy = (policy == null) ? SettlementPolicy.ALLOW : policy;
             return this;
         }
 

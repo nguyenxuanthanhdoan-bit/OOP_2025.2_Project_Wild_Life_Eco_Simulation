@@ -15,6 +15,7 @@ import model.living_beings.Human;
 import model.living_beings.Hunter;
 import model.living_beings.Tiger;
 import model.living_beings.Wolf;
+import model.living_beings.HumanRole;
 import model.structures.Bush;
 import model.structures.Boat;
 import model.structures.DecorativeStructure;
@@ -30,6 +31,7 @@ import model.entity.Structure;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -65,8 +67,8 @@ public class BiomeGenerator {
             villagePolygons.addAll(gameMap.getVillagePolygons());
         }
         
-        // Đảm bảo có ít nhất 2 làng
-        while (villagePolygons.size() < 2) {
+        while (GameConfig.getInstance().ENABLE_FALLBACK_VILLAGES
+                && villagePolygons.size() < 2) {
             villagePolygons.add(createFallbackVillage(world, gameMap, rand, false));
         }
         
@@ -82,15 +84,16 @@ public class BiomeGenerator {
         spawnVegetation(world, gameMap, plainPolygons, forestPolygons, villagePolygons, rand);
         spawnStructures(world, gameMap, plainPolygons, forestPolygons, rand);
 
-        // Sinh công trình trong Village object layer
-        spawnVillageStructures(world, gameMap, villagePolygons, rand);
+        // Sinh công trình trong Village object layer; nhận lại map polygon → Settlement
+        java.util.Map<MapPolygonObject, Settlement> settlementMap =
+                spawnVillageStructures(world, gameMap, villagePolygons, rand);
 
-        // Sinh dân làng/thợ săn trong Village object layer
-        spawnVillagePeople(world, gameMap, villagePolygons, rand);
+        // Hoàn tất toàn bộ structure trước khi chọn điểm spawn cho cư dân.
         spawnLanterns(world, gameMap, rand);
-
-        // Sinh thuyền và nhà chài ven biển
         spawnCoastal(world, gameMap, rand);
+
+        // Sinh dân làng/thợ săn sau cùng để clearance thấy đủ mọi vật cản.
+        spawnVillagePeople(world, gameMap, settlementMap, rand);
     }
 
     private static MapPolygonObject createFallbackVillage(World world, GameMap gameMap, Random rand, boolean preferSand) {
@@ -103,19 +106,16 @@ public class BiomeGenerator {
         
         // Tìm vị trí phù hợp
         int attempts = 0;
-        boolean found = false;
         while (attempts < 10000) {
             cx = 100 + rand.nextFloat() * (world.getWidth() - 200);
             cy = 100 + rand.nextFloat() * (world.getHeight() - 200);
             boolean isSand = gameMap.isSandTile(cx, cy);
             if ((preferSand && isSand) || (!preferSand && !isSand && !gameMap.isPositionInWater(cx, cy))) {
-                found = true;
                 break;
             }
             attempts++;
         }
         
-        System.out.println("Village generated at: " + cx + ", " + cy + " preferSand: " + preferSand + " found: " + found + " attempts: " + attempts);
         
         // Vẽ 1 hình vuông nhỏ làm village (nhỏ hơn để ôm sát bãi cát)
         float s = 150f;
@@ -228,6 +228,7 @@ public class BiomeGenerator {
                         GardenBed bed = new GardenBed(new core.Vector2(px, py));
                         world.addEntity(bed);
                         world.getCropManager().addGardenBed(bed);
+                        settlement.addGardenBed(bed);
                     }
                 }
                 
@@ -289,7 +290,6 @@ public class BiomeGenerator {
             coastal.addBoat(boat);
             spawned++;
         }
-        System.out.println("[CoastalManager] Spawned " + spawned + " boats.");
     }
 
     /**
@@ -342,7 +342,6 @@ public class BiomeGenerator {
             coastal.addFishingHut(hut);
             spawned++;
         }
-        System.out.println("[CoastalManager] Spawned " + spawned + " fishing huts.");
     }
 
     /**
@@ -533,8 +532,10 @@ public class BiomeGenerator {
         }
     }
 
-    private static void spawnVillageStructures(World world, GameMap gameMap, List<MapPolygonObject> villages, Random rand) {
-        if (villages == null || villages.isEmpty()) return;
+    private static java.util.Map<MapPolygonObject, Settlement> spawnVillageStructures(
+            World world, GameMap gameMap, List<MapPolygonObject> villages, Random rand) {
+        java.util.Map<MapPolygonObject, Settlement> result = new java.util.LinkedHashMap<>();
+        if (villages == null || villages.isEmpty()) return result;
         GameConfig config = GameConfig.getInstance();
         int houseVariants = countVillageAssets("house_");
         int wellVariants = countVillageAssets("well_");
@@ -546,7 +547,6 @@ public class BiomeGenerator {
             int houseCount = config.MIN_HOUSES_PER_VILLAGE
                     + rand.nextInt(config.MAX_HOUSES_PER_VILLAGE - config.MIN_HOUSES_PER_VILLAGE + 1);
 
-            // Ghi nhớ số entity trước khi spawn để xác định nhà nào vừa được tạo
             int entityCountBefore = world.getEntities().size();
 
             spawnVillageGroup(world, gameMap, village, clusterCenter, houseCount, rand,
@@ -559,104 +559,140 @@ public class BiomeGenerator {
                     (pos, index) -> new DecorativeStructure(pos,
                             selectDecorativeVariant(index, decorativeVariants, marketVariants)));
 
-            // Đăng ký Settlement với SettlementManager
             if (clusterCenter != null) {
                 float safeRadius = getVillageHomeRadius(village) + config.SETTLEMENT_SAFE_RADIUS_PADDING;
                 Settlement settlement = new Settlement(clusterCenter, safeRadius);
 
-                // Thu thập các House vừa được spawn vào dấu settlement
                 List<model.entity.Entity> allEntities = world.getEntities();
                 for (int i = entityCountBefore; i < allEntities.size(); i++) {
                     model.entity.Entity e = allEntities.get(i);
-                    if (e instanceof House) {
-                        House h = (House) e;
-                        settlement.addHouse(h);
-                    }
+                    if (e instanceof House) settlement.addHouse((House) e);
+                    else if (e instanceof Well) settlement.addWell((Well) e);
+                    else if (e instanceof FoodStorage) settlement.addFoodStorage((FoodStorage) e);
                 }
 
                 world.getSettlementManager().addSettlement(settlement);
-                
-                // Sau khi thiết lập xong làng, tạo 1 trang trại chung cho cả làng
                 spawnFarmForVillage(world, gameMap, settlement, rand);
+
+                // Trả về ánh xạ polygon → Settlement để spawnVillagePeople dùng đúng Settlement
+                result.put(village, settlement);
             }
         }
+        return result;
     }
 
-    private static void spawnVillagePeople(World world, GameMap gameMap, List<MapPolygonObject> villages, Random rand) {
-        if (villages == null || villages.isEmpty()) return;
+    private static void spawnVillagePeople(World world, GameMap gameMap,
+            java.util.Map<MapPolygonObject, Settlement> settlementMap, Random rand) {
+        if (settlementMap == null || settlementMap.isEmpty()) return;
         GameConfig config = GameConfig.getInstance();
 
-        for (MapPolygonObject village : villages) {
-            Vector2 clusterCenter = findVillageClusterCenter(village, rand);
-            float homeRadius = getVillageHomeRadius(village);
-            int totalCount = config.HUMANS_PER_VILLAGE + config.HUNTERS_PER_VILLAGE;
-            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, totalCount, rand,
+        for (java.util.Map.Entry<MapPolygonObject, Settlement> entry : settlementMap.entrySet()) {
+            MapPolygonObject village = entry.getKey();
+            Settlement settlement    = entry.getValue();
+            // Dùng đúng tâm/bán kính của Settlement đã được tạo từ spawnVillageStructures
+            Vector2 clusterCenter = settlement.getCenter();
+            float homeRadius      = settlement.getSafeRadius();
+
+            int villagerCount = config.VILLAGERS_PER_VILLAGE;
+            int maleCount = villagerCount >= 2 ? villagerCount / 2 : 0;
+            int femaleCount = villagerCount - maleCount;
+
+            // Nhóm 1: Male Villager
+            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, maleCount, rand,
+                    (pos, index) -> createVillageHuman(pos, Human.Variant.MALE,
+                            HumanRole.VILLAGER, settlement, clusterCenter, homeRadius));
+
+            // Nhóm 2: Female Villager
+            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, femaleCount, rand,
+                    (pos, index) -> createVillageHuman(pos, Human.Variant.FEMALE,
+                            HumanRole.VILLAGER, settlement, clusterCenter, homeRadius));
+
+            // Nhóm 3: Hunter
+            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.HUNTERS_PER_VILLAGE, rand,
                     (pos, index) -> {
-                        Human.Variant variant = villageHumanVariant(index, totalCount);
-                        if (variant == Human.Variant.FEMALE) {
-                            return new Human(pos, variant, model.living_beings.HumanRole.VILLAGER, clusterCenter, homeRadius);
-                        } else {
-                            int roll = rand.nextInt(100);
-                            if (roll < 50) {
-                                return new model.living_beings.Hunter(pos, clusterCenter, homeRadius);
-                            } else {
-                                return new Human(pos, variant, model.living_beings.HumanRole.FISHERMAN, clusterCenter, homeRadius);
-                            }
-                        }
+                        Hunter hunter = new Hunter(pos, clusterCenter, homeRadius);
+                        hunter.setHomeSettlement(settlement);
+                        return hunter;
+                    });
+
+            // Nhóm 4: Fisherman (variant ngẫu nhiên, nghề nghiệp rõ ràng)
+            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.FISHERMEN_PER_VILLAGE, rand,
+                    (pos, index) -> {
+                        Human.Variant v = rand.nextBoolean() ? Human.Variant.MALE : Human.Variant.FEMALE;
+                        return createVillageHuman(pos, v, HumanRole.FISHERMAN,
+                                settlement, clusterCenter, homeRadius);
                     });
         }
     }
 
-    private static Human.Variant villageHumanVariant(int index, int totalCount) {
-        if (totalCount <= 1) return Human.Variant.MALE;
-        if (index == 0) return Human.Variant.MALE;
-        if (index == 1) return Human.Variant.FEMALE;
-        return index % 2 == 0 ? Human.Variant.MALE : Human.Variant.FEMALE;
+    private static Human createVillageHuman(Vector2 pos, Human.Variant variant, HumanRole role,
+                                            Settlement settlement, Vector2 center, float radius) {
+        Human human = new Human(pos, variant, role, center, radius);
+        human.setHomeSettlement(settlement);
+        return human;
     }
 
     private static void spawnVillageGroup(World world, GameMap gameMap, MapPolygonObject village,
                                           Vector2 clusterCenter, int count, Random rand, StructureFactory factory) {
-        int success = 0;
         for (int i = 0; i < count; i++) {
             Vector2 pos = getRandomVillagePoint(world, gameMap, village, clusterCenter, rand);
             if (pos != null) {
                 world.addEntity(factory.create(pos, i));
-                success++;
             }
         }
-        System.out.println("Spawned " + success + "/" + count + " structures at " + clusterCenter);
     }
 
     private static void spawnVillageAnimalGroup(World world, GameMap gameMap, MapPolygonObject village,
                                                 Vector2 clusterCenter, int count, Random rand, AnimalFactory factory) {
         if (count <= 0) return;
-        GameConfig config = GameConfig.getInstance();
+        List<Vector2> candidates = createVillageResidentCandidates(gameMap, village, clusterCenter, rand);
 
         for (int i = 0; i < count; i++) {
-            int maxAttempts = 1000;
-            for (int attempt = 0; attempt < maxAttempts; attempt++) {
-                Vector2 pos = randomVillageResidentPoint(village, clusterCenter, rand, attempt, maxAttempts);
-                Animal animal = pos == null ? null : factory.create(pos, i);
-                if (!isValidVillageResidentSpawn(world, gameMap, village, animal, pos, attempt, maxAttempts)) {
-                    continue;
-                }
+            Collections.shuffle(candidates, rand);
+            for (Vector2 candidate : candidates) {
+                Vector2 pos = candidate.copy();
+                Animal animal = factory.create(pos, i);
+                if (!isValidVillageResidentSpawn(world, gameMap, village, animal, pos)) continue;
                 addSpawnedAnimal(world, animal, rand);
                 break;
             }
         }
     }
 
-    private static Vector2 randomVillageResidentPoint(MapPolygonObject village, Vector2 clusterCenter,
-                                                      Random rand, int attempt, int maxAttempts) {
-        if (attempt < maxAttempts / 2) {
-            float scale = attempt > maxAttempts / 4 ? 0.2f : 1.0f;
-            return randomClusteredPoint(village, clusterCenter, rand, scale);
+    private static List<Vector2> createVillageResidentCandidates(GameMap gameMap,
+            MapPolygonObject village, Vector2 clusterCenter, Random rand) {
+        List<Vector2> candidates = new ArrayList<>();
+        if (village == null || village.polygonPath == null) return candidates;
+
+        Rectangle2D bounds = village.polygonPath.getBounds2D();
+        float step = Math.max(20.0f, GameConfig.getInstance().TILE_SIZE * 0.75f);
+        for (float y = (float) bounds.getMinY() + step / 2; y < bounds.getMaxY(); y += step) {
+            for (float x = (float) bounds.getMinX() + step / 2; x < bounds.getMaxX(); x += step) {
+                if (!village.polygonPath.contains(x, y)) continue;
+                if (gameMap != null && gameMap.isPositionInWater(x, y)
+                        && !gameMap.isBridgeTile(x, y)) {
+                    continue;
+                }
+                candidates.add(new Vector2(x, y));
+            }
         }
-        return getRandomPointInsidePolygon(village, rand);
+
+        for (int i = 0; i < 300; i++) {
+            Vector2 candidate = i < 180
+                    ? randomClusteredPoint(village, clusterCenter, rand, 1.0f)
+                    : getRandomPointInsidePolygon(village, rand);
+            if (candidate != null
+                    && (gameMap == null || !gameMap.isPositionInWater(candidate.x, candidate.y)
+                    || gameMap.isBridgeTile(candidate.x, candidate.y))) {
+                candidates.add(candidate);
+            }
+        }
+        Collections.shuffle(candidates, rand);
+        return candidates;
     }
 
     private static boolean isValidVillageResidentSpawn(World world, GameMap gameMap, MapPolygonObject village,
-                                                       Animal animal, Vector2 pos, int attempt, int maxAttempts) {
+                                                       Animal animal, Vector2 pos) {
         if (world == null || village == null || village.polygonPath == null || animal == null || pos == null) {
             return false;
         }
@@ -668,9 +704,7 @@ public class BiomeGenerator {
         }
         if (!world.isValidPositionFor(animal, pos)) return false;
 
-        boolean forceSpawn = attempt > maxAttempts - 50;
-        float strictness = forceSpawn ? 0.0f : (attempt < maxAttempts / 3 ? 1.0f : (attempt < maxAttempts * 2 / 3 ? 0.75f : 0.55f));
-        return hasVillageResidentClearance(world, animal, pos, strictness);
+        return hasVillageResidentClearance(world, animal, pos, 0.7f);
     }
 
     private static boolean hasVillageResidentClearance(World world, Animal animal, Vector2 pos, float strictness) {
@@ -683,7 +717,7 @@ public class BiomeGenerator {
 
             if (entity instanceof Structure && entity.isSolid()) {
                 float minDistance = animal.getSize() * 0.55f + entity.getSize() * 0.72f + 12.0f;
-                if (pos.distanceTo(entity.getPosition()) < minDistance * strictness) {
+                if (pos.distanceTo(entity.getPosition()) < minDistance) {
                     return false;
                 }
             } else if (entity instanceof Animal) {
@@ -902,21 +936,12 @@ public class BiomeGenerator {
                 float y = candidate.y;
                 if (!selectedPoly.polygonPath.contains(x, y)) continue;
                 if (gameMap != null && gameMap.isPositionInWater(x, y) && !gameMap.isBridgeTile(x, y)) continue;
-                if (!isFarFromExistingStructures(world, candidate, minDistance * clusterRadiusScale)) continue;
+                if (!isFarFromExistingStructures(world, candidate, minDistance)) continue;
                 return candidate;
             }
         }
-        
-        // Bắt buộc spawn nhưng KHÔNG BAO GIỜ lấn ra biển, ép vào sát tâm
-        for (int attempt = 0; attempt < 1000; attempt++) {
-            Vector2 candidate = randomClusteredPoint(selectedPoly, clusterCenter, rand, 0.05f); // Bán kính siêu nhỏ
-            if (candidate == null) continue;
-            if (!selectedPoly.polygonPath.contains(candidate.x, candidate.y)) continue;
-            if (gameMap != null && gameMap.isPositionInWater(candidate.x, candidate.y) && !gameMap.isBridgeTile(candidate.x, candidate.y)) continue;
-            // Bỏ qua check khoảng cách giữa các nhà (cho phép nhà đè lên nhau nếu đất quá hẹp) nhưng không chạm nước
-            return candidate;
-        }
-        
+
+        // Không tìm được vị trí phù hợp, chấp nhận bỏ qua thay vì force spawn đè lên nhau
         return null;
     }
 

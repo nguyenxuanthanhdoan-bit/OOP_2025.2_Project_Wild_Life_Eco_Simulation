@@ -15,21 +15,12 @@ public class MatingStrategy extends PassiveStrategy {
     private final PathNavigator mateNavigator = new PathNavigator();
     private final GameConfig config = GameConfig.getInstance();
     private Animal targetMate = null;
-    private float cooldownTimer = 0.0f;
     private float matingTimer = 0.0f;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
-
-        if (cooldownTimer > 0) {
-            cooldownTimer -= deltaTime;
-            mateNavigator.clear();
-            ownerAnimal.setActionState("idle");
-            wanderDelegate.execute(owner, world, deltaTime);
-            return;
-        }
 
         // Check if ecosystem reached limit
         if (getAnimalCount(world) >= config.MAX_ANIMAL_POPULATION) {
@@ -96,8 +87,8 @@ public class MatingStrategy extends PassiveStrategy {
                         targetMate.setHunger(Math.max(0, targetMate.getHunger() - config.REPRODUCTION_ENERGY_COST));
                         targetMate.setThirst(Math.max(0, targetMate.getThirst() - config.REPRODUCTION_ENERGY_COST));
                         
-                        // Start cooldown
-                        cooldownTimer = config.REPRODUCTION_COOLDOWN_SECONDS;
+                        ownerAnimal.startReproductionCooldown();
+                        targetMate.startReproductionCooldown();
                         targetMate = null;
                         mateNavigator.clear();
                     }

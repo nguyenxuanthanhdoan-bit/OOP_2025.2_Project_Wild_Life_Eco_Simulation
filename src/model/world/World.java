@@ -253,7 +253,7 @@ public class World {
             return false;
         }
 
-        // Chặn động vật nguy hiểm vào vùng dân cư (Settlement Safe Zone)
+        // Chỉ BLOCK là vật cản vật lý. AVOID được PathNavigator xử lý bằng chi phí A*.
         if (isAnimalBlockedFromSettlement(entity) && settlementManager.isInsideSettlement(pos)) {
             return false;
         }
@@ -296,39 +296,18 @@ public class World {
         return true;
     }
 
-    /**
-     * Kiểm tra xem entity có phải là loài bị chặn khỏi khu dân cư không.
-     *
-     * Các loài bị chặn:
-     *   - Wolf, Tiger (LEVEL_APEX_ANIMAL / LEVEL_CARNIVORE)
-     *   - Elephant (entityLevel >= LEVEL_CARNIVORE)
-     *   - Deer (entityLevel LEVEL_HERBIVORE nhưng không phải Human)
-     *
-     * Thiết kế không hard-code tên loài:
-     *   - Human (và subclass) luôn được phép đi vào làng.
-     *   - Các loài thủy sinh (Fish) không liên quan đến settlement.
-     *   - Mọi Animal trên cạn không phải Human đều bị chặn nếu entityLevel >= LEVEL_HERBIVORE.
-     */
     private boolean isAnimalBlockedFromSettlement(model.living_beings.LivingBeing entity) {
-        if (entity instanceof model.living_beings.Human) return false; // Human luôn được vào
-        if (entity instanceof model.living_beings.Fish)  return false; // Cá không liên quan
         if (entity instanceof model.living_beings.Animal) {
-            // Tất cả Animal trên cạn không phải Human đều bị chặn
-            // (Wolf/Tiger/Elephant: CARNIVORE/APEX; Deer: HERBIVORE)
-            int level = entity.getEntityLevel();
-            return level >= model.entity.Entity.LEVEL_HERBIVORE;
+            model.living_beings.AnimalProfile.SettlementPolicy policy =
+                    ((model.living_beings.Animal) entity).getProfile().getSettlementPolicy();
+            return policy == model.living_beings.AnimalProfile.SettlementPolicy.BLOCK;
         }
         return false;
     }
 
     private boolean isAnimalBlockedFromGarden(model.living_beings.LivingBeing entity) {
-        if (entity instanceof model.living_beings.Human) return false;
-        if (entity instanceof model.living_beings.Fish) return false;
-        if (entity instanceof model.living_beings.Deer) {
-            return !GameConfig.getInstance().ALLOW_DEER_ENTER_GARDEN;
-        }
         if (entity instanceof model.living_beings.Animal) {
-            return true; // Tất cả thú dữ đều bị chặn khỏi vườn
+            return !((model.living_beings.Animal) entity).getProfile().canEnterGardens();
         }
         return false;
     }

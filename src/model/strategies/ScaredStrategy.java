@@ -49,8 +49,12 @@ public class ScaredStrategy implements IStrategy {
                 if (!bush.isOccupied() || bush == ownerAnimal.getHiddenInBush()) {
                     bushes.add(bush);
                 }
-            } else if (human != null && human.isVillager() && neighbor instanceof House) {
+            } else if (human != null && human.canUseHouse() && neighbor instanceof House) {
                 House house = (House) neighbor;
+                if (human.getHomeSettlement() != null
+                        && !human.getHomeSettlement().containsHouse(house)) {
+                    continue;
+                }
                 if ((house.hasSpace() || house == human.getHiddenInHouse()) && human.isInHomeArea(house.getPosition())) {
                     houses.add(house);
                 }
@@ -59,14 +63,16 @@ public class ScaredStrategy implements IStrategy {
 
         // Không có kẻ thù → Animal.decideActiveStrategy() sẽ thoát Strategy này
         if (predators.isEmpty()) {
-            if (human != null && human.getHiddenInHouse() != null) human.exitHouse();
+            if (human != null && human.getHiddenInHouse() != null) {
+                human.tryExitHouseSafely();
+            }
             shelterNavigator.clear();
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             ownerAnimal.setActionState("idle");
             return;
         }
 
-        if (human != null && human.isVillager()) {
+        if (human != null && human.canUseHouse()) {
             if (handleHouseShelter(human, houses, predators, world, deltaTime)) {
                 return;
             }
@@ -151,7 +157,11 @@ public class ScaredStrategy implements IStrategy {
             return true;
         }
 
-        if (human.getHiddenInHouse() != null) human.exitHouse();
+        if (human.getHiddenInHouse() != null && !human.tryExitHouseSafely()) {
+            human.setSpeed(0);
+            human.setActionState("idle");
+            return true;
+        }
         human.setActionState("run");
         human.setSpeed(human.getBaseSpeed() * RUN_SPEED_MULTIPLIER);
         Vector2 target = PathNavigator.findInteractionPoint(human, world, bestHouse, enterRange);

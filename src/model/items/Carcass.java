@@ -14,10 +14,16 @@ public class Carcass extends FoodSource {
     protected float initialMass;
     protected float initialSize;
     protected String sourceSpecies;
+    private final boolean humanSource;
     
     private World world; // Cần để rớt xương khi phân hủy
 
     public Carcass(Vector2 position, float size, float nutritionValue, float decayTime, float initialMass, String sourceSpecies) {
+        this(position, size, nutritionValue, decayTime, initialMass, sourceSpecies, false);
+    }
+
+    public Carcass(Vector2 position, float size, float nutritionValue, float decayTime,
+                   float initialMass, String sourceSpecies, boolean humanSource) {
         super(position, size);
         this.nutritionValue = nutritionValue;
         this.decayTimer = decayTime;
@@ -25,6 +31,7 @@ public class Carcass extends FoodSource {
         this.initialMass = initialMass;
         this.initialSize = size;
         this.sourceSpecies = sourceSpecies;
+        this.humanSource = humanSource;
         this.imageVariant = "Meat";
     }
 
@@ -35,6 +42,10 @@ public class Carcass extends FoodSource {
 
     public String getSourceSpecies() {
         return sourceSpecies;
+    }
+
+    public boolean isHumanSource() {
+        return humanSource;
     }
 
     public float getCurrentMass() {

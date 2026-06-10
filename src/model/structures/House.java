@@ -29,7 +29,9 @@ public class House extends Structure {
     }
 
     public boolean enter(Entity entity) {
-        if (entity == null || occupants.size() >= capacity) return false;
+        if (entity == null) return false;
+        if (occupants.contains(entity)) return true;
+        if (occupants.size() >= capacity) return false;
         return occupants.add(entity);
     }
 

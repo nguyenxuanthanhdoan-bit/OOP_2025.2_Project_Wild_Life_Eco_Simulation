@@ -77,14 +77,14 @@ public class ForageStrategy implements IStrategy {
         boolean needsFood = human.getHunger() < human.getMaxHunger() * Animal.HUNGER_WARNING_THRESHOLD;
         boolean criticalHunger = human.getHunger() < human.getMaxHunger() * Animal.CRITICAL_SURVIVAL_THRESHOLD;
 
-        if (human.isHunter() && criticalHunger && human.hasCarriedFood()) {
+        if (human.canHuntRole() && criticalHunger && human.hasCarriedFood()) {
             human.setSpeed(0);
             human.setActionState("eat");
             human.eatCarriedFood(25.0f * deltaTime);
             return;
         }
 
-        if (human.isHunter() && needsWater) {
+        if (human.canHuntRole() && needsWater) {
             needsFood = false;
         } else if (needsWater && needsFood) {
             double thirstRatio = human.getThirst() / human.getMaxThirst();
@@ -248,6 +248,9 @@ public class ForageStrategy implements IStrategy {
     }
 
     private Well findNearestHomeWell(Human human, World world) {
+        if (human.getHomeSettlement() != null) {
+            return human.getHomeSettlement().findNearestWell(human.getPosition());
+        }
         Well best = null;
         float bestDist = Float.MAX_VALUE;
         for (Entity entity : getHomeEntities(human, world)) {
@@ -262,6 +265,9 @@ public class ForageStrategy implements IStrategy {
     }
 
     private FoodStorage findNearestHomeFoodStorage(Human human, World world, boolean requireFood) {
+        if (human.getHomeSettlement() != null) {
+            return human.getHomeSettlement().findNearestFoodStorage(human.getPosition(), requireFood);
+        }
         FoodStorage best = null;
         float bestDist = Float.MAX_VALUE;
         for (Entity entity : getHomeEntities(human, world)) {

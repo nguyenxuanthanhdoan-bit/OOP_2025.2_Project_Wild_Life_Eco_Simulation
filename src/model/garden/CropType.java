@@ -10,7 +10,8 @@ public class CropType {
     public static final CropType BASIC_FLOWER = new CropType(
             "Basic Flower",
             20.0f, // Mất 20s để chuyển từ SEED -> GROWING, và 20s từ GROWING -> MATURE
-            new String[]{"garden_seed", "garden_growing", "garden_mature"}
+            new String[]{"garden_seed", "garden_growing", "garden_mature"},
+            18.0f
     );
 
     // Bạn có thể thêm các cây khác vào đây, ví dụ:
@@ -19,11 +20,13 @@ public class CropType {
     private final String name;
     private final float stateDuration;
     private final String[] stateSprites;
+    private final float foodYield;
 
-    public CropType(String name, float stateDuration, String[] stateSprites) {
+    public CropType(String name, float stateDuration, String[] stateSprites, float foodYield) {
         this.name = name;
         this.stateDuration = stateDuration;
         this.stateSprites = stateSprites;
+        this.foodYield = Math.max(0.0f, foodYield);
     }
 
     public String getName() {
@@ -32,6 +35,10 @@ public class CropType {
 
     public float getStateDuration() {
         return stateDuration;
+    }
+
+    public float getFoodYield() {
+        return foodYield;
     }
 
     public String getSpriteForState(CropState state) {
