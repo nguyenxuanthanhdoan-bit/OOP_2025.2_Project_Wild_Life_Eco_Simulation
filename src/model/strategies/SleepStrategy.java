@@ -5,6 +5,7 @@ import model.entity.Entity;
 import model.living_beings.Animal;
 import model.living_beings.DietType;
 import model.living_beings.LivingBeing;
+import model.navigation.PathNavigator;
 import model.world.World;
 
 import java.util.List;
@@ -13,6 +14,7 @@ public class SleepStrategy implements IStrategy {
     private Vector2 sleepTarget = null;
     private boolean isSleeping = false;
     private boolean hasSearched = false;
+    private final PathNavigator sleepNavigator = new PathNavigator();
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -21,8 +23,8 @@ public class SleepStrategy implements IStrategy {
 
         if (isSleeping) {
             animal.setSpeed(0);
-            animal.getCurrentVelocity().set(0, 0);
             animal.setActionState("sleep");
+            sleepNavigator.clear();
             
             // Nghỉ ngơi tiêu hao rất ít năng lượng
             animal.setHunger(Math.max(0, animal.getHunger() - (animal.getHungerDecayRate() * deltaTime * 0.1f)));
@@ -42,8 +44,11 @@ public class SleepStrategy implements IStrategy {
             } else {
                 animal.setActionState("walk");
                 animal.setSpeed(animal.getBaseSpeed());
-                Vector2 dir = sleepTarget.copy().subtract(animal.getPosition()).normalize();
-                animal.getCurrentVelocity().set(dir.x * animal.getSpeed(), dir.y * animal.getSpeed());
+                boolean reached = sleepNavigator.moveTo(animal, world, sleepTarget, deltaTime, 15.0f, 1.5f);
+                if (reached || sleepNavigator.isBlocked()) {
+                    isSleeping = true;
+                    sleepNavigator.clear();
+                }
             }
         } else {
             isSleeping = true; // Couldn't find a better spot, just sleep here
@@ -125,5 +130,15 @@ public class SleepStrategy implements IStrategy {
     @Override
     public String getName() {
         return "SleepStrategy";
+    }
+
+    @Override
+    public core.Vector2 getTarget() {
+        return sleepTarget;
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        return sleepNavigator.getPath();
     }
 }

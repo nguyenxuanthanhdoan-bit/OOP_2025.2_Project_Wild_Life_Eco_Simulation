@@ -302,6 +302,7 @@ public abstract class Animal extends LivingBeing {
     public boolean isThreatenedBy(Animal other) {
         if (!getProfile().canBeScared()) return false;
         if (other == null || other == this || !other.isAliveState()) return false;
+        if (getProfile().isAquatic() != other.getProfile().isAquatic()) return false;
         return other.getEntityLevel() > this.getEntityLevel();
     }
 
@@ -408,6 +409,14 @@ public abstract class Animal extends LivingBeing {
         if (age < maxAge * 0.2 || age > maxAge * 0.8) return false;
         if (hunger < maxHunger * 0.7 || thirst < maxThirst * 0.7) return false;
         return true;
+    }
+
+    public boolean canMateWith(Animal other) {
+        return other != null
+                && other != this
+                && other.isAliveState()
+                && other.canReproduce()
+                && other.getSpeciesName().equals(this.getSpeciesName());
     }
 
     public boolean isHidden() {

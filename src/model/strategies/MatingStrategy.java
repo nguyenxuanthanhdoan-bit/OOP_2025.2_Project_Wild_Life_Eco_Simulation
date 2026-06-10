@@ -49,7 +49,7 @@ public class MatingStrategy extends PassiveStrategy {
 
         // Validate current mate
         if (targetMate != null) {
-            if (!targetMate.isAliveState() || !targetMate.canReproduce() || ownerAnimal.getPosition().distanceTo(targetMate.getPosition()) > ownerAnimal.getVisionRange()) {
+            if (!ownerAnimal.canMateWith(targetMate) || ownerAnimal.getPosition().distanceTo(targetMate.getPosition()) > ownerAnimal.getVisionRange()) {
                 targetMate = null;
                 mateNavigator.clear();
             }
@@ -63,7 +63,7 @@ public class MatingStrategy extends PassiveStrategy {
             for (Entity neighbor : neighbors) {
                 if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                     Animal other = (Animal) neighbor;
-                    if (other.isAliveState() && other.getSpeciesName().equals(ownerAnimal.getSpeciesName()) && other.canReproduce()) {
+                    if (ownerAnimal.canMateWith(other)) {
                         float dist = ownerAnimal.getPosition().distanceTo(other.getPosition());
                         if (dist < closestDist) {
                             closestDist = dist;

@@ -29,10 +29,6 @@ public class GameMap {
             this.firstgid = firstgid;
             try {
                 File imgFile = new File(imagePath);
-
-                System.out.println("Đang load: " + imgFile.getAbsolutePath());
-                System.out.println("Tồn tại: " + imgFile.exists());
-
                 this.image = ImageIO.read(imgFile);
                 this.columns = this.image.getWidth() / this.tileWidth;
             } catch (Exception e) {

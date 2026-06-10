@@ -7,12 +7,12 @@ public class TestSpawning {
         World world = new World();
         GameMap map = new GameMap("resources/map/map.tmx");
         world.setGameMap(map);
-        
+
         System.out.println("Entities before update: " + world.getEntities().size());
-        
+
         // This should trigger FishPopulationManager
         world.update(0.016f);
-        
+
         System.out.println("Entities after update: " + world.getEntities().size());
         int fishCount = 0;
         for (model.entity.Entity e : world.getEntities()) {

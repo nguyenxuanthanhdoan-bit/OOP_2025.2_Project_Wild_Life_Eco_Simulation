@@ -41,6 +41,7 @@ public class Human extends Animal {
             .build();
 
     private final String spriteKey;
+    private final Variant variant;
     private final HumanRole role;
     private final Vector2 homeCenter;
     private final float homeRadius;
@@ -66,9 +67,11 @@ public class Human extends Animal {
     protected Human(Vector2 position, float size, float baseSpeed, String speciesName, String spriteKey,
                     HumanRole role, Vector2 homeCenter, float homeRadius, float carryCapacity) {
         super(position, size, baseSpeed, DietType.OMNIVORE);
+        HumanRole normalizedRole = role == null ? HumanRole.VILLAGER : role;
         this.speciesName = speciesName;
         this.spriteKey = spriteKey;
-        this.role = role == null ? HumanRole.VILLAGER : role;
+        this.variant = resolveVariant(spriteKey, normalizedRole);
+        this.role = normalizedRole;
         this.homeCenter = homeCenter == null ? position.copy() : homeCenter.copy();
         this.homeRadius = Math.max(80.0f, homeRadius);
         this.carryCapacity = Math.max(0.0f, carryCapacity);
@@ -88,9 +91,27 @@ public class Human extends Animal {
         setStrategy(new PassiveStrategy());
     }
 
+    private static Variant resolveVariant(String spriteKey, HumanRole role) {
+        if (role == HumanRole.HUNTER) return null;
+        return Variant.FEMALE.spriteKey.equals(spriteKey) ? Variant.FEMALE : Variant.MALE;
+    }
+
     @Override
     public boolean canReproduce() {
-        return false;
+        return isVillager() && super.canReproduce();
+    }
+
+    @Override
+    public boolean canMateWith(Animal other) {
+        if (!(other instanceof Human) || !super.canMateWith(other)) return false;
+        Human human = (Human) other;
+        return isVillager()
+                && human.isVillager()
+                && isInHomeArea(human.getPosition())
+                && human.isInHomeArea(getPosition())
+                && variant != null
+                && human.variant != null
+                && variant != human.variant;
     }
 
     @Override
@@ -113,6 +134,18 @@ public class Human extends Animal {
 
     public boolean isHunter() {
         return role == HumanRole.HUNTER;
+    }
+
+    public Variant getVariant() {
+        return variant;
+    }
+
+    public boolean isMale() {
+        return variant == Variant.MALE;
+    }
+
+    public boolean isFemale() {
+        return variant == Variant.FEMALE;
     }
 
     public Vector2 getHomeCenter() {
@@ -248,7 +281,12 @@ public class Human extends Animal {
 
     @Override
     public Animal reproduce() {
-        return new Human(getPosition().copy());
+        Variant childVariant = Math.random() < 0.5 ? Variant.MALE : Variant.FEMALE;
+        Human child = new Human(getPosition().copy(), childVariant, homeCenter, homeRadius);
+        child.setAge(0);
+        child.size = SIZE * 0.55f;
+        child.setAdult(false);
+        return child;
     }
 
     @Override

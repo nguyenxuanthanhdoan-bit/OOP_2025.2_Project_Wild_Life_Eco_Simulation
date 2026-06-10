@@ -208,7 +208,7 @@ public class RenderSystem {
         }
 
         List<Entity> groundLayer = new java.util.ArrayList<>();
-        List<Entity> animalLayer = new java.util.ArrayList<>();
+        List<Entity> worldLayer = new java.util.ArrayList<>();
         List<Entity> topLayer = new java.util.ArrayList<>();
 
         for (Entity e : entitiesToRender) {
@@ -217,15 +217,16 @@ public class RenderSystem {
                     topLayer.add(e);
                 } else if (e instanceof model.structures.Bush ||
                         e instanceof model.plants.FruitTree ||
-                        e instanceof model.entity.Structure) {
-                    topLayer.add(e);
+                        e instanceof model.entity.Structure ||
+                        e instanceof model.structures.Lantern) {
+                    worldLayer.add(e);
                 } else if (e instanceof model.living_beings.Animal) {
                     model.living_beings.Animal a = (model.living_beings.Animal) e;
                     if (a.isHidden()) {
                         // Núp trong bụi, vẽ dưới Bush
                         groundLayer.add(e);
                     } else {
-                        animalLayer.add(e);
+                        worldLayer.add(e);
                     }
                 } else {
                     groundLayer.add(e);
@@ -233,9 +234,10 @@ public class RenderSystem {
             }
         }
 
-        // Vẽ theo thứ tự từ dưới lên trên
+        worldLayer.sort(java.util.Comparator.comparingDouble(e -> e.getPosition().y + e.getSize() * 0.5f));
+
         for (Entity e : groundLayer) renderEntity(e, g2d);
-        for (Entity e : animalLayer) renderEntity(e, g2d);
+        for (Entity e : worldLayer) renderEntity(e, g2d);
         for (Entity e : topLayer) renderEntity(e, g2d);
 
         renderNightOverlay(world, g2d, entitiesToRender);

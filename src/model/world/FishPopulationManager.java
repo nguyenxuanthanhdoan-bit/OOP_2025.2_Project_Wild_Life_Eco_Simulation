@@ -48,20 +48,15 @@ public class FishPopulationManager {
 
         // Bù đắp số lượng cá bị săn mồi
         int preyToSpawn = TARGET_PREY_COUNT - preyCount;
-        int spawnedPrey = 0;
         for (int i = 0; i < preyToSpawn; i++) {
-            if (spawnRandomPrey(map)) spawnedPrey++;
+            spawnRandomPrey(map);
         }
 
         // Bù đắp số lượng cá mập
         int predatorsToSpawn = TARGET_PREDATOR_COUNT - predatorCount;
-        int spawnedPredator = 0;
         for (int i = 0; i < predatorsToSpawn; i++) {
-            if (spawnRandomPredator(map)) spawnedPredator++;
+            spawnRandomPredator(map);
         }
-
-        System.out.println("[FishPopulationManager] Checked! Prey: " + preyCount + " (Spawned " + spawnedPrey + 
-                           "), Predators: " + predatorCount + " (Spawned " + spawnedPredator + ")");
     }
 
     private boolean spawnRandomPrey(GameMap map) {

@@ -287,14 +287,22 @@ public class BiomeGenerator {
         for (MapPolygonObject village : villages) {
             Vector2 clusterCenter = findVillageClusterCenter(village, rand);
             float homeRadius = getVillageHomeRadius(village);
+            int humanCount = config.HUMANS_PER_VILLAGE;
             spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.HUMANS_PER_VILLAGE, rand,
                     (pos, index) -> new Human(pos,
-                            index % 2 == 0 ? Human.Variant.MALE : Human.Variant.FEMALE,
+                            villageHumanVariant(index, humanCount),
                             clusterCenter,
                             homeRadius));
             spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.HUNTERS_PER_VILLAGE, rand,
                     (pos, index) -> new Hunter(pos, clusterCenter, homeRadius));
         }
+    }
+
+    private static Human.Variant villageHumanVariant(int index, int totalCount) {
+        if (totalCount <= 1) return Human.Variant.MALE;
+        if (index == 0) return Human.Variant.MALE;
+        if (index == 1) return Human.Variant.FEMALE;
+        return index % 2 == 0 ? Human.Variant.MALE : Human.Variant.FEMALE;
     }
 
     private static void spawnVillageGroup(World world, GameMap gameMap, MapPolygonObject village,
