@@ -161,4 +161,12 @@ public class PathNavigator {
         float sin = (float) Math.sin(rad);
         return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
     }
+
+    public java.util.List<Vector2> getPath() {
+        return path;
+    }
+
+    public Vector2 getLastTarget() {
+        return lastTarget;
+    }
 }

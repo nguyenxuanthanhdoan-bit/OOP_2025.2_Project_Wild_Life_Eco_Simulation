@@ -178,4 +178,14 @@ public class PassiveStrategy implements IStrategy {
     public String getName() {
         return "Passive";
     }
+
+    @Override
+    public core.Vector2 getTarget() {
+        return wanderTarget;
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        return wanderNavigator.getPath();
+    }
 }

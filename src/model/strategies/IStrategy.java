@@ -12,4 +12,7 @@ public interface IStrategy {
 
     int getPriority();
     String getName();
+
+    default core.Vector2 getTarget() { return null; }
+    default java.util.List<core.Vector2> getPath() { return java.util.Collections.emptyList(); }
 }

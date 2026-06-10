@@ -217,4 +217,16 @@ public class FlockingStrategy extends PassiveStrategy {
         wanderDelegate.forceStateChange();
         flockNavigator.clear();
     }
+
+    @Override
+    public core.Vector2 getTarget() {
+        if (flockNavigator.getLastTarget() != null) return flockNavigator.getLastTarget();
+        return wanderDelegate.getTarget();
+    }
+
+    @Override
+    public java.util.List<core.Vector2> getPath() {
+        if (flockNavigator.getLastTarget() != null) return flockNavigator.getPath();
+        return wanderDelegate.getPath();
+    }
 }
