@@ -99,8 +99,11 @@ public class RenderSystem {
 
         // Items
         for (int i = 1; i <= 2; i++) tryLoadAsset("fruit_" + i, path + "Items/Fruit/Fruit_" + i + ".png");
-        tryLoadAsset("meat", path + "Items/Meat/Meat.png");
-        tryLoadAsset("bone", path + "Items/Bone/Bone.png");
+        tryLoadAsset("carcass", path + "Items/carcass.png");
+        tryLoadAsset("bone", path + "Items/bone.png");
+        tryLoadAsset("egg", path + "Items/egg.png");
+        tryLoadAsset("fish", path + "Items/fish.png");
+        tryLoadAsset("fishing_net", path + "Items/fishing_net.png");
 
         // Lanterns
         tryLoadAsset("lantern", path + "Structures/Lantern/lantern.png");
@@ -415,6 +418,20 @@ public class RenderSystem {
                     int h = (int) (w * aspect);
                     
                     g2d.drawImage(img, (int)screenPos.x - w/2, (int)screenPos.y - h/2, w, h, null);
+                    
+                    // Nếu là Thuyền và đang thả lưới
+                    if (e instanceof model.structures.Boat) {
+                        model.structures.Boat boat = (model.structures.Boat) e;
+                        if (boat.getState() == model.structures.Boat.BoatState.FISHING) {
+                            BufferedImage net = assetMap.get("fishing_net");
+                            if (net != null) {
+                                // Vẽ lưới kế bên thuyền, kích thước 32x32
+                                int netW = (int) (32 * zoom);
+                                int netH = (int) (32 * zoom);
+                                g2d.drawImage(net, (int)screenPos.x + w/2, (int)screenPos.y - netH/2, netW, netH, null);
+                            }
+                        }
+                    }
                 }
             }
         } else {

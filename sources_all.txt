@@ -61,6 +61,7 @@ D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\plants\Grass.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\plants\Mushroom.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\plants\Plant.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\AvoidanceStrategy.java
+D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\BoardBoatStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\FlockingStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\ForageStrategy.java
 D:\OOP\OOP_2025.2_Project_Wild_Life_Eco_Simulation\src\model\strategies\GoHomeStrategy.java

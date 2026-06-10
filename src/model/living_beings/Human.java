@@ -48,6 +48,7 @@ public class Human extends Animal {
     private final float carryCapacity;
     private float carriedFood;
     private House hiddenInHouse = null;
+    private boolean isFishing = false;
 
     public Human(Vector2 position) {
         this(position, Variant.MALE);
@@ -58,9 +59,13 @@ public class Human extends Animal {
     }
 
     public Human(Vector2 position, Variant variant, Vector2 homeCenter, float homeRadius) {
+        this(position, variant, HumanRole.VILLAGER, homeCenter, homeRadius);
+    }
+
+    public Human(Vector2 position, Variant variant, HumanRole role, Vector2 homeCenter, float homeRadius) {
         this(position, SIZE, GameConfig.getInstance().HUMAN_BASE_SPEED, "Dân làng",
                 variant == null ? Variant.MALE.spriteKey : variant.spriteKey,
-                HumanRole.VILLAGER, homeCenter, homeRadius,
+                role, homeCenter, homeRadius,
                 GameConfig.getInstance().HUMAN_CARRY_CAPACITY);
     }
 
@@ -170,6 +175,14 @@ public class Human extends Animal {
 
     public float getCarryCapacity() {
         return carryCapacity;
+    }
+
+    public boolean isFishing() {
+        return isFishing;
+    }
+
+    public void setFishing(boolean fishing) {
+        this.isFishing = fishing;
     }
 
     public boolean hasCarriedFood() {

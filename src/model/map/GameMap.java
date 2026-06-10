@@ -425,6 +425,21 @@ public class GameMap {
         return isWaterTile(worldX, worldY);
     }
 
+    public boolean isSandTile(float worldX, float worldY) {
+        int col = (int) (worldX / 16);
+        int row = (int) (worldY / 16);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+
+        for (int l = 0; l < layersGrid.size(); l++) {
+            String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
+            if (lName.contains("sand")) {
+                int rawId = layersGrid.get(l)[col][row];
+                if (rawId != 0) return true;
+            }
+        }
+        return false;
+    }
+
     public List<Tileset> getTilesets() {
         return tilesets;
     }

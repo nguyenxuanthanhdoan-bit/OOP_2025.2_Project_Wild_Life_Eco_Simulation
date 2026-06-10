@@ -65,6 +65,11 @@ public class BiomeGenerator {
             villagePolygons.addAll(gameMap.getVillagePolygons());
         }
         
+        // Đảm bảo có ít nhất 2 làng
+        while (villagePolygons.size() < 2) {
+            villagePolygons.add(createFallbackVillage(world, gameMap, rand, false));
+        }
+        
         // Tạo fallbacks thành các Zone mặc định nếu map không định nghĩa sẵn
         if (plainPolygons.isEmpty()) plainPolygons = createFallbackZone(world, ZoneType.GRASSLAND_ZONE);
         if (forestPolygons.isEmpty()) forestPolygons = createFallbackZone(world, ZoneType.FOREST_ZONE);
@@ -86,6 +91,41 @@ public class BiomeGenerator {
 
         // Sinh thuyền và nhà chài ven biển
         spawnCoastal(world, gameMap, rand);
+    }
+
+    private static MapPolygonObject createFallbackVillage(World world, GameMap gameMap, Random rand, boolean preferSand) {
+        MapPolygonObject poly = new MapPolygonObject();
+        poly.type = "VILLAGE";
+        java.awt.geom.Path2D.Float p = new java.awt.geom.Path2D.Float();
+        
+        float cx = rand.nextFloat() * world.getWidth();
+        float cy = rand.nextFloat() * world.getHeight();
+        
+        // Tìm vị trí phù hợp
+        int attempts = 0;
+        boolean found = false;
+        while (attempts < 10000) {
+            cx = 100 + rand.nextFloat() * (world.getWidth() - 200);
+            cy = 100 + rand.nextFloat() * (world.getHeight() - 200);
+            boolean isSand = gameMap.isSandTile(cx, cy);
+            if ((preferSand && isSand) || (!preferSand && !isSand && !gameMap.isPositionInWater(cx, cy))) {
+                found = true;
+                break;
+            }
+            attempts++;
+        }
+        
+        System.out.println("Village generated at: " + cx + ", " + cy + " preferSand: " + preferSand + " found: " + found + " attempts: " + attempts);
+        
+        // Vẽ 1 hình vuông nhỏ làm village (nhỏ hơn để ôm sát bãi cát)
+        float s = 150f;
+        p.moveTo(cx - s, cy - s);
+        p.lineTo(cx + s, cy - s);
+        p.lineTo(cx + s, cy + s);
+        p.lineTo(cx - s, cy + s);
+        p.closePath();
+        poly.polygonPath = p;
+        return poly;
     }
 
     private static List<MapPolygonObject> createFallbackZone(World world, ZoneType type) {
@@ -232,12 +272,12 @@ public class BiomeGenerator {
             // Phải là ô nước
             if (!gameMap.isPositionInWater(x, y)) continue;
 
-            // Không được quá gần bờ (tránh thuyền mắc cạn trông kỳ)
-            boolean deepEnough = gameMap.isPositionInWater(x - 32, y) &&
-                                 gameMap.isPositionInWater(x + 32, y) &&
-                                 gameMap.isPositionInWater(x, y - 32) &&
-                                 gameMap.isPositionInWater(x, y + 32);
-            if (!deepEnough) continue;
+            // Phải gần bờ để người có thể leo lên (cách bờ < 64 pixel)
+            boolean nearShore = !gameMap.isPositionInWater(x - 64, y) ||
+                                !gameMap.isPositionInWater(x + 64, y) ||
+                                !gameMap.isPositionInWater(x, y - 64) ||
+                                !gameMap.isPositionInWater(x, y + 64);
+            if (!nearShore) continue;
 
             Vector2 pos = new Vector2(x, y);
 
@@ -266,11 +306,22 @@ public class BiomeGenerator {
         int spawned = 0;
         int attempts = 0;
         int maxAttempts = count * 120;
+        
+        List<model.world.Settlement> settlements = world.getSettlementManager().getSettlements();
 
         while (spawned < count && attempts < maxAttempts) {
             attempts++;
-            float x = rand.nextFloat() * world.getWidth();
-            float y = rand.nextFloat() * world.getHeight();
+            float x, y;
+            if (settlements != null && !settlements.isEmpty()) {
+                model.world.Settlement targetVillage = settlements.get(rand.nextInt(settlements.size()));
+                float angle = rand.nextFloat() * (float)Math.PI * 2;
+                float r = rand.nextFloat() * 800f; // Trong bán kính 800px quanh làng
+                x = targetVillage.getCenter().x + (float)Math.cos(angle) * r;
+                y = targetVillage.getCenter().y + (float)Math.sin(angle) * r;
+            } else {
+                x = rand.nextFloat() * world.getWidth();
+                y = rand.nextFloat() * world.getHeight();
+            }
 
             // Phải là đất hợp lệ (không nước)
             if (!gameMap.isValidGroundSpawnPosition(x, y, config.GROUND_SPAWN_MARGIN)) continue;
@@ -538,14 +589,21 @@ public class BiomeGenerator {
         for (MapPolygonObject village : villages) {
             Vector2 clusterCenter = findVillageClusterCenter(village, rand);
             float homeRadius = getVillageHomeRadius(village);
-            int humanCount = config.HUMANS_PER_VILLAGE;
-            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.HUMANS_PER_VILLAGE, rand,
-                    (pos, index) -> new Human(pos,
-                            villageHumanVariant(index, humanCount),
-                            clusterCenter,
-                            homeRadius));
-            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, config.HUNTERS_PER_VILLAGE, rand,
-                    (pos, index) -> new Hunter(pos, clusterCenter, homeRadius));
+            int totalCount = config.HUMANS_PER_VILLAGE + config.HUNTERS_PER_VILLAGE;
+            spawnVillageAnimalGroup(world, gameMap, village, clusterCenter, totalCount, rand,
+                    (pos, index) -> {
+                        Human.Variant variant = villageHumanVariant(index, totalCount);
+                        if (variant == Human.Variant.FEMALE) {
+                            return new Human(pos, variant, model.living_beings.HumanRole.VILLAGER, clusterCenter, homeRadius);
+                        } else {
+                            int roll = rand.nextInt(100);
+                            if (roll < 50) {
+                                return new model.living_beings.Hunter(pos, clusterCenter, homeRadius);
+                            } else {
+                                return new Human(pos, variant, model.living_beings.HumanRole.FISHERMAN, clusterCenter, homeRadius);
+                            }
+                        }
+                    });
         }
     }
 
@@ -558,12 +616,15 @@ public class BiomeGenerator {
 
     private static void spawnVillageGroup(World world, GameMap gameMap, MapPolygonObject village,
                                           Vector2 clusterCenter, int count, Random rand, StructureFactory factory) {
+        int success = 0;
         for (int i = 0; i < count; i++) {
             Vector2 pos = getRandomVillagePoint(world, gameMap, village, clusterCenter, rand);
             if (pos != null) {
                 world.addEntity(factory.create(pos, i));
+                success++;
             }
         }
+        System.out.println("Spawned " + success + "/" + count + " structures at " + clusterCenter);
     }
 
     private static void spawnVillageAnimalGroup(World world, GameMap gameMap, MapPolygonObject village,
@@ -572,7 +633,7 @@ public class BiomeGenerator {
         GameConfig config = GameConfig.getInstance();
 
         for (int i = 0; i < count; i++) {
-            int maxAttempts = config.SPAWN_ATTEMPTS_PER_POINT * 8;
+            int maxAttempts = 1000;
             for (int attempt = 0; attempt < maxAttempts; attempt++) {
                 Vector2 pos = randomVillageResidentPoint(village, clusterCenter, rand, attempt, maxAttempts);
                 Animal animal = pos == null ? null : factory.create(pos, i);
@@ -588,7 +649,8 @@ public class BiomeGenerator {
     private static Vector2 randomVillageResidentPoint(MapPolygonObject village, Vector2 clusterCenter,
                                                       Random rand, int attempt, int maxAttempts) {
         if (attempt < maxAttempts / 2) {
-            return randomClusteredPoint(village, clusterCenter, rand);
+            float scale = attempt > maxAttempts / 4 ? 0.2f : 1.0f;
+            return randomClusteredPoint(village, clusterCenter, rand, scale);
         }
         return getRandomPointInsidePolygon(village, rand);
     }
@@ -599,12 +661,15 @@ public class BiomeGenerator {
             return false;
         }
         if (!village.polygonPath.contains(pos.x, pos.y)) return false;
+        
+        // Tuyệt đối không spawn trên mặt nước
         if (gameMap != null && gameMap.isPositionInWater(pos.x, pos.y) && !gameMap.isBridgeTile(pos.x, pos.y)) {
             return false;
         }
         if (!world.isValidPositionFor(animal, pos)) return false;
 
-        float strictness = attempt < maxAttempts / 3 ? 1.0f : (attempt < maxAttempts * 2 / 3 ? 0.75f : 0.55f);
+        boolean forceSpawn = attempt > maxAttempts - 50;
+        float strictness = forceSpawn ? 0.0f : (attempt < maxAttempts / 3 ? 1.0f : (attempt < maxAttempts * 2 / 3 ? 0.75f : 0.55f));
         return hasVillageResidentClearance(world, animal, pos, strictness);
     }
 
@@ -804,7 +869,7 @@ public class BiomeGenerator {
         if (selectedPoly == null || selectedPoly.polygonPath == null) return null;
         Rectangle2D bounds = selectedPoly.polygonPath.getBounds2D();
         GameConfig config = GameConfig.getInstance();
-        for (int attempt = 0; attempt < config.SPAWN_ATTEMPTS_PER_POINT; attempt++) {
+        for (int attempt = 0; attempt < 1000; attempt++) {
             float x = (float) (bounds.getX() + rand.nextDouble() * bounds.getWidth());
             float y = (float) (bounds.getY() + rand.nextDouble() * bounds.getHeight());
             if (selectedPoly.polygonPath.contains(x, y)) {
@@ -828,25 +893,38 @@ public class BiomeGenerator {
         };
 
         for (float minDistance : minDistances) {
-            for (int attempt = 0; attempt < config.SPAWN_ATTEMPTS_PER_POINT * 4; attempt++) {
-                Vector2 candidate = randomClusteredPoint(selectedPoly, clusterCenter, rand);
+            for (int attempt = 0; attempt < 1000; attempt++) {
+                // Giảm dần bán kính cluster nếu fail nhiều lần để ép nhà vào bãi đất nhỏ
+                float clusterRadiusScale = attempt < 500 ? 1.0f : (attempt < 800 ? 0.5f : 0.1f);
+                Vector2 candidate = randomClusteredPoint(selectedPoly, clusterCenter, rand, clusterRadiusScale);
                 if (candidate == null) continue;
                 float x = candidate.x;
                 float y = candidate.y;
                 if (!selectedPoly.polygonPath.contains(x, y)) continue;
                 if (gameMap != null && gameMap.isPositionInWater(x, y) && !gameMap.isBridgeTile(x, y)) continue;
-                if (!isFarFromExistingStructures(world, candidate, minDistance)) continue;
+                if (!isFarFromExistingStructures(world, candidate, minDistance * clusterRadiusScale)) continue;
                 return candidate;
             }
         }
+        
+        // Bắt buộc spawn nhưng KHÔNG BAO GIỜ lấn ra biển, ép vào sát tâm
+        for (int attempt = 0; attempt < 1000; attempt++) {
+            Vector2 candidate = randomClusteredPoint(selectedPoly, clusterCenter, rand, 0.05f); // Bán kính siêu nhỏ
+            if (candidate == null) continue;
+            if (!selectedPoly.polygonPath.contains(candidate.x, candidate.y)) continue;
+            if (gameMap != null && gameMap.isPositionInWater(candidate.x, candidate.y) && !gameMap.isBridgeTile(candidate.x, candidate.y)) continue;
+            // Bỏ qua check khoảng cách giữa các nhà (cho phép nhà đè lên nhau nếu đất quá hẹp) nhưng không chạm nước
+            return candidate;
+        }
+        
         return null;
     }
 
-    private static Vector2 randomClusteredPoint(MapPolygonObject selectedPoly, Vector2 clusterCenter, Random rand) {
+    private static Vector2 randomClusteredPoint(MapPolygonObject selectedPoly, Vector2 clusterCenter, Random rand, float radiusScale) {
         if (clusterCenter == null) return getRandomPointInsidePolygon(selectedPoly, rand);
         GameConfig config = GameConfig.getInstance();
         double angle = rand.nextDouble() * Math.PI * 2.0;
-        double radius = Math.sqrt(rand.nextDouble()) * config.VILLAGE_STRUCTURE_CLUSTER_RADIUS;
+        double radius = Math.sqrt(rand.nextDouble()) * config.VILLAGE_STRUCTURE_CLUSTER_RADIUS * radiusScale;
         return new Vector2(
                 (float) (clusterCenter.x + Math.cos(angle) * radius),
                 (float) (clusterCenter.y + Math.sin(angle) * radius)

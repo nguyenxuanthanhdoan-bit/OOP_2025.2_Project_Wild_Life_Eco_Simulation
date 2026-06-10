@@ -42,6 +42,13 @@ public abstract class LivingBeing extends Entity {
         // Cập nhật vận tốc hiện tại
         this.currentVelocity.add(steering.scale(deltaTime));
         
+        // Cập nhật hướng quay mặt
+        if (this.currentVelocity.x > 0.1f) {
+            this.facingRight = true;
+        } else if (this.currentVelocity.x < -0.1f) {
+            this.facingRight = false;
+        }
+        
         // Giới hạn tốc độ không vượt quá speed
         if (this.currentVelocity.lengthSquared() > this.speed * this.speed) {
             this.currentVelocity.normalize().scale(this.speed);

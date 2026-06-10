@@ -56,15 +56,40 @@ public final class StrategySelector {
             }
 
 
-            // 2. HARVEST: Thu hoạch ban ngày nếu có cây trưởng thành
+            // 2. Phân công công việc ban ngày theo giới tính
             if (!isNight && animal.getWorld() != null) {
-                // Ưu tiên thu hoạch nếu có chậu cây trưởng thành gần đây
-                if (animal.getCurrentStrategy() instanceof HarvestStrategy) {
-                    return animal.getCurrentStrategy();
-                }
-                model.structures.GardenBed bed = animal.getWorld().getCropManager().findNearestMatureCrop(animal.getPosition());
-                if (bed != null) {
-                    return new HarvestStrategy(bed);
+                if (human.getVariant() == Human.Variant.FEMALE) {
+                    // Phụ nữ ưu tiên thu hoạch chậu hoa trưởng thành
+                    if (animal.getCurrentStrategy() instanceof HarvestStrategy) {
+                        return animal.getCurrentStrategy();
+                    }
+                    model.structures.GardenBed bed = animal.getWorld().getCropManager().findNearestMatureCrop(animal.getPosition());
+                    if (bed != null) {
+                        return new HarvestStrategy(bed);
+                    }
+                } else if (human.getVariant() == Human.Variant.MALE) {
+                    if (human.getRole() == model.living_beings.HumanRole.FISHERMAN) {
+                        // Đàn ông đi chài lưới
+                        if (animal.getCurrentStrategy() instanceof BoardBoatStrategy) {
+                            return animal.getCurrentStrategy();
+                        }
+                        
+                        // Tìm thuyền đang neo bến
+                        model.structures.Boat targetBoat = null;
+                        for (model.entity.Entity e : animal.getWorld().getEntities()) {
+                            if (e instanceof model.structures.Boat) {
+                                model.structures.Boat b = (model.structures.Boat) e;
+                                if (b.canBoard() && b.getPosition().distanceTo(animal.getPosition()) < 1500f) {
+                                    targetBoat = b;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (targetBoat != null) {
+                            return new BoardBoatStrategy(targetBoat);
+                        }
+                    }
                 }
             }
 
