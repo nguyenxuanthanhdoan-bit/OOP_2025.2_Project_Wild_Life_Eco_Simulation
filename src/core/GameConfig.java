@@ -90,7 +90,7 @@ public class GameConfig {
     public final int HUNTER_MAX_AMMO = 4;
     public final float HUNTER_SHOOT_RANGE = 240.0f;
     public final float HUNTER_FIRE_COOLDOWN_SECONDS = 0.75f;
-    public final float HUNTER_RELOAD_SECONDS = 2.0f;
+    public final float HUNTER_RELOAD_SECONDS = 5.0f;
     public final float HUNTER_PROJECTILE_SPEED = 430.0f;
     public final float HUNTER_PROJECTILE_SIZE = 12.0f;
     public final float HUNTER_PROJECTILE_DAMAGE = 45.0f;

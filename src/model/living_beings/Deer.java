@@ -11,7 +11,7 @@ public class Deer extends HerbivoreAnimal {
     private static final float  SIZE              = 30.0f;
     private static final float  BASE_SPEED        = 100.0f;
     private int herdId = 1;
-    private static final double MAX_HEALTH        = 150.0;
+    private static final double MAX_HEALTH        = 160.0;
     private static final double MAX_HUNGER        = 150.0;
     private static final double HUNGER_DECAY_RATE = 0.6;
     private static final double MAX_THIRST        = 130.0;

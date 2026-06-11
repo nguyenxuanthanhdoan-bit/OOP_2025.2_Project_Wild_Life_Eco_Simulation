@@ -22,7 +22,7 @@ public class Tiger extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Hổ";
-        this.maxHealth = 250.0f;
+        this.maxHealth = 260.0f;
         this.health = this.maxHealth;
         this.maxHunger = 200.0f;
         this.hunger = this.maxHunger;

@@ -10,7 +10,7 @@ import java.util.Random;
 public class Rabbit extends HerbivoreAnimal {
     private static final float  SIZE              = 20.0f;
     private static final float  BASE_SPEED        = GameConfig.getInstance().RABBIT_BASE_SPEED;
-    private static final double MAX_HEALTH        = 50.0;
+    private static final double MAX_HEALTH        = 60.0;
     private static final double MAX_HUNGER        = 100.0;
     private static final double HUNGER_DECAY_RATE = 0.5;
     private static final double MAX_THIRST        = 100.0;

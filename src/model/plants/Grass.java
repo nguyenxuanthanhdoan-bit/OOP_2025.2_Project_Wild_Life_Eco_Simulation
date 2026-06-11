@@ -31,12 +31,24 @@ public class Grass extends Plant {
     public void update(float deltaTime) {
         if (!isAlive || world == null) return;
         
-        spawnTimer -= deltaTime;
+        float currentDelta = deltaTime;
+        float currentSpawnRadius = SPAWN_RADIUS;
+        int currentMaxNearby = MAX_GRASS_NEARBY;
+
+        if (world.getCurrentSeason() == model.world.World.Season.GROWING) {
+            currentDelta *= 2.0f;
+            currentSpawnRadius *= 1.5f;
+            currentMaxNearby *= 2;
+        } else if (world.getCurrentSeason() == model.world.World.Season.WINTER) {
+            currentDelta *= 0.3f;
+        }
+
+        spawnTimer -= currentDelta;
         if (spawnTimer <= 0) {
             spawnTimer = randomSpawnDelay();
             
             if (world.getSpatialGrid() != null) {
-                List<Entity> nearby = world.getSpatialGrid().getNeighbors(position, SPAWN_RADIUS);
+                List<Entity> nearby = world.getSpatialGrid().getNeighbors(position, currentSpawnRadius);
                 int grassCount = 0;
                 for (Entity e : nearby) {
                     if (e instanceof Grass && e.isAlive()) {
@@ -44,9 +56,9 @@ public class Grass extends Plant {
                     }
                 }
                 
-                if (grassCount < MAX_GRASS_NEARBY) {
+                if (grassCount < currentMaxNearby) {
                     float angle = random.nextFloat() * 2 * (float)Math.PI;
-                    float dist = 20.0f + random.nextFloat() * (SPAWN_RADIUS - 20.0f);
+                    float dist = 20.0f + random.nextFloat() * (currentSpawnRadius - 20.0f);
                     float dx = (float)Math.cos(angle) * dist;
                     float dy = (float)Math.sin(angle) * dist;
                     

@@ -22,7 +22,7 @@ public class Wolf extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Sói";
-        this.maxHealth = 150.0f;
+        this.maxHealth = 160.0f;
         this.health = this.maxHealth;
         this.maxHunger = 120.0f;
         this.hunger = this.maxHunger;

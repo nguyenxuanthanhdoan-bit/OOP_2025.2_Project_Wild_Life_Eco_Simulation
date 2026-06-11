@@ -29,13 +29,25 @@ public class Mushroom extends Plant {
     public void update(float deltaTime) {
         if (!isAlive || world == null) return;
         
-        spawnTimer -= deltaTime;
+        float currentDelta = deltaTime;
+        float currentSpawnRadius = SPAWN_RADIUS;
+        int currentMaxNearby = MAX_MUSHROOMS_NEARBY;
+
+        if (world.getCurrentSeason() == model.world.World.Season.GROWING) {
+            currentDelta *= 2.0f;
+            currentSpawnRadius *= 1.5f;
+            currentMaxNearby *= 2;
+        } else if (world.getCurrentSeason() == model.world.World.Season.WINTER) {
+            currentDelta *= 0.3f;
+        }
+
+        spawnTimer -= currentDelta;
         if (spawnTimer <= 0) {
             spawnTimer = SPAWN_INTERVAL + random.nextFloat() * 10;
             
             // Tìm số lượng Mushroom xung quanh
             if (world.getSpatialGrid() != null) {
-                List<Entity> nearby = world.getSpatialGrid().getNeighbors(position, SPAWN_RADIUS);
+                List<Entity> nearby = world.getSpatialGrid().getNeighbors(position, currentSpawnRadius);
                 int mushroomCount = 0;
                 for (Entity e : nearby) {
                     if (e instanceof Mushroom && e.isAlive()) {
@@ -44,9 +56,9 @@ public class Mushroom extends Plant {
                 }
                 
                 // Nếu chưa đạt tối đa, sinh ra 1 nấm mới
-                if (mushroomCount < MAX_MUSHROOMS_NEARBY) {
+                if (mushroomCount < currentMaxNearby) {
                     float angle = random.nextFloat() * 2 * (float)Math.PI;
-                    float dist = 20.0f + random.nextFloat() * (SPAWN_RADIUS - 20.0f);
+                    float dist = 20.0f + random.nextFloat() * (currentSpawnRadius - 20.0f);
                     float dx = (float)Math.cos(angle) * dist;
                     float dy = (float)Math.sin(angle) * dist;
                     

@@ -52,6 +52,7 @@ public class RenderSystem {
 
     private boolean showHungerBar = true;
     private boolean showThirstBar = true;
+    private boolean showHealthBar = true;
     private boolean showMiniMap = true;
     private boolean showSpeciesName = false;
     private boolean showDebugPath = false;
@@ -96,6 +97,7 @@ public class RenderSystem {
         loadHumanAssets("human_hunter", path + "Human/Hunter/");
         tryLoadAsset("fireball", path + "Human/Hunter/fireball.png");
         tryLoadAsset("dart", path + "Human/Hunter/dart.png");
+        tryLoadAsset("heart", path + "ui/heart.png");
 
         // Plants
         for (int i = 1; i <= 2; i++) tryLoadAsset("grass_" + i, path + "Plant/Grass/Grass_" + i + ".png");
@@ -501,14 +503,14 @@ public class RenderSystem {
                     int labelW = fm.stringWidth(strategyLabel) + 6;
                     int labelH = fm.getHeight();
                     int labelX = (int)animalScreen.x - labelW / 2;
-                    int labelY = (int)animalScreen.y - (int)((animal.getSize() / 2 + 18) * zoom) - labelH;
+                    int labelY = (int)animalScreen.y - (int)((animal.getSize() / 2 + 36) * zoom) - labelH;
                     g2d.setColor(new Color(0, 0, 0, 160));
                     g2d.fillRoundRect(labelX - 1, labelY - 1, labelW + 2, labelH + 2, 4, 4);
                     g2d.setColor(new Color(255, 240, 80));
                     g2d.drawString(strategyLabel, labelX + 3, labelY + fm.getAscent());
                 }
                 if (zoom >= STATUS_BAR_MIN_ZOOM && (showHungerBar || showThirstBar || showSpeciesName)) {
-                    int barW = Math.max(30, (int)(42 * zoom));
+                    int barW = Math.max(24, (int)(32 * zoom));
                     int barH = Math.max(2, Math.min(5, Math.round(2.4f * zoom)));
                     int barX = (int)screenPos.x - barW / 2;
                     int barY = (int)screenPos.y - (int)((animal.getSize() / 2 + 10) * zoom);
@@ -527,17 +529,16 @@ public class RenderSystem {
                         g2d.drawString(text, textX, textY);
                     }
 
-                    if (showHungerBar) {
-                        drawStatusBar(g2d, barX, currentY, barW, barH,
-                                animal.getHunger() / animal.getMaxHunger(),
-                                new java.awt.Color(220, 60, 60));
-                        currentY += barH + 2;
+                    // Vẽ thanh Máu (bằng Tim) ngay phía trên thanh Đói/Khát
+                    if (showHealthBar) {
+                        drawHealthHearts(g2d, barX, currentY - 8 - (int)(6 * zoom), barW, animal.getHealth(), animal.getMaxHealth(), zoom);
                     }
 
-                    if (showThirstBar) {
-                        drawStatusBar(g2d, barX, currentY, barW, barH,
-                                animal.getThirst() / animal.getMaxThirst(),
-                                new java.awt.Color(60, 140, 240));
+                    if (showHungerBar || showThirstBar) {
+                        double hungerRatio = animal.getHunger() / animal.getMaxHunger();
+                        double thirstRatio = animal.getThirst() / animal.getMaxThirst();
+                        drawCombinedStatusBar(g2d, barX, currentY, barW, barH, hungerRatio, thirstRatio);
+                        currentY += barH + 2;
                     }
                 }
             } else if (e instanceof model.items.FireballProjectile) {
@@ -663,6 +664,85 @@ public class RenderSystem {
         int fill = (int) (width * clamped);
         if (fill > 0) {
             g2d.fillRect(x, y, fill, height);
+        }
+    }
+
+    private void drawCombinedStatusBar(Graphics2D g2d, int x, int y, int width, int height,
+                                       double hungerRatio, double thirstRatio) {
+        double clampedHunger = Math.max(0.0, Math.min(1.0, hungerRatio));
+        double clampedThirst = Math.max(0.0, Math.min(1.0, thirstRatio));
+
+        // Border and Background
+        g2d.setColor(java.awt.Color.BLACK);
+        g2d.fillRect(x - 1, y - 1, width + 2, height + 2);
+        g2d.setColor(new java.awt.Color(50, 50, 50));
+        g2d.fillRect(x, y, width, height);
+
+        // Hunger (Left side)
+        int hungerFill = (int) (width * clampedHunger / 2);
+        if (hungerFill > 0) {
+            g2d.setColor(new java.awt.Color(220, 60, 60));
+            g2d.fillRect(x, y, hungerFill, height);
+        }
+
+        // Thirst (Right side)
+        int thirstFill = (int) (width * clampedThirst / 2);
+        if (thirstFill > 0) {
+            g2d.setColor(new java.awt.Color(60, 140, 240));
+            g2d.fillRect(x + width - thirstFill, y, thirstFill, height);
+        }
+
+        // Center Divider
+        g2d.setColor(java.awt.Color.BLACK);
+        g2d.drawLine(x + width / 2, y, x + width / 2, y + height);
+    }
+
+    private void drawHealthHearts(Graphics2D g2d, int x, int y, int barW, double currentHp, double maxHp, float zoom) {
+        BufferedImage heartImg = assetMap.get("heart");
+        if (heartImg == null) return;
+
+        int hpPerHeart = 20;
+        int maxHearts = (int) Math.ceil(maxHp / hpPerHeart);
+        double currentHearts = currentHp / hpPerHeart;
+
+        int baseHeartSize = 8;
+        int heartSize = Math.max(5, (int)(baseHeartSize * zoom));
+        int spacing = Math.max(1, (int)(1 * zoom));
+        int maxPerRow = 8;
+        
+        for (int i = 0; i < maxHearts; i++) {
+            int row = i / maxPerRow;
+            int col = i % maxPerRow;
+            
+            // Calculate width of the current row to center it
+            int heartsInThisRow = Math.min(maxPerRow, maxHearts - row * maxPerRow);
+            int rowWidth = heartsInThisRow * heartSize + (heartsInThisRow - 1) * spacing;
+            int startX = x + (barW - rowWidth) / 2;
+            
+            int hx = startX + col * (heartSize + spacing);
+            // Rows grow upwards
+            int hy = y - row * (heartSize + spacing);
+
+            if (currentHearts >= i + 1) {
+                // Full heart
+                g2d.drawImage(heartImg, hx, hy, heartSize, heartSize, null);
+            } else if (currentHearts > i) {
+                // Partial heart - cut width
+                double fraction = currentHearts - i;
+                int partialW = (int) (heartSize * fraction);
+                if (partialW > 0) {
+                    g2d.drawImage(heartImg, 
+                        hx, hy, hx + partialW, hy + heartSize,
+                        0, 0, (int)(heartImg.getWidth() * fraction), heartImg.getHeight(),
+                        null);
+                }
+            } else {
+                // Empty heart silhouette
+                Composite original = g2d.getComposite();
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+                g2d.drawImage(heartImg, hx, hy, heartSize, heartSize, null);
+                g2d.setComposite(original);
+            }
         }
     }
 
@@ -1257,7 +1337,9 @@ public class RenderSystem {
     public boolean isShowEntitiesOnMinimap() { return showEntitiesOnMinimap; }
     public void setShowEntitiesOnMinimap(boolean showEntitiesOnMinimap) { this.showEntitiesOnMinimap = showEntitiesOnMinimap; }
 
+    public boolean isShowHealthBar() { return showHealthBar; }
+    public void setShowHealthBar(boolean showHealthBar) { this.showHealthBar = showHealthBar; }
+
     public model.entity.Entity getSelectedEntity() { return selectedEntity; }
     public void setSelectedEntity(model.entity.Entity selectedEntity) { this.selectedEntity = selectedEntity; }
-
 }

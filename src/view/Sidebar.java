@@ -57,9 +57,10 @@ public class Sidebar extends JPanel {
         JCheckBox pathCb = new JCheckBox("Hiện đường đi debug (thực thể được chọn)", rs.isShowDebugPath());
         pathCb.setToolTipText("Chọn một con vật rồi bật ô này để xem đường đi, mục tiêu và tên Strategy của nó");
         JCheckBox visionCb = new JCheckBox("Hiện vùng nhìn AI", rs.isShowAIVision());
+        JCheckBox healthCb = new JCheckBox("Hiện máu", rs.isShowHealthBar());
         JCheckBox minimapEntitiesCb = new JCheckBox("Đốm thực thể trên minimap", rs.isShowEntitiesOnMinimap());
 
-        JCheckBox[] cbs = {hungerCb, thirstCb, minimapCb, speciesCb, strategyCb, pathCb, visionCb, minimapEntitiesCb};
+        JCheckBox[] cbs = {healthCb, hungerCb, thirstCb, minimapCb, speciesCb, strategyCb, pathCb, visionCb, minimapEntitiesCb};
         for (JCheckBox cb : cbs) {
             cb.setBackground(new Color(38, 41, 45));
             cb.setForeground(new Color(210, 215, 220));
@@ -69,6 +70,7 @@ public class Sidebar extends JPanel {
             toggleSection.add(cb);
         }
 
+        healthCb.addActionListener(e -> { rs.setShowHealthBar(healthCb.isSelected()); requestFocus(); });
         hungerCb.addActionListener(e -> { rs.setShowHungerBar(hungerCb.isSelected()); requestFocus(); });
         thirstCb.addActionListener(e -> { rs.setShowThirstBar(thirstCb.isSelected()); requestFocus(); });
         minimapCb.addActionListener(e -> { rs.setShowMiniMap(minimapCb.isSelected()); requestFocus(); });

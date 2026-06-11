@@ -34,7 +34,9 @@ public class FruitTree extends Plant {
         if (!isAlive || world == null) return;
         
         float currentDelta = deltaTime;
-        if (world.getCurrentSeason() == model.world.World.Season.WINTER) {
+        if (world.getCurrentSeason() == model.world.World.Season.GROWING) {
+            currentDelta *= 1.5f; // Rớt quả nhanh hơn 1.5 lần
+        } else if (world.getCurrentSeason() == model.world.World.Season.WINTER) {
             currentDelta *= (1.0f - world.getWinterProgress() * 0.8f); // Chậm tối đa 80%
         }
         
