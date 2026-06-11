@@ -47,11 +47,6 @@ public final class StrategySelector {
                 return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
             }
 
-            if (current != null && current.isCommittedTask()
-                    && !current.shouldInterrupt(animal, animal.getWorld())) {
-                return current;
-            }
-
             // 3. Hunter đang mang thịt/hết đạn → về kho
             if (human.canHuntRole() && shouldHunterReturnFood(human)) {
                 return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
@@ -66,6 +61,11 @@ public final class StrategySelector {
                     }
                 }
                 return currentOrNew(animal, GoHomeStrategy.class, new GoHomeStrategy());
+            }
+
+            if (current != null && current.isCommittedTask()
+                    && !current.shouldInterrupt(animal, animal.getWorld())) {
+                return current;
             }
 
             // 5. Đói / khát thông thường
@@ -97,7 +97,7 @@ public final class StrategySelector {
                     }
                 }
 
-                if (human.canFish()) {
+                if (human.canFish() || human.isTouchingFishingHut()) {
                     model.structures.Boat targetBoat = animal.getWorld().getCoastalManager()
                             .reserveAvailableBoat(human);
                     if (targetBoat != null) {

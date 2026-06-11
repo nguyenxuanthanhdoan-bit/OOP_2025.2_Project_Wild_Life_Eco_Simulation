@@ -56,7 +56,9 @@ public class Fox extends CarnivoreAnimal {
     }
 
     private void updateAnimation() {
-        if ("attack".equals(this.actionState)) {
+        if ("sleep".equals(this.actionState)) {
+            this.imageVariant = "sleep.png";
+        } else if ("attack".equals(this.actionState)) {
             this.imageVariant = "west.png"; // Chưa có frame attack riêng
         } else if ("eat".equals(this.actionState)) {
             this.imageVariant = "eat.png";

@@ -284,6 +284,10 @@ public abstract class Animal extends LivingBeing {
             if (!(e instanceof Animal) || e == this || !e.isAlive()) continue;
             Animal other = (Animal) e;
             if (isThreatenedBy(other)) {
+                // Human chỉ sợ khi thú ăn thịt vào gần (phạm vi 150)
+                if (this instanceof Human && this.position.distanceTo(e.getPosition()) > 150.0f) {
+                    continue;
+                }
                 cachedThreat = true;
                 return true; // Chỉ sợ thú ăn thịt ở cấp cao hơn
             }

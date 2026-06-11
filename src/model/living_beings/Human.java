@@ -285,7 +285,7 @@ public class Human extends Animal {
     public boolean enterHouse(House house) {
         if (house == hiddenInHouse) return true;
         if (house == null || !house.hasSpace()
-                || !isNearStructure(house, house.getSize() * 0.2f)) {
+                || !isNearStructure(house, core.GameConfig.getInstance().HOUSE_ENTER_DISTANCE)) {
             return false;
         }
         if (!house.enter(this)) return false;
@@ -317,8 +317,26 @@ public class Human extends Animal {
                 ? getCollider().getRadius() : getSize() * 0.4f;
         float houseRadius = house.getCollider() != null
                 ? house.getCollider().getRadius() : house.getSize() * 0.4f;
-        float touchDist = humanRadius + houseRadius + 2.0f;
+        // Tạo một vùng bao quanh nhà, chạm vào vùng này sẽ vào nhà luôn
+        float touchDist = humanRadius + houseRadius + core.GameConfig.getInstance().HOUSE_ENTER_DISTANCE;
         return this.getPosition().distanceTo(house.getPosition()) <= touchDist;
+    }
+
+    public boolean isTouchingFishingHut() {
+        if (worldRef == null || worldRef.getCoastalManager() == null) return false;
+        float humanRadius = getCollider() != null
+                ? getCollider().getRadius() : getSize() * 0.4f;
+        
+        for (model.structures.FishingHut hut : worldRef.getCoastalManager().getFishingHuts()) {
+            if (!hut.isAlive()) continue;
+            float hutRadius = hut.getCollider() != null
+                    ? hut.getCollider().getRadius() : hut.getSize() * 0.4f;
+            float touchDist = humanRadius + hutRadius + 15.0f; // tolerance for touching
+            if (this.getPosition().distanceTo(hut.getPosition()) <= touchDist) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void applyHiddenInHouse(House house) {
