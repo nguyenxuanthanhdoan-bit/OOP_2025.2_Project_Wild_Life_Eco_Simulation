@@ -11,9 +11,9 @@ import java.util.Random;
 
 public class FishPopulationManager {
     private final World world;
-    private final int TARGET_PREY_COUNT = 40;
+    private final int TARGET_PREY_COUNT = 20;
     private final int TARGET_PREDATOR_COUNT = TARGET_PREY_COUNT / 2;
-    private final int TARGET_SEAWEED_COUNT = 30;
+    private final int TARGET_SEAWEED_COUNT = 15;
     private float checkTimer = 5.0f; // Khởi tạo bằng CHECK_INTERVAL để spawn ngay lập tức lúc mới mở game
     private final float CHECK_INTERVAL = 5.0f; // Kiểm tra mỗi 5 giây
     private final Random rand = new Random();

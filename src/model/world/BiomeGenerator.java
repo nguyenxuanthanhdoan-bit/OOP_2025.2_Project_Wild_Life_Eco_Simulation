@@ -386,22 +386,22 @@ public class BiomeGenerator {
 
     private static void spawnAnimals(World world, GameMap gameMap, List<MapPolygonObject> plain,
                                      List<MapPolygonObject> forest, List<MapPolygonObject> excludedZones, Random rand) {
-        spawnSpecies(world, gameMap, plain, excludedZones, 50, 4, rand, (pos, index) -> new Rabbit(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 18, 3, rand, (pos, index) -> new Rabbit(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 45, 3, rand, (pos, index) -> new Rabbit(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 25, 2, rand, (pos, index) -> new Rabbit(pos));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 32, 3, rand, (pos, index) -> new Deer(pos, 1 + index / 16));
-        spawnSpecies(world, gameMap, forest, excludedZones, 22, 4, rand, (pos, index) -> new Deer(pos, 3 + index / 12));
+        spawnSpecies(world, gameMap, plain, excludedZones, 25, 3, rand, (pos, index) -> new Deer(pos, 1 + index / 16));
+        spawnSpecies(world, gameMap, forest, excludedZones, 15, 2, rand, (pos, index) -> new Deer(pos, 3 + index / 12));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 5, 1, rand, (pos, index) -> new Elephant(pos, 1));
-        spawnSpecies(world, gameMap, forest, excludedZones, 12, 2, rand, (pos, index) -> new Elephant(pos, 2 + index / 6));
+        spawnSpecies(world, gameMap, plain, excludedZones, 1, 1, rand, (pos, index) -> new Elephant(pos, 1));
+        spawnSpecies(world, gameMap, forest, excludedZones, 1, 1, rand, (pos, index) -> new Elephant(pos, 2 + index / 6));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 2, 0, rand, (pos, index) -> new Tiger(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 12, 2, rand, (pos, index) -> new Tiger(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 1, 0, rand, (pos, index) -> new Tiger(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 1, 1, rand, (pos, index) -> new Tiger(pos));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 10, 1, rand, (pos, index) -> new Wolf(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 18, 3, rand, (pos, index) -> new Wolf(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 6, 1, rand, (pos, index) -> new Wolf(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 8, 2, rand, (pos, index) -> new Wolf(pos));
 
-        int foxCountToSpawn = 5 + rand.nextInt(4); // 5 đến 8 con
+        int foxCountToSpawn = 3 + rand.nextInt(3); // 3 đến 5 con
         int foxesSpawned = 0;
         int maxAttempts = 1500;
         while (foxesSpawned < foxCountToSpawn && maxAttempts > 0) {
@@ -479,11 +479,12 @@ public class BiomeGenerator {
 
     private static Animal createSupplementalAnimal(Vector2 pos, Random rand) {
         float roll = rand.nextFloat();
-        if (roll < 0.36f) return EntityFactory.createAnimal("Thỏ", pos, 0, rand);
-        if (roll < 0.68f) return new Deer(pos, 10 + rand.nextInt(4));
-        if (roll < 0.84f) return EntityFactory.createAnimal("Sói", pos, 0, rand);
-        if (roll < 0.94f) return new Elephant(pos, 20 + rand.nextInt(3));
-        return EntityFactory.createAnimal("Hổ", pos, 0, rand);
+        if (roll < 0.60f) return EntityFactory.createAnimal("Thỏ", pos, 0, rand);
+        if (roll < 0.85f) return new Deer(pos, 10 + rand.nextInt(4));
+        if (roll < 0.95f) return EntityFactory.createAnimal("Sói", pos, 0, rand);
+        if (roll < 0.98f) return EntityFactory.createAnimal("Cáo", pos, 0, rand);
+        if (roll < 0.99f) return EntityFactory.createAnimal("Hổ", pos, 0, rand);
+        return new Elephant(pos, 20 + rand.nextInt(3));
     }
 
     private static int countAnimals(World world) {

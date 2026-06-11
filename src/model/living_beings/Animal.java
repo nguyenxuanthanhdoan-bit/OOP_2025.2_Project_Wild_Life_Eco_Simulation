@@ -25,7 +25,7 @@ public abstract class Animal extends LivingBeing {
 
     public static final double HUNGER_WARNING_THRESHOLD   = 0.50;
     public static final double THIRST_WARNING_THRESHOLD   = 0.50;
-    public static final double CRITICAL_SURVIVAL_THRESHOLD = 0.10; // Ngưỡng nguy hiểm tính mạng
+    public static final double CRITICAL_SURVIVAL_THRESHOLD = 0.05; // Ngưỡng nguy hiểm tính mạng (5%)
 
     // =========================================================
     // THUỘC TÍNH
@@ -284,8 +284,18 @@ public abstract class Animal extends LivingBeing {
             if (!(e instanceof Animal) || e == this || !e.isAlive()) continue;
             Animal other = (Animal) e;
             if (isThreatenedBy(other)) {
-                cachedThreat = true;
-                return true; // Chỉ sợ thú ăn thịt ở cấp cao hơn
+                model.strategies.IStrategy otherStrategy = other.getCurrentStrategy();
+                if (otherStrategy instanceof model.strategies.SleepStrategy) {
+                    continue; // Đang ngủ -> Bỏ qua
+                }
+                boolean isHunting = otherStrategy instanceof model.strategies.HunterStrategy;
+                float distSq = this.position.distanceSquared(other.getPosition());
+                float maxDist = isHunting ? (float)this.visionRange : (float)this.visionRange * 0.5f;
+                
+                if (distSq <= maxDist * maxDist) {
+                    cachedThreat = true;
+                    return true;
+                }
             }
         }
         cachedThreat = false;

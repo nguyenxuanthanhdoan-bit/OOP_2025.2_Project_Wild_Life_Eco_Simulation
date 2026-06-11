@@ -42,7 +42,17 @@ public class ScaredStrategy implements IStrategy {
             if (neighbor instanceof Animal && neighbor != ownerAnimal) {
                 Animal other = (Animal) neighbor;
                 if (ownerAnimal.isThreatenedBy(other)) {
-                    predators.add(other);
+                    IStrategy otherStrategy = other.getCurrentStrategy();
+                    if (otherStrategy instanceof SleepStrategy) {
+                        continue;
+                    }
+                    boolean isHunting = otherStrategy instanceof HunterStrategy;
+                    float distSq = ownerAnimal.getPosition().distanceSquared(other.getPosition());
+                    float maxDist = isHunting ? (float)ownerAnimal.getVisionRange() : (float)ownerAnimal.getVisionRange() * 0.5f;
+                    
+                    if (distSq <= maxDist * maxDist) {
+                        predators.add(other);
+                    }
                 }
             } else if (ownerAnimal.getProfile().canHide() && neighbor instanceof Bush) {
                 Bush bush = (Bush) neighbor;

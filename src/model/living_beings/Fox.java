@@ -28,7 +28,7 @@ public class Fox extends CarnivoreAnimal {
         this.hunger = this.maxHunger;
         this.hungerDecayRate = 0.4f;
         this.maxThirst = 80.0f;
-        this.visionRange = 400.0;
+        this.visionRange = 266.0;
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 0.5f;
         this.maxAge = 400.0f;

@@ -23,6 +23,15 @@ public final class StrategySelector {
             return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
         }
 
+        // Ưu tiên cao nhất cho Cơn đói cực hạn (Sắp chết đói)
+        if (criticalHunger) {
+            if (animal.canUseStrategy(HunterStrategy.class)) {
+                return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
+            } else if (animal.canUseStrategy(ForageStrategy.class) && animal.canForageForFood()) {
+                return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
+            }
+        }
+
         boolean isNight = animal.getWorld() != null &&
                           (animal.getWorld().getTimeOfDay() >= 18.0f || animal.getWorld().getTimeOfDay() <= 5.0f);
         boolean isAquatic = animal.getProfile().isAquatic();
@@ -38,14 +47,6 @@ public final class StrategySelector {
 
         if (animal instanceof Human) {
             Human human = (Human) animal;
-
-            // 2. Đói cực kỳ nguy hiểm
-            if (criticalHunger) {
-                if (human.canHuntForVillage()) {
-                    return currentOrNew(animal, HunterStrategy.class, new HunterStrategy());
-                }
-                return currentOrNew(animal, ForageStrategy.class, new ForageStrategy());
-            }
 
             if (current != null && current.isCommittedTask()
                     && !current.shouldInterrupt(animal, animal.getWorld())) {

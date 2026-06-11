@@ -32,6 +32,7 @@ public class World {
     private float dayTimer = 0.0f;
     private int gameDay = 1;
     private Season currentSeason = Season.GROWING;
+    private int winterDays = 0; // Đếm số ngày của mùa đông
     private float winterProgress = 0.0f; // 0.0 -> Sinh Trưởng, 1.0 -> Mùa đông hoàn toàn
     private Weather currentWeather = Weather.SUNNY;
     private float weatherTimer = 0.0f;
@@ -118,8 +119,23 @@ public class World {
         if (dayTimer >= 60.0f) { // 60 seconds per day
             dayTimer = 0.0f;
             gameDay++;
-            if (gameDay % 5 == 1) {
-                nextSeason();
+            
+            if (currentSeason == Season.GROWING) {
+                int animalCount = 0;
+                for (Entity e : getEntities()) {
+                    if (e instanceof model.living_beings.Animal && e.isAlive()) {
+                        animalCount++;
+                    }
+                }
+                if (animalCount >= core.GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT * 0.90f) {
+                    setSeason(Season.WINTER);
+                    winterDays = 0;
+                }
+            } else if (currentSeason == Season.WINTER) {
+                winterDays++;
+                if (winterDays >= 2) { // Kéo dài 2 ngày
+                    setSeason(Season.GROWING);
+                }
             }
         }
 

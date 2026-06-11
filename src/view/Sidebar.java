@@ -7,6 +7,8 @@ import view.systems.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Map;
+import java.util.HashMap;
 
 public class Sidebar extends JPanel {
 
@@ -22,6 +24,7 @@ public class Sidebar extends JPanel {
     private JLabel infoActionLabel;
     private JLabel infoStrategyLabel;
     private JPanel infoPanel;
+    private JLabel statsLabel;
 
     public Sidebar(Simulation simulation, GameLoop gameLoop, Runnable requestFocusCallback) {
         this.simulation = simulation;
@@ -231,6 +234,13 @@ public class Sidebar extends JPanel {
 
         infoSection.add(infoPanel);
         container.add(infoSection);
+        container.add(Box.createRigidArea(new Dimension(0, 12)));
+
+        // 4. STATS SECTION
+        JPanel statsSection = createSectionPanel("THỐNG KÊ SỐ LƯỢNG");
+        statsLabel = createInfoLabel("Đang đếm...");
+        statsSection.add(statsLabel);
+        container.add(statsSection);
         
         container.add(Box.createVerticalGlue());
 
@@ -245,6 +255,25 @@ public class Sidebar extends JPanel {
 
     public void updateSidebar() {
         if (simulation.getRenderSystem() == null) return;
+
+        if (simulation.getWorld() != null) {
+            Map<String, Integer> counts = new HashMap<>();
+            int total = 0;
+            for (model.entity.Entity e : simulation.getWorld().getEntities()) {
+                if (e instanceof model.living_beings.Animal && e.isAlive()) {
+                    String sp = ((model.living_beings.Animal)e).getSpeciesName();
+                    counts.put(sp, counts.getOrDefault(sp, 0) + 1);
+                    total++;
+                }
+            }
+            StringBuilder sb = new StringBuilder("<html>");
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                sb.append("- ").append(entry.getKey()).append(": ").append(entry.getValue()).append("<br>");
+            }
+            sb.append("<br><b>Tổng số loài: ").append(total).append("</b></html>");
+            statsLabel.setText(sb.toString());
+        }
+
         model.living_beings.Animal animal = simulation.getRenderSystem().getSelectedAnimal();
         if (animal != null && animal.isAliveState()) {
             infoSpeciesLabel.setText("Loài: " + animal.getSpeciesName());

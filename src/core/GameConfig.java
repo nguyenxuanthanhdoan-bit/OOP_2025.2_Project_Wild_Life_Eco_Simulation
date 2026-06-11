@@ -27,7 +27,7 @@ public class GameConfig {
     // ==========================================
     // CẤU HÌNH THỰC THỂ (PHASE 1)
     // ==========================================
-    public final float RABBIT_BASE_SPEED = 100.0f; // Tốc độ chạy của thỏ (pixels/giây)
+    public final float RABBIT_BASE_SPEED = 75.0f; // Tốc độ chạy của thỏ (pixels/giây)
     public final float TIGER_BASE_SPEED = 130.0f;  // Tốc độ chạy của hổ (pixels/giây)
     public final float WOLF_BASE_SPEED = 140.0f;   // Tốc độ chạy của sói (pixels/giây)
 
@@ -73,14 +73,14 @@ public class GameConfig {
     public final float DECORATIVE_STRUCTURE_SIZE = 50.0f;
     public final float VILLAGE_STRUCTURE_MIN_DISTANCE = 70.0f;
     public final float VILLAGE_STRUCTURE_CLUSTER_RADIUS = 200.0f;
-    public final int VILLAGERS_PER_VILLAGE = 10; // Số dân làng (Villager) mỗi làng (5 nam + 5 nữ)
+    public final int VILLAGERS_PER_VILLAGE = 8; // Số dân làng (Villager) mỗi làng
     public final int HUNTERS_PER_VILLAGE = 2;
-    public final int FISHERMEN_PER_VILLAGE = 4; // Số ngư dân mỗi làng
+    public final int FISHERMEN_PER_VILLAGE = 2; // Số ngư dân mỗi làng
     public final boolean ENABLE_FALLBACK_VILLAGES = false;
     public final float HUMAN_CARRY_CAPACITY = 45.0f;
     public final float HUNTER_CARRY_CAPACITY = 180.0f;
     public final float VILLAGE_HOME_RADIUS_PADDING = 80.0f;
-    public final int MAX_INITIAL_ANIMAL_COUNT = 250;
+    public final int MAX_INITIAL_ANIMAL_COUNT = 200; // Giới hạn tổng số lượng spawn động vật ban đầu trên toàn bản đồ
     public final int SPAWN_ATTEMPTS_PER_POINT = 180;
     public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
     public final double INITIAL_SPAWN_MIN_AGE_RATIO = 0.25;

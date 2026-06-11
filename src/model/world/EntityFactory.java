@@ -34,6 +34,7 @@ public final class EntityFactory {
         registerAnimal("Hươu", (position, index, random) -> new Deer(position, 1 + Math.max(0, index) / 16));
         registerAnimal("Voi", (position, index, random) -> new Elephant(position, 1 + Math.max(0, index) / 6));
         registerAnimal("Sói", (position, index, random) -> new Wolf(position));
+        registerAnimal("Cáo", (position, index, random) -> new model.living_beings.Fox(position));
         registerAnimal("Hổ", (position, index, random) -> new Tiger(position));
     }
 
