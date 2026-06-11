@@ -56,15 +56,16 @@ public class Fox extends CarnivoreAnimal {
     }
 
     private void updateAnimation() {
-        if ("sleep".equals(this.actionState)) {
+        String animationState = getAnimationState();
+        if ("sleep".equals(animationState)) {
             this.imageVariant = "sleep.png";
-        } else if ("attack".equals(this.actionState)) {
+        } else if ("attack".equals(animationState)) {
             this.imageVariant = "west.png"; // Chưa có frame attack riêng
-        } else if ("eat".equals(this.actionState)) {
+        } else if ("eat".equals(animationState) || "drink".equals(animationState)) {
             this.imageVariant = "eat.png";
-        } else if (this.isMoving && ("run".equals(this.actionState) || this.speed > this.baseSpeed * 1.1f)) {
+        } else if ("run".equals(animationState)) {
             this.imageVariant = "run.png";
-        } else if (this.isMoving) {
+        } else if ("walk".equals(animationState)) {
             this.imageVariant = "walk.png";
         } else {
             this.imageVariant = "west.png";

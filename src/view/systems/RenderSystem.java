@@ -867,47 +867,11 @@ public class RenderSystem {
         // Xác định loại động vật (tên class)
         String species = animal.getSpriteKey();
 
-        // Suy diễn trạng thái
-        String state = animal.getActionState();
-        boolean moving = animal.isMoving();
-        boolean hasVelocity = animal.getSpeed() > 0.0f
-                && animal.getCurrentSpeedSquared() > 1.0f;
-        boolean locomotionState = "walk".equals(state) || "run".equals(state);
-        if ("attack".equals(state) || "eat".equals(state) || "drink".equals(state) || "sleep".equals(state)) {
-            // Giữ các animation hành động ngay cả khi đứng tại chỗ.
-        } else if (locomotionState && (moving || hasVelocity)) {
-            // Strategy đã xác định rõ walk/run; vận tốc giúp tránh đọc trễ cờ isMoving.
-        } else if (moving || hasVelocity) {
-            if ("run".equals(state) || animal.getSpeed() > animal.getBaseSpeed() * 1.1f) {
-                state = "run";
-            } else {
-                state = "walk";
-            }
-        } else {
-            state = "idle";
-        }
-
-        // [CÓ THỂ MỞ RỘNG] Nếu animal có thuộc tính isEating() hay isSleeping() thì gắn state tương ứng ở đây
+        String state = animal.getAnimationState();
+        boolean moving = animal.getSpeed() > config.MOVEMENT_SPEED_EPSILON;
 
         // Lấy spritesheet
-        BufferedImage sheet = ("eat".equals(state) || "drink".equals(state))
-                ? getEatDrinkSheet(species)
-                : assetMap.get(species + "_" + state);
-        if (sheet == null) {
-            if (state.equals("attack") && "human_hunter".equals(species)) {
-                sheet = assetMap.get(species + "_idle");
-            }
-            if (sheet == null && state.equals("attack")) {
-                // Fallback: dùng "run" khi attack (trông chân thực hơn "west" đứng yên)
-                sheet = assetMap.get(species + "_run");
-            }
-            if (sheet == null && state.equals("idle")) sheet = assetMap.get(species + "_west");
-            if (sheet == null) sheet = assetMap.get(species + "_walk");
-            if (sheet == null) sheet = assetMap.get(species + "_west");
-
-            // [MỚI] Fallback cho cá (Fish) hoặc các Entity chỉ có 1 hình ảnh tĩnh mang tên "species.png"
-            if (sheet == null) sheet = assetMap.get(species + ".png");
-        }
+        BufferedImage sheet = getAnimalAnimationSheet(species, state);
         if (sheet == null) return;
 
         // Lấy frame chuẩn để tham chiếu kích thước của các hoạt ảnh chuẩn (walk, run, v.v.)
@@ -997,6 +961,37 @@ public class RenderSystem {
 
         // Khôi phục lại transform ban đầu
         g2d.setTransform(oldTransform);
+    }
+
+    private BufferedImage getAnimalAnimationSheet(String species, String state) {
+        BufferedImage sheet;
+        if ("eat".equals(state) || "drink".equals(state)) {
+            return getEatDrinkSheet(species);
+        }
+
+        sheet = assetMap.get(species + "_" + state);
+        if (sheet != null) return sheet;
+
+        if ("attack".equals(state)) {
+            sheet = assetMap.get(species + "_run");
+            if (sheet != null) return sheet;
+        }
+        if ("run".equals(state)) {
+            sheet = assetMap.get(species + "_walk");
+            if (sheet != null) return sheet;
+        }
+        if ("walk".equals(state) || "idle".equals(state) || "sleep".equals(state)) {
+            sheet = assetMap.get(species + "_idle");
+            if (sheet != null) return sheet;
+            sheet = assetMap.get(species + "_west");
+            if (sheet != null) return sheet;
+        }
+
+        sheet = assetMap.get(species + "_walk");
+        if (sheet == null) sheet = assetMap.get(species + "_idle");
+        if (sheet == null) sheet = assetMap.get(species + "_west");
+        if (sheet == null) sheet = assetMap.get(species + ".png");
+        return sheet;
     }
 
     private BufferedImage getEatDrinkSheet(String species) {

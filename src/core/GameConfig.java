@@ -153,6 +153,8 @@ public class GameConfig {
     // CẤU HÌNH RENDER / HUD
     // ==========================================
     public final float ANIMATION_FRAME_DURATION = 0.15f;
+    public final float RUN_ANIMATION_SPEED_MULTIPLIER = 1.1f;
+    public final float MOVEMENT_SPEED_EPSILON = 0.001f;
     public final int MINIMAP_MARGIN = 14;
     public final int MINIMAP_SIZE = 190;
     public final int MINIMAP_MIN_HEIGHT = 80;

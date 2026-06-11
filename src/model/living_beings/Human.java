@@ -343,8 +343,8 @@ public class Human extends Animal {
         this.hidden = true;
         this.hiddenInHouse = house;
         this.isMoving = false;
-        this.actionState = "idle";
-        this.speed = 0;
+        this.setSpeed(0);
+        this.setActionState("idle");
         this.currentVelocity.set(0, 0);
         this.setPosition(house.getPosition());
     }
@@ -479,18 +479,12 @@ public class Human extends Animal {
     }
 
     private void updateAnimation() {
-        if ("attack".equals(actionState) || "eat".equals(actionState) || "drink".equals(actionState)) {
-            imageVariant = actionState + ".png";
-            return;
-        }
-        if (isMoving && ("run".equals(actionState) || speed > baseSpeed * 1.1f)) {
-            imageVariant = "run.png";
-        } else if (isMoving) {
-            imageVariant = "walk.png";
-        } else {
-            imageVariant = "idle.png";
-            actionState = "idle";
-        }
+        String animationState = getAnimationState();
+        imageVariant = ("run".equals(animationState) || "walk".equals(animationState)
+                || "attack".equals(animationState) || "eat".equals(animationState)
+                || "drink".equals(animationState))
+                ? animationState + ".png"
+                : "idle.png";
     }
 
     @Override

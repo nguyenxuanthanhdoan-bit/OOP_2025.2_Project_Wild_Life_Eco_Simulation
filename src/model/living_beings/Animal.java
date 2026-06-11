@@ -560,7 +560,42 @@ public abstract class Animal extends LivingBeing {
     }
 
     public void setActionState(String actionState) {
-        this.actionState = actionState;
+        String requestedState = actionState == null ? "idle" : actionState.toLowerCase();
+        this.actionState = isSpecialAnimationState(requestedState)
+                ? requestedState
+                : resolveLocomotionState();
+    }
+
+    @Override
+    public void setSpeed(float speed) {
+        super.setSpeed(Math.max(0.0f, speed));
+        if (!isSpecialAnimationState(this.actionState)) {
+            this.actionState = resolveLocomotionState();
+        }
+    }
+
+    public String getAnimationState() {
+        if (isSpecialAnimationState(actionState)) {
+            return actionState;
+        }
+        return resolveLocomotionState();
+    }
+
+    private String resolveLocomotionState() {
+        core.GameConfig config = core.GameConfig.getInstance();
+        if (speed <= config.MOVEMENT_SPEED_EPSILON) {
+            return "idle";
+        }
+        return speed > baseSpeed * config.RUN_ANIMATION_SPEED_MULTIPLIER
+                ? "run"
+                : "walk";
+    }
+
+    private boolean isSpecialAnimationState(String state) {
+        return "attack".equals(state)
+                || "eat".equals(state)
+                || "drink".equals(state)
+                || "sleep".equals(state);
     }
 
     public void markFoodUnsafe(model.entity.Entity food, float duration) {
@@ -592,8 +627,8 @@ public abstract class Animal extends LivingBeing {
         this.hidden = true;
         this.hiddenInBush = bush;
         this.isMoving = false;
-        this.actionState = "idle";
-        this.speed = 0;
+        this.setSpeed(0);
+        this.setActionState("idle");
         this.currentVelocity.set(0, 0);
         stuckDetector.reset(); // Reset escape state khi ẩn vào bụi
         if (bush != null) {

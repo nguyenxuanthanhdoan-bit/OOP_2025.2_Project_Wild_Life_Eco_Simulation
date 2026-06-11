@@ -59,11 +59,12 @@ public class Wolf extends CarnivoreAnimal {
     }
 
     private void updateAnimation() {
-        if ("attack".equals(this.actionState)) {
+        String animationState = getAnimationState();
+        if ("attack".equals(animationState)) {
             this.imageVariant = "west.png"; // Yêu cầu: "Wolf: west.png vì chưa có frame attack"
-        } else if (this.isMoving && ("run".equals(this.actionState) || this.speed > this.baseSpeed * 1.1f)) {
+        } else if ("run".equals(animationState)) {
             this.imageVariant = "run.png";
-        } else if (this.isMoving) {
+        } else if ("walk".equals(animationState)) {
             this.imageVariant = "walk.png";
         } else {
             this.imageVariant = "west.png";
