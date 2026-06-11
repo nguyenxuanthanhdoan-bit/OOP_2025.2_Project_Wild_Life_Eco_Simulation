@@ -85,8 +85,8 @@ public class GameConfig {
     public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
     public final double INITIAL_SPAWN_MIN_AGE_RATIO = 0.25;
     public final double INITIAL_SPAWN_MAX_AGE_RATIO = 0.65;
-    public final float HUMAN_BASE_SPEED = 85.0f;
-    public final float HUNTER_BASE_SPEED = 95.0f;
+    public final float HUMAN_BASE_SPEED = 70.0f;
+    public final float HUNTER_BASE_SPEED = 80.0f;
     public final int HUNTER_MAX_AMMO = 8;
     public final float HUNTER_SHOOT_RANGE = 240.0f;
     public final float HUNTER_FIRE_COOLDOWN_SECONDS = 0.75f;
@@ -102,7 +102,7 @@ public class GameConfig {
     /** Khoảng cách tối đa để Human có thể bước vào nhà (pixels). */
     public final float HOUSE_ENTER_DISTANCE = 72.0f;
     /** Bán kính phát hiện mối đe dọa của Human (pixels). */
-    public final float THREAT_RADIUS = 300.0f;
+    public final float THREAT_RADIUS = 150.0f;
     /**
      * Padding thêm vào homeRadius khi tính vùng Safe Zone của Settlement.
      * safeRadius = villagePolygonRadius + SETTLEMENT_SAFE_RADIUS_PADDING

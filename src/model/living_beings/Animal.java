@@ -290,7 +290,9 @@ public abstract class Animal extends LivingBeing {
                 }
                 boolean isHunting = otherStrategy instanceof model.strategies.HunterStrategy;
                 float distSq = this.position.distanceSquared(other.getPosition());
-                float maxDist = isHunting ? (float)this.visionRange : (float)this.visionRange * 0.5f;
+                float maxDist = this instanceof Human
+                        ? core.GameConfig.getInstance().THREAT_RADIUS
+                        : isHunting ? (float) this.visionRange : (float) this.visionRange * 0.5f;
                 
                 if (distSq <= maxDist * maxDist) {
                     cachedThreat = true;

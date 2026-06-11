@@ -96,6 +96,15 @@ public class Boat extends Structure {
             case SAILING_OUT:
                 if (fishingSpot != null) {
                     moveTo(fishingSpot, 40f, deltaTime); // speed 40
+                    
+                    // Ngăn thuyền đi lên cạn: nếu rời bến đủ xa mà lại ở trên cạn thì quay về
+                    if (position.distanceTo(dockPosition) > 60f && getWorld() != null && getWorld().getGameMap() != null 
+                            && !getWorld().getGameMap().isPositionInWater(position.x, position.y)) {
+                        state = BoatState.SAILING_BACK;
+                        fishingSpot = null;
+                        break;
+                    }
+
                     if (position.distanceTo(fishingSpot) < 5f) {
                         state = BoatState.FISHING;
                         timer = 15f; // Đánh lưới trong 15 giây
@@ -105,6 +114,13 @@ public class Boat extends Structure {
                 }
                 break;
             case FISHING:
+                // Đảm bảo không thả lưới trên cạn
+                if (getWorld() != null && getWorld().getGameMap() != null 
+                        && !getWorld().getGameMap().isPositionInWater(position.x, position.y)) {
+                    state = BoatState.SAILING_BACK;
+                    break;
+                }
+
                 timer -= deltaTime;
                 if (timer <= 0) {
                     for (Human h : passengers) {
@@ -156,6 +172,11 @@ public class Boat extends Structure {
             float tx = dockPosition.x + r * (float) Math.cos(angle);
             float ty = dockPosition.y + r * (float) Math.sin(angle);
             
+            // Giới hạn trong bản đồ
+            if (tx < 0 || tx >= getWorld().getWidth() || ty < 0 || ty >= getWorld().getHeight()) {
+                continue;
+            }
+
             // Tìm điểm nước sâu
             if (getWorld().getGameMap().isPositionInWater(tx, ty) && !isLineCrossingLand(dockPosition, new Vector2(tx, ty))) {
                 return new Vector2(tx, ty);
@@ -166,9 +187,9 @@ public class Boat extends Structure {
 
     private boolean isLineCrossingLand(Vector2 start, Vector2 end) {
         if (getWorld() == null || getWorld().getGameMap() == null) return false;
-        int steps = 20;
+        int steps = 100;
         // Skip the first 10% just in case the dock touches the shore
-        for (int i = 2; i <= steps; i++) {
+        for (int i = 10; i <= steps; i++) {
             float t = (float) i / steps;
             float px = start.x + t * (end.x - start.x);
             float py = start.y + t * (end.y - start.y);
