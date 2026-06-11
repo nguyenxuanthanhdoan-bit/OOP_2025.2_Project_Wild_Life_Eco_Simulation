@@ -158,14 +158,15 @@ public class AvoidanceStrategy {
     }
 
     public static Vector2 getPathFollowingAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
-        Vector2 total = getPathFollowingNonWaterAvoidanceForce(owner, world);
+        Vector2 total = getPathFollowingNonWaterAvoidanceForce(owner, world, moveDir);
         total.add(getWaterAvoidanceForce(owner, world, moveDir));
         return total;
     }
 
-    public static Vector2 getPathFollowingNonWaterAvoidanceForce(Animal owner, World world) {
+    public static Vector2 getPathFollowingNonWaterAvoidanceForce(Animal owner, World world, Vector2 moveDir) {
         Vector2 total = new Vector2();
         total.add(getLargeAnimalAvoidanceForce(owner, world));
+        total.add(getSolidObstacleForce(owner, world, moveDir));
         total.add(getBoundaryAvoidanceForce(owner, world));
         return total;
     }

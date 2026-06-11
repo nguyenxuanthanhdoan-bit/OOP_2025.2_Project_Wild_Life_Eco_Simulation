@@ -208,6 +208,16 @@ public class World {
         }
     }
 
+    public int getAnimalCount() {
+        int count = 0;
+        for (Entity e : entities) {
+            if (e instanceof model.living_beings.Animal && e.isAlive()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public void publishEvent(WorldEventType type, Entity entity, String reason) {
         eventSystem.emit(new WorldEvent(type, entity, this, reason));
     }

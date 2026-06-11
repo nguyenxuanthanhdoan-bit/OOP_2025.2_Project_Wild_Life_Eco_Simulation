@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import model.entity.Entity;
 
 /**
  * Lớp cơ sở trừu tượng cho mọi loài động vật trong hệ sinh thái.
@@ -139,6 +140,7 @@ public abstract class Animal extends LivingBeing {
     public void update(float deltaTime) {
         if (!alive) return;
 
+        updateDangerZones(deltaTime);
         updateUnsafeFoodMemory(deltaTime);
         reproductionCooldown = Math.max(0.0f, reproductionCooldown - deltaTime);
         if (radarCooldown > 0) {
@@ -307,6 +309,46 @@ public abstract class Animal extends LivingBeing {
                 .isGuardedGardenNear(worldRef, position, (float) visionRange);
         return cachedGardenThreat;
     }
+    // =========================================================
+    // VÙNG NGUY HIỂM (DANGER ZONE MEMORY)
+    // =========================================================
+    public static class DangerZone {
+        public Vector2 position;
+        public float radius;
+        public float timer;
+        public DangerZone(Vector2 position, float radius, float timer) {
+            this.position = position;
+            this.radius = radius;
+            this.timer = timer;
+        }
+    }
+    private final Map<UUID, DangerZone> dangerZones = new HashMap<>();
+
+    public void markDangerZone(Entity predator, float radius, float duration) {
+        dangerZones.put(predator.getId(), new DangerZone(predator.getPosition().copy(), radius, duration));
+    }
+
+    public boolean isInDangerZone(Vector2 pos) {
+        if (dangerZones.isEmpty()) return false;
+        for (DangerZone dz : dangerZones.values()) {
+            if (pos.distanceTo(dz.position) <= dz.radius) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateDangerZones(float deltaTime) {
+        if (dangerZones.isEmpty()) return;
+        Iterator<Map.Entry<UUID, DangerZone>> it = dangerZones.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, DangerZone> entry = it.next();
+            entry.getValue().timer -= deltaTime;
+            if (entry.getValue().timer <= 0) {
+                it.remove();
+            }
+        }
+    }
 
     // =========================================================
     // HÀNH VI
@@ -474,6 +516,10 @@ public abstract class Animal extends LivingBeing {
         if (reproductionCooldown > 0.0f) return false;
         if (age < maxAge * 0.2 || age > maxAge * 0.8) return false;
         if (hunger < maxHunger * 0.7 || thirst < maxThirst * 0.7) return false;
+
+        // Giới hạn dân số toàn map
+        if (worldRef != null && worldRef.getAnimalCount() >= core.GameConfig.getInstance().MAX_ANIMAL_POPULATION) return false;
+
         return true;
     }
 

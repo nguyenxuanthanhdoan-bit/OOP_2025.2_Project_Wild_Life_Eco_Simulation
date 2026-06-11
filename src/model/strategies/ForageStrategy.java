@@ -227,6 +227,7 @@ public class ForageStrategy implements IStrategy {
 
         for (Entity neighbor : neighbors) {
             if (!neighbor.isAlive()) continue;
+            if (animal.isInDangerZone(neighbor.getPosition())) continue;
             if (animal.isFoodMarkedUnsafe(neighbor)) continue;
 
             int priority = getStaticFoodPriority(animal, neighbor);

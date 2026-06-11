@@ -22,15 +22,7 @@ public class MatingStrategy extends PassiveStrategy {
         if (!(owner instanceof Animal)) return;
         Animal ownerAnimal = (Animal) owner;
 
-        // Check if ecosystem reached limit
-        if (getAnimalCount(world) >= config.MAX_ANIMAL_POPULATION) {
-            mateNavigator.clear();
-            ownerAnimal.setActionState("idle");
-            wanderDelegate.execute(owner, world, deltaTime);
-            return;
-        }
-
-        // Check self mating conditions
+        // Tự kiểm tra lại xem Animal còn đủ điều kiện không (sau khi check giới hạn dân số ở canReproduce)
         if (!ownerAnimal.canReproduce()) {
             mateNavigator.clear();
             ownerAnimal.setActionState("idle");
@@ -109,17 +101,6 @@ public class MatingStrategy extends PassiveStrategy {
             ownerAnimal.setActionState("idle");
             wanderDelegate.execute(owner, world, deltaTime);
         }
-    }
-
-    private int getAnimalCount(World world) {
-        if (world == null || world.getEntities() == null) return 0;
-        int count = 0;
-        for (Entity e : world.getEntities()) {
-            if (e instanceof Animal && e.isAlive()) {
-                count++;
-            }
-        }
-        return count;
     }
 
     @Override

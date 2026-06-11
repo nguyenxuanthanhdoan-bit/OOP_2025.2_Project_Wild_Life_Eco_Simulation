@@ -49,11 +49,13 @@ public class Sidebar extends JPanel {
         JCheckBox thirstCb = new JCheckBox("Hiện thanh khát", rs.isShowThirstBar());
         JCheckBox minimapCb = new JCheckBox("Hiện bản đồ nhỏ", rs.isShowMiniMap());
         JCheckBox speciesCb = new JCheckBox("Hiện tên loài", rs.isShowSpeciesName());
-        JCheckBox pathCb = new JCheckBox("Hiện đường đi debug", rs.isShowDebugPath());
+        JCheckBox strategyCb = new JCheckBox("Hiện Strategy/Action", rs.showStrategyLabelAll);
+        JCheckBox pathCb = new JCheckBox("Hiện đường đi debug (thực thể được chọn)", rs.isShowDebugPath());
+        pathCb.setToolTipText("Chọn một con vật rồi bật ô này để xem đường đi, mục tiêu và tên Strategy của nó");
         JCheckBox visionCb = new JCheckBox("Hiện vùng nhìn AI", rs.isShowAIVision());
         JCheckBox minimapEntitiesCb = new JCheckBox("Đốm thực thể trên minimap", rs.isShowEntitiesOnMinimap());
 
-        JCheckBox[] cbs = {hungerCb, thirstCb, minimapCb, speciesCb, pathCb, visionCb, minimapEntitiesCb};
+        JCheckBox[] cbs = {hungerCb, thirstCb, minimapCb, speciesCb, strategyCb, pathCb, visionCb, minimapEntitiesCb};
         for (JCheckBox cb : cbs) {
             cb.setBackground(new Color(38, 41, 45));
             cb.setForeground(new Color(210, 215, 220));
@@ -67,6 +69,7 @@ public class Sidebar extends JPanel {
         thirstCb.addActionListener(e -> { rs.setShowThirstBar(thirstCb.isSelected()); requestFocus(); });
         minimapCb.addActionListener(e -> { rs.setShowMiniMap(minimapCb.isSelected()); requestFocus(); });
         speciesCb.addActionListener(e -> { rs.setShowSpeciesName(speciesCb.isSelected()); requestFocus(); });
+        strategyCb.addActionListener(e -> { rs.showStrategyLabelAll = strategyCb.isSelected(); requestFocus(); });
         pathCb.addActionListener(e -> { rs.setShowDebugPath(pathCb.isSelected()); requestFocus(); });
         visionCb.addActionListener(e -> { rs.setShowAIVision(visionCb.isSelected()); requestFocus(); });
         minimapEntitiesCb.addActionListener(e -> { rs.setShowEntitiesOnMinimap(minimapEntitiesCb.isSelected()); requestFocus(); });

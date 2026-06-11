@@ -5,6 +5,7 @@ src/core/DisplayMode.java
 src/core/TileType.java
 src/test/strategy/AvoidanceTest.java
 src/test/strategy/ReproductionTest.java
+src/test/strategy/VillagerHarvestTest.java
 src/test/strategy/MultiPreyHuntTest.java
 src/test/strategy/HunterHuntTest.java
 src/test/strategy/PredatorPreyTest.java

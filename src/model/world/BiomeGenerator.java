@@ -597,6 +597,10 @@ public class BiomeGenerator {
             spawnVillageGroup(world, gameMap, village, clusterCenter, config.DECORATIONS_PER_VILLAGE, rand,
                     (pos, index) -> new DecorativeStructure(pos,
                             selectDecorativeVariant(index, decorativeVariants, marketVariants)));
+            
+            int lanternCount = 3 + rand.nextInt(3);
+            spawnVillageGroup(world, gameMap, village, clusterCenter, lanternCount, rand,
+                    (pos, index) -> new model.structures.Lantern(pos, rand.nextBoolean() ? "lantern_2" : "lantern_3"));
 
             if (clusterCenter != null) {
                 float safeRadius = getVillageHomeRadius(village) + config.SETTLEMENT_SAFE_RADIUS_PADDING;
@@ -839,6 +843,7 @@ public class BiomeGenerator {
 
         int lanternsSpawned = 0;
         int attempts = 0;
+        String[] bushTypes = {"lantern_bush_1", "lantern_bush_2", "lantern_bush_3"};
         while (lanternsSpawned < 30 && attempts < 300) {
             attempts++;
             Vector2 pos = getRandomGroundPoint(world, gameMap, rand);
@@ -851,7 +856,8 @@ public class BiomeGenerator {
                     }
                 }
                 if (!collision) {
-                    world.addEntity(new model.structures.Lantern(pos, "lantern"));
+                    String bushType = bushTypes[rand.nextInt(bushTypes.length)];
+                    world.addEntity(new model.structures.Lantern(pos, bushType));
                     lanternsSpawned++;
                 }
             }
@@ -1043,6 +1049,6 @@ public class BiomeGenerator {
     }
 
     private interface StructureFactory {
-        Structure create(Vector2 position, int index);
+        model.entity.Entity create(Vector2 position, int index);
     }
 }

@@ -147,7 +147,7 @@ public class PathNavigator {
 
     private Vector2 getPathAvoidance(Animal animal, World world, Vector2 desiredDir, MovementContext context) {
         if (context == MovementContext.SEEKING_WATER) {
-            return AvoidanceStrategy.getPathFollowingNonWaterAvoidanceForce(animal, world);
+            return AvoidanceStrategy.getPathFollowingNonWaterAvoidanceForce(animal, world, desiredDir);
         }
         return AvoidanceStrategy.getPathFollowingAvoidanceForce(animal, world, desiredDir);
     }

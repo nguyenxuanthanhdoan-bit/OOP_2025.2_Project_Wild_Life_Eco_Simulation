@@ -7,6 +7,8 @@ import model.living_beings.Deer;
 import model.living_beings.Rabbit;
 import model.living_beings.Wolf;
 import model.living_beings.Tiger;
+import model.living_beings.Human;
+import model.living_beings.HumanRole;
 import model.structures.Rock;
 import model.structures.Bush;
 import model.world.World;
@@ -88,6 +90,18 @@ public class MultiPreyHuntTest extends JPanel {
         world.addEntity(new Rock(new Vector2(500, 150)));
         world.addEntity(new Rock(new Vector2(500, 600)));
 
+        // 3.5. TẠO CON NGƯỜI (Humans)
+        // 5 Dân làng đi dạo
+        for (int i = 0; i < 5; i++) {
+            float hx = MAP_W/2f + (random.nextFloat() * 400 - 200);
+            float hy = MAP_H/2f + (random.nextFloat() * 400 - 200);
+            Human villager = new Human(new Vector2(hx, hy), 
+                random.nextBoolean() ? Human.Variant.MALE : Human.Variant.FEMALE,
+                HumanRole.VILLAGER, new Vector2(MAP_W/2f, MAP_H/2f), 800f);
+            villager.setHunger(villager.getMaxHunger());
+            world.addEntity(villager);
+        }
+
         // 4. THÊM BỤI CỎ ĐỂ ĐỘNG VẬT ẨN NẤP
         world.addEntity(new Bush(new Vector2(300, 400)));
         world.addEntity(new Bush(new Vector2(700, 300)));
@@ -96,6 +110,7 @@ public class MultiPreyHuntTest extends JPanel {
 
         camera = new Camera(0, 0);
         renderSystem = new RenderSystem(camera);
+        renderSystem.showStrategyLabelAll = true;
 
         timer = new Timer(16, e -> {
             if (isRunning) {
@@ -138,19 +153,23 @@ public class MultiPreyHuntTest extends JPanel {
         long rabbitCount = world.getEntities().stream().filter(e -> e instanceof Rabbit && e.isAlive()).count();
         long deerCount = world.getEntities().stream().filter(e -> e instanceof Deer && e.isAlive()).count();
         long predatorCount = world.getEntities().stream().filter(e -> (e instanceof Tiger || e instanceof Wolf) && e.isAlive()).count();
+        long villagerCount = world.getEntities().stream().filter(e -> e instanceof Human && e.isAlive()).count();
 
         g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
         g2d.setColor(new Color(255, 100, 100));
         g2d.drawString("Predators: " + predatorCount, 20, 50);
         
         g2d.setColor(new Color(200, 200, 255));
-        g2d.drawString("Thỏ còn sống: " + rabbitCount + "/15", 130, 50);
+        g2d.drawString("Thỏ còn sống: " + rabbitCount + "/15", 220, 50);
         
         g2d.setColor(new Color(255, 230, 150));
-        g2d.drawString("Hươu còn sống: " + deerCount + "/10", 280, 50);
+        g2d.drawString("Hươu còn sống: " + deerCount + "/10", 350, 50);
+        
+        g2d.setColor(new Color(150, 255, 150));
+        g2d.drawString("Dân làng: " + villagerCount + "/5", 20, 70);
         
         g2d.setColor(Color.WHITE);
-        g2d.drawString(String.format("Thời gian: %.1fs", elapsed), 20, 70);
+        g2d.drawString(String.format("Thời gian: %.1fs", elapsed), 120, 70);
     }
 
     public static void main(String[] args) {

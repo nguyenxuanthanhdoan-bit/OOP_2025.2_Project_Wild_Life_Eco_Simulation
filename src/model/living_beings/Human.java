@@ -126,6 +126,7 @@ public class Human extends Animal {
 
     @Override
     public String getSpriteKey() {
+        if (role != null && role.canHunt()) return "human_hunter";
         return spriteKey;
     }
 

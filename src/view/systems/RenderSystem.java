@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List; // Thêm import List
 import java.util.Map;
+import model.strategies.IStrategy;
 
 public class RenderSystem {
 
@@ -49,6 +50,7 @@ public class RenderSystem {
     private boolean showMiniMap = true;
     private boolean showSpeciesName = false;
     private boolean showDebugPath = false;
+    public boolean showStrategyLabelAll = false;
     private boolean showAIVision = false;
     private boolean showEntitiesOnMinimap = false;
     private model.living_beings.Animal selectedAnimal = null;
@@ -111,6 +113,11 @@ public class RenderSystem {
 
         // Lanterns
         tryLoadAsset("lantern", path + "Structures/Lantern/lantern.png");
+        tryLoadAsset("lantern_2", path + "Structures/Lantern/latern_2.png");
+        tryLoadAsset("lantern_3", path + "Structures/Lantern/latern_3.png");
+        tryLoadAsset("lantern_bush_1", path + "Structures/Lantern/latern_bush.png");
+        tryLoadAsset("lantern_bush_2", path + "Structures/Lantern/latern_bush_2.png");
+        tryLoadAsset("lantern_bush_3", path + "Structures/Lantern/latern_bush_3.png");
     }
 
     public void registerSpecies(String species, String category) {
@@ -395,29 +402,61 @@ public class RenderSystem {
                     g2d.drawOval((int)screenPos.x - radius, (int)screenPos.y - radius, radius * 2, radius * 2);
                 }
 
-                // Draw Debug Path
-                if (showDebugPath && animal.getCurrentStrategy() != null) {
-                    java.util.List<Vector2> path = animal.getCurrentStrategy().getPath();
+                // Draw Debug Path — chỉ hiện cho con vật đang được chọn
+                if (showDebugPath && animal == selectedAnimal && animal.getCurrentStrategy() != null) {
+                    IStrategy strategy = animal.getCurrentStrategy();
+                    java.util.List<Vector2> path = strategy.getPath();
+                    Vector2 animalScreen = camera.worldToScreen(animal.getPosition());
+
+                    // Vẽ đường đi qua các waypoints (nếu có)
                     if (path != null && !path.isEmpty()) {
-                        g2d.setColor(new Color(255, 200, 0, 160)); // Orange path line
-                        g2d.setStroke(new BasicStroke(Math.max(1.5f, 2.0f * zoom)));
-                        Vector2 prev = camera.worldToScreen(animal.getPosition());
+                        g2d.setColor(new Color(255, 200, 0, 200)); // Cam — đường vòng A*
+                        g2d.setStroke(new BasicStroke(Math.max(1.5f, 2.0f * zoom), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        Vector2 prev = animalScreen;
                         for (Vector2 wp : path) {
                             Vector2 scrWp = camera.worldToScreen(wp);
                             g2d.drawLine((int)prev.x, (int)prev.y, (int)scrWp.x, (int)scrWp.y);
-                            g2d.fillOval((int)scrWp.x - 3, (int)scrWp.y - 3, 6, 6);
+                            g2d.fillOval((int)scrWp.x - 4, (int)scrWp.y - 4, 8, 8);
                             prev = scrWp;
                         }
-                        Vector2 targetPos = animal.getCurrentStrategy().getTarget();
+                        // Đoạn cuối từ waypoint cuối tới target
+                        Vector2 targetPos = strategy.getTarget();
                         if (targetPos != null) {
                             Vector2 scrTarget = camera.worldToScreen(targetPos);
-                            g2d.setColor(new Color(255, 50, 50, 160)); // Red target line
+                            g2d.setColor(new Color(255, 50, 50, 200)); // Đỏ — target
                             g2d.drawLine((int)prev.x, (int)prev.y, (int)scrTarget.x, (int)scrTarget.y);
-                            g2d.fillRect((int)scrTarget.x - 4, (int)scrTarget.y - 4, 8, 8);
+                            g2d.fillRect((int)scrTarget.x - 5, (int)scrTarget.y - 5, 10, 10);
+                        }
+                    } else {
+                        // Đang đi thẳng (không có waypoints) — vẽ đường xanh thẳng tới target
+                        Vector2 targetPos = strategy.getTarget();
+                        if (targetPos != null) {
+                            Vector2 scrTarget = camera.worldToScreen(targetPos);
+                            g2d.setColor(new Color(80, 200, 255, 180)); // Xanh dương — đi thẳng
+                            g2d.setStroke(new BasicStroke(Math.max(1.5f, 2.0f * zoom), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f, new float[]{8f, 5f}, 0f));
+                            g2d.drawLine((int)animalScreen.x, (int)animalScreen.y, (int)scrTarget.x, (int)scrTarget.y);
+                            g2d.setStroke(new BasicStroke(1.0f));
+                            g2d.fillOval((int)scrTarget.x - 5, (int)scrTarget.y - 5, 10, 10);
                         }
                     }
                 }
 
+                if ((showStrategyLabelAll || (showDebugPath && animal == selectedAnimal)) && animal.getCurrentStrategy() != null) {
+                    IStrategy strategy = animal.getCurrentStrategy();
+                    Vector2 animalScreen = camera.worldToScreen(animal.getPosition());
+                    // Nhãn tên Strategy + trạng thái hiện tại
+                    String strategyLabel = "[" + strategy.getName() + "] " + animal.getActionState();
+                    g2d.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, Math.max(10, (int)(11 * zoom))));
+                    java.awt.FontMetrics fm = g2d.getFontMetrics();
+                    int labelW = fm.stringWidth(strategyLabel) + 6;
+                    int labelH = fm.getHeight();
+                    int labelX = (int)animalScreen.x - labelW / 2;
+                    int labelY = (int)animalScreen.y - (int)((animal.getSize() / 2 + 18) * zoom) - labelH;
+                    g2d.setColor(new Color(0, 0, 0, 160));
+                    g2d.fillRoundRect(labelX - 1, labelY - 1, labelW + 2, labelH + 2, 4, 4);
+                    g2d.setColor(new Color(255, 240, 80));
+                    g2d.drawString(strategyLabel, labelX + 3, labelY + fm.getAscent());
+                }
                 if (zoom >= STATUS_BAR_MIN_ZOOM && (showHungerBar || showThirstBar || showSpeciesName)) {
                     int barW = Math.max(30, (int)(42 * zoom));
                     int barH = Math.max(2, Math.min(5, Math.round(2.4f * zoom)));
@@ -512,24 +551,34 @@ public class RenderSystem {
     }
 
     private void drawLantern(model.structures.Lantern lantern, Graphics2D g2d, Vector2 screenPos, float zoom) {
-        BufferedImage sheet = assetMap.get("lantern");
+        String type = lantern.getLanternType();
+        BufferedImage sheet = assetMap.get(type);
+        if (sheet == null) sheet = assetMap.get("lantern");
         if (sheet == null) return;
-
-        int frameWidth = 30;
-        int frameHeight = 49;
-        int columns = Math.max(1, sheet.getWidth() / frameWidth);
 
         float darknessAlpha = 0f;
         if (lantern.getWorld() != null) {
             darknessAlpha = getDarknessAlpha(lantern.getWorld().getTimeOfDay());
         }
 
-        int frameIndex;
-        if (darknessAlpha <= 0.01f) {
-            frameIndex = 0;
-        } else {
-            int animatedFrames = Math.max(1, Math.min(2, columns - 1));
-            frameIndex = 1 + ((int)(lantern.getAnimationTime() * 5) % animatedFrames);
+        int frameWidth = sheet.getWidth();
+        int frameHeight = sheet.getHeight();
+        int columns = 1;
+
+        if (sheet.getWidth() == 90 && sheet.getHeight() == 49) {
+            frameWidth = 30;
+            frameHeight = 49;
+            columns = 3;
+        }
+
+        int frameIndex = 0;
+        if (columns > 1) {
+            if (darknessAlpha <= 0.01f) {
+                frameIndex = 0;
+            } else {
+                int animatedFrames = Math.max(1, Math.min(2, columns - 1));
+                frameIndex = 1 + ((int)(lantern.getAnimationTime() * 5) % animatedFrames);
+            }
         }
 
         int col = frameIndex % columns;
@@ -537,8 +586,13 @@ public class RenderSystem {
         int srcX = col * frameWidth;
         int srcY = row * frameHeight;
 
-        int w = (int) (16 * zoom);
-        int h = (int) (16 * 49f / 30f * zoom);
+        float baseSize = 16f;
+        if (type != null && (type.equals("lantern_2") || type.equals("lantern_3"))) {
+            baseSize = 32f;
+        }
+
+        int w = (int) (baseSize * zoom);
+        int h = (int) (baseSize * frameHeight / (float)frameWidth * zoom);
 
         g2d.drawImage(sheet,
                 (int)screenPos.x - w / 2, (int)screenPos.y - h / 2,

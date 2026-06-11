@@ -53,7 +53,7 @@ public class HunterStrategy implements IStrategy {
         // Kiểm tra xem mục tiêu cũ còn hợp lệ không
         if (targetFood != null) {
             float dist = ownerAnimal.getPosition().distanceTo(targetFood.getPosition());
-            if (!targetFood.isAlive() || dist > ownerAnimal.getVisionRange()) {
+            if (!targetFood.isAlive() || dist > ownerAnimal.getVisionRange() || ownerAnimal.isInDangerZone(targetFood.getPosition())) {
                 targetFood = null;
                 targetNavigator.clear();
                 ownerAnimal.setActionState("idle");
@@ -85,6 +85,7 @@ public class HunterStrategy implements IStrategy {
 
             for (Entity neighbor : neighbors) {
                 if (!neighbor.isAlive()) continue;
+                if (ownerAnimal.isInDangerZone(neighbor.getPosition())) continue;
 
                 float dist = ownerAnimal.getPosition().distanceTo(neighbor.getPosition());
                 float score = 0;

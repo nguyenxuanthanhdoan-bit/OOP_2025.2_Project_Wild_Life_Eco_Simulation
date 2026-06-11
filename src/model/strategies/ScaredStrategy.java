@@ -61,6 +61,11 @@ public class ScaredStrategy implements IStrategy {
             }
         }
 
+        // Ghi nhớ vùng nguy hiểm (8 giây)
+        for (Animal predator : predators) {
+            ownerAnimal.markDangerZone(predator, 300.0f, 8.0f);
+        }
+
         // Không có kẻ thù → Animal.decideActiveStrategy() sẽ thoát Strategy này
         if (predators.isEmpty()) {
             if (human != null && human.getHiddenInHouse() != null) {
