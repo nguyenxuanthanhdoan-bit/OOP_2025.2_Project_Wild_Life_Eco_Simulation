@@ -233,7 +233,7 @@ public class HunterStrategy implements IStrategy {
         } else {
             // Không có con mồi/thức ăn -> đi lang thang
             targetNavigator.clear();
-            ownerAnimal.setActionState("idle");
+            ownerAnimal.setActionState("walk");
             if (ownerAnimal.getSpeed() != ownerAnimal.getBaseSpeed()) {
                 ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             }
@@ -342,7 +342,7 @@ public class HunterStrategy implements IStrategy {
     private void depositCarriedFood(Human hunter, World world, float deltaTime) {
         FoodStorage storage = findNearestHomeFoodStorage(hunter, world);
         if (storage == null) {
-            hunter.setActionState("idle");
+            hunter.setActionState("walk");
             wanderDelegate.execute(hunter, world, deltaTime);
             return;
         }
@@ -558,7 +558,7 @@ public class HunterStrategy implements IStrategy {
         }
 
         if (hunterRoamTarget == null) {
-            hunter.setActionState("idle");
+            hunter.setActionState("walk");
             wanderDelegate.execute(hunter, world, deltaTime);
             return;
         }

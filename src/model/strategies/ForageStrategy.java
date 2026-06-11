@@ -71,7 +71,7 @@ public class ForageStrategy implements IStrategy {
             }
         }
 
-        animal.setActionState("idle");
+        animal.setActionState("walk");
         wanderDelegate.execute(animal, world, deltaTime);
     }
 
@@ -120,7 +120,7 @@ public class ForageStrategy implements IStrategy {
             }
         }
 
-        human.setActionState("idle");
+        human.setActionState("walk");
         wanderDelegate.execute(human, world, deltaTime);
     }
 
@@ -134,8 +134,7 @@ public class ForageStrategy implements IStrategy {
             return;
         }
 
-        animal.setActionState(animal instanceof Human ? "walk" : "idle");
-        animal.setSpeed(animal.getBaseSpeed() * speedMult);
+        setMovementState(animal, speedMult);
         if (naturalWaterTarget == null) {
             naturalWaterTarget = TerrainNavigator.findNearestWaterApproachPoint(
                     animal, world, config.WATER_SEARCH_RADIUS, config.WATER_SHORE_STANDOFF);
@@ -204,9 +203,13 @@ public class ForageStrategy implements IStrategy {
             return;
         }
 
-        animal.setActionState(animal instanceof Human ? "walk" : "idle");
-        animal.setSpeed(animal.getBaseSpeed() * speedMult);
+        setMovementState(animal, speedMult);
         foodNavigator.moveTo(animal, world, targetFood.getPosition(), deltaTime, eatRange, 1.0f);
+    }
+
+    private void setMovementState(Animal animal, float speedMultiplier) {
+        animal.setSpeed(animal.getBaseSpeed() * speedMultiplier);
+        animal.setActionState(speedMultiplier > 1.1f ? "run" : "walk");
     }
 
     @Override

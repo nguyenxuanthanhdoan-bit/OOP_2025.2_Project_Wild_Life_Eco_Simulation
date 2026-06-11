@@ -83,7 +83,7 @@ public class ScaredStrategy implements IStrategy {
             }
             shelterNavigator.clear();
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
-            ownerAnimal.setActionState("idle");
+            ownerAnimal.setActionState("walk");
             return;
         }
 

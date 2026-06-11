@@ -70,7 +70,7 @@ public class Simulation {
         world.reset();
         spawnInitialEntities();
         if (renderSystem != null) {
-            renderSystem.setSelectedAnimal(null);
+            renderSystem.setSelectedEntity(null);
             renderSystem.rebuildMiniMapCache();
         }
     }

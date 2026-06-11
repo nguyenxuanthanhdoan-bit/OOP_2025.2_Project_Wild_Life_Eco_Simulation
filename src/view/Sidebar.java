@@ -23,6 +23,7 @@ public class Sidebar extends JPanel {
     private JLabel infoThirstLabel;
     private JLabel infoActionLabel;
     private JLabel infoStrategyLabel;
+    private JLabel infoExtraLabel;
     private JPanel infoPanel;
     private JLabel statsLabel;
 
@@ -223,6 +224,7 @@ public class Sidebar extends JPanel {
         infoThirstLabel = createInfoLabel("Khát: -");
         infoActionLabel = createInfoLabel("Hành động: -");
         infoStrategyLabel = createInfoLabel("Chiến thuật: -");
+        infoExtraLabel = createInfoLabel("");
 
         infoPanel.add(infoSpeciesLabel);
         infoPanel.add(infoAgeLabel);
@@ -231,6 +233,7 @@ public class Sidebar extends JPanel {
         infoPanel.add(infoThirstLabel);
         infoPanel.add(infoActionLabel);
         infoPanel.add(infoStrategyLabel);
+        infoPanel.add(infoExtraLabel);
 
         infoSection.add(infoPanel);
         container.add(infoSection);
@@ -274,32 +277,64 @@ public class Sidebar extends JPanel {
             statsLabel.setText(sb.toString());
         }
 
-        model.living_beings.Animal animal = simulation.getRenderSystem().getSelectedAnimal();
-        if (animal != null && animal.isAliveState()) {
-            infoSpeciesLabel.setText("Loài: " + animal.getSpeciesName());
-            infoAgeLabel.setText(String.format("Tuổi: %.1f / %.1f (%s)", animal.getAge(), animal.getMaxAge(), animal.isAdult() ? "Trưởng thành" : "Trẻ con"));
-            infoHealthLabel.setText(String.format("Máu: %.1f%%", (animal.getHealth() / animal.getMaxHealth()) * 100.0));
-            infoHungerLabel.setText(String.format("Đói: %.1f%%", (animal.getHunger() / animal.getMaxHunger()) * 100.0));
-            infoThirstLabel.setText(String.format("Khát: %.1f%%", (animal.getThirst() / animal.getMaxThirst()) * 100.0));
-            infoActionLabel.setText("Hành động: " + animal.getActionState().toUpperCase());
-            
-            String strategyName = "Không có";
-            if (animal.getCurrentStrategy() != null) {
-                strategyName = animal.getCurrentStrategy().getClass().getSimpleName();
-                // Bỏ chữ 'Strategy' cho gọn
-                if (strategyName.endsWith("Strategy")) {
-                    strategyName = strategyName.substring(0, strategyName.length() - 8);
+        model.entity.Entity selectedEntity = simulation.getRenderSystem().getSelectedEntity();
+        if (selectedEntity != null && selectedEntity.isAlive()) {
+            if (selectedEntity instanceof model.living_beings.Animal) {
+                model.living_beings.Animal animal = (model.living_beings.Animal) selectedEntity;
+                infoSpeciesLabel.setText("Loài: " + animal.getSpeciesName());
+                infoAgeLabel.setText(String.format("Tuổi: %.1f / %.1f (%s)", animal.getAge(), animal.getMaxAge(), animal.isAdult() ? "Trưởng thành" : "Trẻ con"));
+                infoHealthLabel.setText(String.format("Máu: %.1f%%", (animal.getHealth() / animal.getMaxHealth()) * 100.0));
+                infoHungerLabel.setText(String.format("Đói: %.1f%%", (animal.getHunger() / animal.getMaxHunger()) * 100.0));
+                infoThirstLabel.setText(String.format("Khát: %.1f%%", (animal.getThirst() / animal.getMaxThirst()) * 100.0));
+                infoActionLabel.setText("Hành động: " + animal.getActionState().toUpperCase());
+                
+                String strategyName = "Không có";
+                if (animal.getCurrentStrategy() != null) {
+                    strategyName = animal.getCurrentStrategy().getClass().getSimpleName();
+                    if (strategyName.endsWith("Strategy")) {
+                        strategyName = strategyName.substring(0, strategyName.length() - 8);
+                    }
                 }
+                infoStrategyLabel.setText("Chiến thuật: " + strategyName);
+
+                if (animal instanceof model.living_beings.Hunter) {
+                    model.living_beings.Hunter hunter = (model.living_beings.Hunter) animal;
+                    infoExtraLabel.setText(String.format("Đạn: %d | Thức ăn mang: %.1f", hunter.getAmmo(), hunter.getCarriedFood()));
+                } else if (animal instanceof model.living_beings.Human) {
+                    model.living_beings.Human human = (model.living_beings.Human) animal;
+                    infoExtraLabel.setText(String.format("Thức ăn mang: %.1f", human.getCarriedFood()));
+                } else {
+                    infoExtraLabel.setText("");
+                }
+            } else if (selectedEntity instanceof model.structures.FoodStorage) {
+                model.structures.FoodStorage storage = (model.structures.FoodStorage) selectedEntity;
+                infoSpeciesLabel.setText("Loại: Kho Thức Ăn");
+                infoAgeLabel.setText("");
+                infoHealthLabel.setText("");
+                infoHungerLabel.setText("");
+                infoThirstLabel.setText("");
+                infoActionLabel.setText("");
+                infoStrategyLabel.setText("");
+                infoExtraLabel.setText(String.format("Lượng thức ăn: %.1f / %.1f", storage.getStoredFood(), storage.getCapacity()));
+            } else {
+                infoSpeciesLabel.setText("Loại: " + selectedEntity.getClass().getSimpleName());
+                infoAgeLabel.setText("");
+                infoHealthLabel.setText("");
+                infoHungerLabel.setText("");
+                infoThirstLabel.setText("");
+                infoActionLabel.setText("");
+                infoStrategyLabel.setText("");
+                infoExtraLabel.setText("");
             }
-            infoStrategyLabel.setText("Chiến thuật: " + strategyName);
         } else {
-            infoSpeciesLabel.setText("Loài: Không có (Chưa chọn)");
+            infoSpeciesLabel.setText("Chưa chọn thực thể nào");
             infoAgeLabel.setText("Tuổi: -");
             infoHealthLabel.setText("Máu: -");
             infoHungerLabel.setText("Đói: -");
             infoThirstLabel.setText("Khát: -");
             infoActionLabel.setText("Hành động: -");
             infoStrategyLabel.setText("Chiến thuật: -");
+            infoExtraLabel.setText("");
         }
     }
 

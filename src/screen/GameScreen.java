@@ -36,23 +36,23 @@ public class GameScreen extends JPanel {
                 Camera camera = simulation.getCamera();
                 core.Vector2 worldClick = camera.screenToWorld(new core.Vector2(e.getX(), e.getY()));
 
-                model.living_beings.Animal nearest = null;
+                model.entity.Entity nearest = null;
                 float bestDist = Float.MAX_VALUE;
                 float selectRadius = 40.0f; // radius in world coordinates
 
                 List<model.entity.Entity> entities = new ArrayList<>(simulation.getWorld().getEntities());
                 for (model.entity.Entity entity : entities) {
-                    if (entity instanceof model.living_beings.Animal && entity.isAlive()) {
-                        model.living_beings.Animal animal = (model.living_beings.Animal) entity;
-                        float dist = animal.getPosition().distanceTo(worldClick);
-                        if (dist < bestDist && dist <= Math.max(selectRadius, animal.getSize() * 1.5f)) {
+                    if (entity.isAlive()) { // Chỉ lấy các thực thể còn tồn tại
+                        float dist = entity.getPosition().distanceTo(worldClick);
+                        // Giới hạn chọn dựa trên kích thước
+                        if (dist < bestDist && dist <= Math.max(selectRadius, entity.getSize() * 1.5f)) {
                             bestDist = dist;
-                            nearest = animal;
+                            nearest = entity;
                         }
                     }
                 }
 
-                simulation.getRenderSystem().setSelectedAnimal(nearest);
+                simulation.getRenderSystem().setSelectedEntity(nearest);
                 GameScreen.this.requestFocusInWindow();
             }
         });

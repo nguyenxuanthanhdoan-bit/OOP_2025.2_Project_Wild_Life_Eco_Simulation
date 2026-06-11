@@ -58,7 +58,7 @@ public class RenderSystem {
     public boolean showStrategyLabelAll = false;
     private boolean showAIVision = false;
     private boolean showEntitiesOnMinimap = false;
-    private model.living_beings.Animal selectedAnimal = null;
+    private model.entity.Entity selectedEntity = null;
 
     public RenderSystem(Camera camera) {
         this.camera = camera;
@@ -435,7 +435,7 @@ public class RenderSystem {
                 drawDynamicAnimatedSprite(animal, g2d, screenPos, zoom);
 
                 // Highlight selected animal
-                if (animal == selectedAnimal) {
+                if (animal == selectedEntity) {
                     g2d.setColor(new Color(255, 235, 60, 200)); // Glowing gold
                     g2d.setStroke(new BasicStroke(Math.max(2.0f, 3.0f * zoom), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1.0f, new float[]{6f, 6f}, (float)(animationTimer * 20.0f) % 12f));
                     int selSize = (int) ((animal.getSize() + 10) * zoom);
@@ -453,7 +453,7 @@ public class RenderSystem {
                 }
 
                 // Draw Debug Path — chỉ hiện cho con vật đang được chọn
-                if (showDebugPath && animal == selectedAnimal && animal.getCurrentStrategy() != null) {
+                if (showDebugPath && animal == selectedEntity && animal.getCurrentStrategy() != null) {
                     IStrategy strategy = animal.getCurrentStrategy();
                     java.util.List<Vector2> path = strategy.getPath();
                     Vector2 animalScreen = camera.worldToScreen(animal.getPosition());
@@ -491,7 +491,7 @@ public class RenderSystem {
                     }
                 }
 
-                if ((showStrategyLabelAll || (showDebugPath && animal == selectedAnimal)) && animal.getCurrentStrategy() != null) {
+                if ((showStrategyLabelAll || (showDebugPath && animal == selectedEntity)) && animal.getCurrentStrategy() != null) {
                     IStrategy strategy = animal.getCurrentStrategy();
                     Vector2 animalScreen = camera.worldToScreen(animal.getPosition());
                     // Nhãn tên Strategy + trạng thái hiện tại
@@ -870,9 +870,14 @@ public class RenderSystem {
         // Suy diễn trạng thái
         String state = animal.getActionState();
         boolean moving = animal.isMoving();
+        boolean hasVelocity = animal.getSpeed() > 0.0f
+                && animal.getCurrentSpeedSquared() > 1.0f;
+        boolean locomotionState = "walk".equals(state) || "run".equals(state);
         if ("attack".equals(state) || "eat".equals(state) || "drink".equals(state) || "sleep".equals(state)) {
             // Giữ các animation hành động ngay cả khi đứng tại chỗ.
-        } else if (moving) {
+        } else if (locomotionState && (moving || hasVelocity)) {
+            // Strategy đã xác định rõ walk/run; vận tốc giúp tránh đọc trễ cờ isMoving.
+        } else if (moving || hasVelocity) {
             if ("run".equals(state) || animal.getSpeed() > animal.getBaseSpeed() * 1.1f) {
                 state = "run";
             } else {
@@ -1257,7 +1262,7 @@ public class RenderSystem {
     public boolean isShowEntitiesOnMinimap() { return showEntitiesOnMinimap; }
     public void setShowEntitiesOnMinimap(boolean showEntitiesOnMinimap) { this.showEntitiesOnMinimap = showEntitiesOnMinimap; }
 
-    public model.living_beings.Animal getSelectedAnimal() { return selectedAnimal; }
-    public void setSelectedAnimal(model.living_beings.Animal selectedAnimal) { this.selectedAnimal = selectedAnimal; }
+    public model.entity.Entity getSelectedEntity() { return selectedEntity; }
+    public void setSelectedEntity(model.entity.Entity selectedEntity) { this.selectedEntity = selectedEntity; }
 
 }

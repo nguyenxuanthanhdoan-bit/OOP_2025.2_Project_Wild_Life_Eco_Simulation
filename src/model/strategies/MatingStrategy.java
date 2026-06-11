@@ -98,7 +98,7 @@ public class MatingStrategy extends PassiveStrategy {
             }
         } else {
             mateNavigator.clear();
-            ownerAnimal.setActionState("idle");
+            ownerAnimal.setActionState("walk");
             wanderDelegate.execute(owner, world, deltaTime);
         }
     }

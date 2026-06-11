@@ -46,8 +46,7 @@ public class FlockingStrategy extends PassiveStrategy {
             return;
         }
 
-        ownerAnimal.setActionState("run"); // Or walk, let's use walk
-        // Wait, if velocity > 0, it will be mapped to walk if actionState is not run/attack
+        ownerAnimal.setActionState("walk");
 
         Vector2 separation = new Vector2();
         Vector2 alignment = new Vector2();
@@ -101,7 +100,7 @@ public class FlockingStrategy extends PassiveStrategy {
                 if (moveDir.lengthSquared() > 0) moveDir.normalize();
             }
 
-            ownerAnimal.setActionState("idle"); // Will be mapped to walk
+            ownerAnimal.setActionState("walk");
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             Vector2 flockTarget = ownerAnimal.getPosition().copy().add(moveDir.copy().scale(160.0f));
             clampToWorld(flockTarget, ownerAnimal, world);
@@ -157,7 +156,7 @@ public class FlockingStrategy extends PassiveStrategy {
             if (dir.lengthSquared() > 0) dir.normalize();
         }
 
-        owner.setActionState("idle");
+        owner.setActionState("walk");
         owner.setSpeed(owner.getBaseSpeed());
         Vector2 target = owner.getPosition().copy().add(dir.copy().scale(160.0f));
         clampToWorld(target, owner, world);

@@ -87,7 +87,7 @@ public class GameConfig {
     public final double INITIAL_SPAWN_MAX_AGE_RATIO = 0.65;
     public final float HUMAN_BASE_SPEED = 70.0f;
     public final float HUNTER_BASE_SPEED = 80.0f;
-    public final int HUNTER_MAX_AMMO = 8;
+    public final int HUNTER_MAX_AMMO = 4;
     public final float HUNTER_SHOOT_RANGE = 240.0f;
     public final float HUNTER_FIRE_COOLDOWN_SECONDS = 0.75f;
     public final float HUNTER_RELOAD_SECONDS = 2.0f;
