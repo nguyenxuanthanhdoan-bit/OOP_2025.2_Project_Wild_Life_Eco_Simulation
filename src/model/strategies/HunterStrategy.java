@@ -11,6 +11,7 @@ import model.items.FireballProjectile;
 import model.items.FoodSource;
 import model.navigation.PathNavigator;
 import model.navigation.PathNavigator.MovementContext;
+import model.structures.Bush;
 import model.world.World;
 import model.entity.Entity;
 import model.structures.FoodStorage;
@@ -27,6 +28,7 @@ public class HunterStrategy implements IStrategy {
     private final Random random = new Random();
     private final GameConfig config = GameConfig.getInstance();
     private static final double RUN_COST_MULTIPLIER = 3.0;
+    private static final float BUSH_CONCEALMENT_QUERY_RADIUS = 96.0f;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -53,7 +55,9 @@ public class HunterStrategy implements IStrategy {
         // Kiểm tra xem mục tiêu cũ còn hợp lệ không
         if (targetFood != null) {
             float dist = ownerAnimal.getPosition().distanceTo(targetFood.getPosition());
-            if (!targetFood.isAlive() || dist > ownerAnimal.getVisionRange() || ownerAnimal.isInDangerZone(targetFood.getPosition())) {
+            if (!targetFood.isAlive() || dist > ownerAnimal.getVisionRange()
+                    || ownerAnimal.isInDangerZone(targetFood.getPosition())
+                    || isFoodConcealedByBush(targetFood, world)) {
                 targetFood = null;
                 targetNavigator.clear();
                 ownerAnimal.setActionState("idle");
@@ -93,6 +97,7 @@ public class HunterStrategy implements IStrategy {
                 if (neighbor instanceof FoodSource) {
                     FoodSource foodSource = (FoodSource) neighbor;
                     if (!ownerAnimal.canEatFoodSource(foodSource)) continue;
+                    if (isFoodConcealedByBush(foodSource, world)) continue;
                     
                     // Điểm cơ bản cho nguồn thịt
                     score = 1000.0f - dist;
@@ -234,6 +239,22 @@ public class HunterStrategy implements IStrategy {
             }
             wanderDelegate.execute(owner, world, deltaTime);
         }
+    }
+
+    private boolean isFoodConcealedByBush(Entity food, World world) {
+        if (!(food instanceof FoodSource) || world == null || world.getSpatialGrid() == null) {
+            return false;
+        }
+
+        List<Entity> nearby = world.getSpatialGrid().getNeighbors(
+                food.getPosition(), BUSH_CONCEALMENT_QUERY_RADIUS);
+        for (Entity entity : nearby) {
+            if (entity instanceof Bush && entity.isAlive()
+                    && ((Bush) entity).contains(food.getPosition())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void executeHumanHunter(Human hunter, World world, float deltaTime) {

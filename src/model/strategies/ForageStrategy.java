@@ -1,5 +1,6 @@
 package model.strategies;
 
+import core.GameConfig;
 import core.Vector2;
 import model.entity.Entity;
 import model.items.FoodSource;
@@ -23,9 +24,11 @@ public class ForageStrategy implements IStrategy {
     private static final float UNSAFE_FOOD_MEMORY_DURATION = 18.0f;
     private static final float FOOD_DANGER_RADIUS = 170.0f;
 
+    private final GameConfig config = GameConfig.getInstance();
     private final PassiveStrategy wanderDelegate = new PassiveStrategy();
     private final PathNavigator waterNavigator = new PathNavigator();
     private final PathNavigator foodNavigator = new PathNavigator();
+    private Vector2 naturalWaterTarget;
 
     @Override
     public void execute(LivingBeing owner, World world, float deltaTime) {
@@ -127,20 +130,30 @@ public class ForageStrategy implements IStrategy {
             animal.setActionState("drink");
             animal.drink();
             waterNavigator.clear();
+            naturalWaterTarget = null;
             return;
         }
 
         animal.setActionState(animal instanceof Human ? "walk" : "idle");
         animal.setSpeed(animal.getBaseSpeed() * speedMult);
-        Vector2 shorePoint = TerrainNavigator.findNearestShorePoint(animal, world, 1200.0f);
-        if (shorePoint != null) {
-            waterNavigator.moveTo(animal, world, shorePoint, deltaTime,
-                    animal.getSize() / 2 + 20.0f, 1.25f, MovementContext.SEEKING_WATER);
+        if (naturalWaterTarget == null) {
+            naturalWaterTarget = TerrainNavigator.findNearestWaterApproachPoint(
+                    animal, world, config.WATER_SEARCH_RADIUS, config.WATER_SHORE_STANDOFF);
+        }
+        if (naturalWaterTarget != null) {
+            waterNavigator.moveTo(animal, world, naturalWaterTarget, deltaTime,
+                    config.WATER_TARGET_REACH_DISTANCE, 1.25f, MovementContext.SEEKING_WATER);
+            if (waterNavigator.isBlocked()) {
+                waterNavigator.clear();
+                naturalWaterTarget = null;
+                return;
+            }
             if (animal.isNearWater()) {
                 animal.setSpeed(0);
                 animal.setActionState("drink");
                 animal.drink();
                 waterNavigator.clear();
+                naturalWaterTarget = null;
             }
         }
     }
@@ -150,9 +163,11 @@ public class ForageStrategy implements IStrategy {
             human.setSpeed(0);
             human.setActionState("drink");
             waterNavigator.clear();
+            naturalWaterTarget = null;
             return;
         }
 
+        naturalWaterTarget = null;
         human.setActionState("walk");
         human.setSpeed(human.getBaseSpeed());
         Vector2 target = PathNavigator.findInteractionPoint(human, world, well, well.getDrinkRadius());

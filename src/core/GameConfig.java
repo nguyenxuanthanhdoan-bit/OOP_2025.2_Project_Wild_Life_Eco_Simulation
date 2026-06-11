@@ -43,6 +43,9 @@ public class GameConfig {
     public final String DEFAULT_MAP_PATH = "resources/map/map2.tmx";
     public final int TILE_SIZE = 32;
     public final float GROUND_SPAWN_MARGIN = 32.0f;
+    public final float WATER_SEARCH_RADIUS = 1200.0f;
+    public final float WATER_SHORE_STANDOFF = 4.0f;
+    public final float WATER_TARGET_REACH_DISTANCE = 4.0f;
 
     // ==========================================
     // CẤU HÌNH SPAWN BAN ĐẦU
@@ -154,6 +157,18 @@ public class GameConfig {
     public final int MINIMAP_SIZE = 190;
     public final int MINIMAP_MIN_HEIGHT = 80;
     public final float STATUS_BAR_MIN_ZOOM = 0.65f;
+
+    // ==========================================
+    // CẤU HÌNH MÙA KHẮC NGHIỆT
+    // ==========================================
+    /** Thời gian để hiệu ứng mùa đông chuyển từ 0% đến 100%. */
+    public final float WINTER_TRANSITION_SECONDS = 40.0f;
+    /** Cây đổi sang sprite mùa đông từ giai đoạn này của quá trình chuyển mùa. */
+    public final float WINTER_TREE_SPRITE_THRESHOLD = 0.05f;
+    /** Số mẫu mask tuyết trên mỗi cạnh tile. */
+    public final int SNOW_MASK_SAMPLES_PER_TILE = 4;
+    /** Số nấc cache trong toàn bộ quá trình tuyết phủ. */
+    public final int SNOW_PROGRESS_BUCKETS = 40;
 
     // Constructor private để cấm dùng từ khóa 'new' từ bên ngoài
     private GameConfig() {}

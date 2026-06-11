@@ -256,6 +256,89 @@ public class GameMap {
         return layersGrid.get(layer)[x][y];
     }
 
+    public boolean isSnowCoverLayer(int layer) {
+        if (layer < 0 || layer >= layerNames.size()) return false;
+        String name = layerNames.get(layer).toLowerCase();
+        return name.contains("ground") || name.contains("sand") || name.contains("bridge");
+    }
+
+    public Tileset getTilesetForTileId(int tileId) {
+        for (Tileset tileset : tilesets) {
+            if (tileId >= tileset.firstgid) return tileset;
+        }
+        return null;
+    }
+
+    /**
+     * Kiểm tra một pixel đích trong tile có thực sự thuộc phần đất nhìn thấy hay không.
+     * Các pixel sát vùng trong suốt bị loại bỏ để tuyết không phủ lên nét viền bờ.
+     */
+    public boolean isSnowCoverPixel(int rawTileId, int pixelX, int pixelY) {
+        int tileId = rawTileId & 0x0FFFFFFF;
+        if (tileId == 0) return false;
+
+        Tileset tileset = getTilesetForTileId(tileId);
+        if (tileset == null || tileset.image == null) return false;
+
+        int width = tileset.tileWidth;
+        int height = tileset.tileHeight;
+        if (pixelX < 0 || pixelX >= width || pixelY < 0 || pixelY >= height) return false;
+
+        int sourceX = pixelX;
+        int sourceY = pixelY;
+        if ((rawTileId & 0x40000000) != 0) sourceY = height - 1 - sourceY;
+        if ((rawTileId & 0x80000000) != 0) sourceX = width - 1 - sourceX;
+        if ((rawTileId & 0x20000000) != 0) {
+            int temp = sourceX;
+            sourceX = sourceY;
+            sourceY = temp;
+        }
+
+        int localId = tileId - tileset.firstgid;
+        int tileColumn = localId % tileset.columns;
+        int tileRow = localId / tileset.columns;
+        int baseX = tileColumn * width;
+        int baseY = tileRow * height;
+
+        for (int offsetX = -1; offsetX <= 1; offsetX++) {
+            for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                int sampleX = sourceX + offsetX;
+                int sampleY = sourceY + offsetY;
+                if (sampleX < 0 || sampleX >= width || sampleY < 0 || sampleY >= height) {
+                    continue;
+                }
+                int alpha = (tileset.image.getRGB(baseX + sampleX, baseY + sampleY) >>> 24) & 0xFF;
+                if (alpha < 32) return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isSnowCoverablePixel(float worldX, float worldY) {
+        int col = (int) Math.floor(worldX / 32.0f);
+        int row = (int) Math.floor(worldY / 32.0f);
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
+
+        float localWorldX = worldX - col * 32.0f;
+        float localWorldY = worldY - row * 32.0f;
+
+        for (int layer = layersGrid.size() - 1; layer >= 0; layer--) {
+            if (!isSnowCoverLayer(layer)) continue;
+            int rawTileId = layersGrid.get(layer)[col][row];
+            int tileId = rawTileId & 0x0FFFFFFF;
+            if (tileId == 0) continue;
+
+            Tileset tileset = getTilesetForTileId(tileId);
+            if (tileset == null) continue;
+            int pixelX = Math.min(tileset.tileWidth - 1,
+                    Math.max(0, (int) (localWorldX / 32.0f * tileset.tileWidth)));
+            int pixelY = Math.min(tileset.tileHeight - 1,
+                    Math.max(0, (int) (localWorldY / 32.0f * tileset.tileHeight)));
+            if (isSnowCoverPixel(rawTileId, pixelX, pixelY)) return true;
+        }
+        return false;
+    }
+
     public List<MapPolygonObject> getBiomePolygons() {
         return biomePolygons;
     }

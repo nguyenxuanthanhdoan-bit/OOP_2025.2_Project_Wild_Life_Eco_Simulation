@@ -6,6 +6,7 @@ import core.GameConfig;
 import model.living_beings.Animal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import core.Vector2;
 
@@ -52,6 +53,14 @@ public class World {
 
     // [MỚI] Tham chiếu đến GameMap
     private model.map.GameMap gameMap;
+    private byte[] snowActivationMap;
+    private int snowCacheWidth;
+    private int snowCacheHeight;
+    private static final int NO_SNOW = 255;
+    private static final int MAX_SNOW_ACTIVATION = 254;
+    private static final float SNOW_THRESHOLD_START = 0.9f;
+    private static final float SNOW_THRESHOLD_RANGE = 1.1f;
+    private static final float SNOW_TRANSITION_WIDTH = 0.18f;
     private final WorldEventSystem eventSystem;
     private final FishPopulationManager fishPopulationManager;
 
@@ -166,14 +175,15 @@ public class World {
         }
 
         // Cập nhật tiến trình mùa đông
+        float winterTransitionRate = 1.0f / GameConfig.getInstance().WINTER_TRANSITION_SECONDS;
         if (currentSeason == Season.WINTER) {
             if (winterProgress < 1.0f) {
-                winterProgress += deltaTime * 0.005f; // Lan chậm hơn (mất ~200s để phủ kín)
+                winterProgress += deltaTime * winterTransitionRate;
                 if (winterProgress > 1.0f) winterProgress = 1.0f;
             }
         } else {
             if (winterProgress > 0.0f) {
-                winterProgress -= deltaTime * 0.005f;
+                winterProgress -= deltaTime * winterTransitionRate;
                 if (winterProgress < 0.0f) winterProgress = 0.0f;
             }
         }
@@ -404,6 +414,7 @@ public class World {
 
     public void setGameMap(model.map.GameMap gameMap) {
         this.gameMap = gameMap;
+        rebuildSnowActivationMap();
     }
 
     public float getTimeOfDay() {
@@ -507,39 +518,109 @@ public class World {
         return top + sy * (bottom - top);
     }
 
+    private float getSnowNoise(float worldX, float worldY) {
+        return smoothNoise(worldX * 0.004f, worldY * 0.004f) * 0.7f
+                + smoothNoise(worldX * 0.01f, worldY * 0.01f) * 0.3f;
+    }
+
+    private void rebuildSnowActivationMap() {
+        snowActivationMap = null;
+        snowCacheWidth = 0;
+        snowCacheHeight = 0;
+        if (gameMap == null) return;
+
+        int samples = GameConfig.getInstance().SNOW_MASK_SAMPLES_PER_TILE;
+        snowCacheWidth = gameMap.getCols() * samples;
+        snowCacheHeight = gameMap.getRows() * samples;
+        if (snowCacheWidth <= 0 || snowCacheHeight <= 0) return;
+
+        snowActivationMap = new byte[snowCacheWidth * snowCacheHeight];
+        Arrays.fill(snowActivationMap, (byte) NO_SNOW);
+
+        float worldWidth = gameMap.getCols() * GameConfig.getInstance().TILE_SIZE;
+        float worldHeight = gameMap.getRows() * GameConfig.getInstance().TILE_SIZE;
+        for (int y = 0; y < snowCacheHeight; y++) {
+            float worldY = (y + 0.5f) / snowCacheHeight * worldHeight;
+            for (int x = 0; x < snowCacheWidth; x++) {
+                float worldX = (x + 0.5f) / snowCacheWidth * worldWidth;
+                if (!gameMap.isSnowCoverablePixel(worldX, worldY)) continue;
+
+                float activationProgress = (SNOW_THRESHOLD_START - getSnowNoise(worldX, worldY))
+                        / SNOW_THRESHOLD_RANGE;
+                activationProgress = Math.max(0.0f, Math.min(1.0f, activationProgress));
+                int encoded = Math.round(activationProgress * MAX_SNOW_ACTIVATION);
+                snowActivationMap[y * snowCacheWidth + x] = (byte) encoded;
+            }
+        }
+    }
+
+    private float getSnowDensityFromActivation(int encodedActivation, float progress) {
+        if (encodedActivation == NO_SNOW || progress <= 0.0f) return 0.0f;
+
+        float activationProgress = encodedActivation / (float) MAX_SNOW_ACTIVATION;
+        float density = (progress - activationProgress)
+                * (SNOW_THRESHOLD_RANGE / SNOW_TRANSITION_WIDTH);
+        return Math.max(0.0f, Math.min(1.0f, density));
+    }
+
     /**
      * Lấy mật độ tuyết tại một vị trí, dùng chung cho hình ảnh và logic di chuyển.
      * @param pos Tọa độ cần kiểm tra
      * @return Giá trị từ 0.0 (không có tuyết) đến 1.0 (tuyết dày đặc)
      */
     public float getSnowDensity(Vector2 pos) {
-        if (winterProgress <= 0.0f) return 0.0f;
-        if (isPositionInWater(pos.x, pos.y)) return 0.0f;
-
-        // Kiểm tra mép bờ nước (Shoreline Avoidance) - Quét bán kính xung quanh 40px
-        float checkDist = 40.0f;
-        if (isPositionInWater(pos.x - checkDist, pos.y) ||
-            isPositionInWater(pos.x + checkDist, pos.y) ||
-            isPositionInWater(pos.x, pos.y - checkDist) ||
-            isPositionInWater(pos.x, pos.y + checkDist)) {
-            return 0.0f; // Sát mép nước -> Không đọng tuyết
+        if (winterProgress <= 0.0f || pos == null || snowActivationMap == null
+                || gameMap == null) {
+            return 0.0f;
         }
 
-        // Tạo Value Noise hữu cơ (Organic)
-        float scale1 = 0.004f;
-        float scale2 = 0.01f;
-        
-        // Kết hợp 2 lớp noise (Octaves) để tuyết có độ chi tiết
-        float noise = smoothNoise(pos.x * scale1, pos.y * scale1) * 0.7f +
-                      smoothNoise(pos.x * scale2, pos.y * scale2) * 0.3f;
-        
-        // Ngưỡng tạo tuyết: Mùa đông càng sâu (winterProgress cao), threshold càng nhỏ -> tuyết càng nhiều
-        // (0.8 -> 0.3) để đảm bảo lúc đạt 1.0 vẫn có chỗ không có tuyết (tự nhiên)
-        float threshold = 0.8f - (winterProgress * 0.5f); 
-        
-        if (noise > threshold) {
-            return 1.0f; // Trả về 1.0 luôn để tăng tốc xử lý
+        float worldWidth = gameMap.getCols() * GameConfig.getInstance().TILE_SIZE;
+        float worldHeight = gameMap.getRows() * GameConfig.getInstance().TILE_SIZE;
+        if (pos.x < 0.0f || pos.y < 0.0f || pos.x >= worldWidth || pos.y >= worldHeight) {
+            return 0.0f;
         }
-        return 0.0f;
+
+        int x = Math.min(snowCacheWidth - 1, (int) (pos.x / worldWidth * snowCacheWidth));
+        int y = Math.min(snowCacheHeight - 1, (int) (pos.y / worldHeight * snowCacheHeight));
+        int encodedActivation = Byte.toUnsignedInt(snowActivationMap[y * snowCacheWidth + x]);
+        return getSnowDensityFromActivation(encodedActivation, winterProgress);
     }
+
+    public int getSnowCacheWidth() {
+        return snowCacheWidth;
+    }
+
+    public int getSnowCacheHeight() {
+        return snowCacheHeight;
+    }
+
+    /**
+     * Ghi ảnh tuyết của một nấc tiến trình vào buffer do renderer cung cấp.
+     * Mảng activation đã tính sẵn nên thao tác này chỉ còn là phép tra cứu tuyến tính.
+     */
+    public void fillSnowCoverage(int progressBucket, int bucketCount, int[] targetPixels) {
+        if (snowActivationMap == null || targetPixels == null
+                || targetPixels.length < snowActivationMap.length || bucketCount <= 0) {
+            return;
+        }
+
+        float progress = Math.max(0.0f,
+                Math.min(1.0f, progressBucket / (float) bucketCount));
+        int[] colorsByActivation = new int[NO_SNOW + 1];
+        for (int encodedActivation = 0;
+             encodedActivation <= MAX_SNOW_ACTIVATION;
+             encodedActivation++) {
+            float density = getSnowDensityFromActivation(encodedActivation, progress);
+            if (density <= 0.0f) continue;
+
+            int alpha = Math.min(245, Math.max(20, Math.round(density * 245.0f)));
+            colorsByActivation[encodedActivation] = (alpha << 24) | 0x00FFFFFF;
+        }
+
+        for (int i = 0; i < snowActivationMap.length; i++) {
+            int encodedActivation = Byte.toUnsignedInt(snowActivationMap[i]);
+            targetPixels[i] = colorsByActivation[encodedActivation];
+        }
+    }
+
 }

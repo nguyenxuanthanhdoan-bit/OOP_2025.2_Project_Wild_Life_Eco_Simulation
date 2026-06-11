@@ -19,6 +19,7 @@ import map.TileMapRenderer;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,6 +45,10 @@ public class RenderSystem {
     private final int MINIMAP_MIN_HEIGHT = config.MINIMAP_MIN_HEIGHT;
     private final float STATUS_BAR_MIN_ZOOM = config.STATUS_BAR_MIN_ZOOM;
     private BufferedImage miniMapCache;
+    private BufferedImage miniMapSnowCache;
+    private int miniMapSnowBucket = -1;
+    private BufferedImage snowCoverageCache;
+    private int snowCoverageBucket = -1;
 
     private boolean showHungerBar = true;
     private boolean showThirstBar = true;
@@ -66,6 +71,10 @@ public class RenderSystem {
 
     public void setGameMap(GameMap map) {
         this.gameMap = map;
+        snowCoverageCache = null;
+        snowCoverageBucket = -1;
+        miniMapSnowCache = null;
+        miniMapSnowBucket = -1;
         rebuildMiniMapCache();
     }
 
@@ -284,41 +293,82 @@ public class RenderSystem {
 
     private void renderSnow(World world, Graphics2D g2d) {
         float winterProgress = world.getWinterProgress();
-        if (winterProgress <= 0.0f) return;
+        if (winterProgress <= 0.0f || gameMap == null) return;
+
+        updateSnowCoverageCache(world);
+        if (snowCoverageCache == null) return;
+
+        Graphics2D g = (Graphics2D) g2d.create();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
         Rectangle clip = g2d.getClipBounds();
         if (clip == null) clip = new Rectangle(0, 0, 800, 600);
-        
-        Vector2 camPos = camera.getPosition();
+        float worldWidth = gameMap.getCols() * TILE_SIZE;
+        float worldHeight = gameMap.getRows() * TILE_SIZE;
+        Vector2 cameraPosition = camera.getPosition();
         float zoom = camera.getZoomLevel();
 
-        float startX = camPos.x;
-        float startY = camPos.y;
-        float endX = startX + clip.width / zoom;
-        float endY = startY + clip.height / zoom;
-
-        // Tăng step lên và vẽ khối vuông (pixel lớn) để giảm tối đa chi phí render
-        float step = 20.0f; 
-        Graphics2D g = (Graphics2D) g2d.create();
-        
-        // Sử dụng màu trắng tuyệt đối, không dùng Alpha (trong suốt) để Fix Lag triệt để
-        g.setColor(Color.WHITE);
-        int size = Math.max(2, (int)(step * zoom)); 
-
-        for (float x = startX - (startX % step); x < endX; x += step) {
-            for (float y = startY - (startY % step); y < endY; y += step) {
-                Vector2 pos = new Vector2(x, y);
-                if (world.isPositionInWater(pos.x, pos.y)) continue; // Không có tuyết trên mặt nước
-
-                // getSnowDensity() giờ chỉ trả về 1.0 hoặc 0.0
-                if (world.getSnowDensity(pos) > 0) {
-                    Vector2 screenPos = camera.worldToScreen(pos);
-                    // Dùng fillRect (khối vuông) nhanh hơn fillOval rất nhiều
-                    g.fillRect((int) screenPos.x, (int) screenPos.y, size, size);
-                }
-            }
+        float visibleWorldX1 = Math.max(0.0f, cameraPosition.x);
+        float visibleWorldY1 = Math.max(0.0f, cameraPosition.y);
+        float visibleWorldX2 = Math.min(worldWidth, cameraPosition.x + clip.width / zoom);
+        float visibleWorldY2 = Math.min(worldHeight, cameraPosition.y + clip.height / zoom);
+        if (visibleWorldX2 <= visibleWorldX1 || visibleWorldY2 <= visibleWorldY1) {
+            g.dispose();
+            return;
         }
+
+        int sourceX1 = Math.max(0, (int) Math.floor(
+                visibleWorldX1 / worldWidth * snowCoverageCache.getWidth()));
+        int sourceY1 = Math.max(0, (int) Math.floor(
+                visibleWorldY1 / worldHeight * snowCoverageCache.getHeight()));
+        int sourceX2 = Math.min(snowCoverageCache.getWidth(), (int) Math.ceil(
+                visibleWorldX2 / worldWidth * snowCoverageCache.getWidth()));
+        int sourceY2 = Math.min(snowCoverageCache.getHeight(), (int) Math.ceil(
+                visibleWorldY2 / worldHeight * snowCoverageCache.getHeight()));
+
+        float sourceWorldX1 = sourceX1 / (float) snowCoverageCache.getWidth() * worldWidth;
+        float sourceWorldY1 = sourceY1 / (float) snowCoverageCache.getHeight() * worldHeight;
+        float sourceWorldX2 = sourceX2 / (float) snowCoverageCache.getWidth() * worldWidth;
+        float sourceWorldY2 = sourceY2 / (float) snowCoverageCache.getHeight() * worldHeight;
+        int destinationX1 = (int) Math.floor((sourceWorldX1 - cameraPosition.x) * zoom);
+        int destinationY1 = (int) Math.floor((sourceWorldY1 - cameraPosition.y) * zoom);
+        int destinationX2 = (int) Math.ceil((sourceWorldX2 - cameraPosition.x) * zoom);
+        int destinationY2 = (int) Math.ceil((sourceWorldY2 - cameraPosition.y) * zoom);
+
+        g.drawImage(snowCoverageCache,
+                destinationX1, destinationY1, destinationX2, destinationY2,
+                sourceX1, sourceY1, sourceX2, sourceY2, null);
         g.dispose();
+    }
+
+    private void updateSnowCoverageCache(World world) {
+        int bucketCount = config.SNOW_PROGRESS_BUCKETS;
+        int bucket = Math.max(0,
+                Math.min(bucketCount, Math.round(world.getWinterProgress() * bucketCount)));
+        if (bucket == snowCoverageBucket) return;
+        snowCoverageBucket = bucket;
+
+        if (bucket == 0) {
+            snowCoverageCache = null;
+            return;
+        }
+
+        int width = world.getSnowCacheWidth();
+        int height = world.getSnowCacheHeight();
+        if (width <= 0 || height <= 0) {
+            snowCoverageCache = null;
+            return;
+        }
+
+        if (snowCoverageCache == null
+                || snowCoverageCache.getWidth() != width
+                || snowCoverageCache.getHeight() != height) {
+            snowCoverageCache = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        }
+        int[] coveragePixels = ((DataBufferInt) snowCoverageCache
+                .getRaster().getDataBuffer()).getData();
+        world.fillSnowCoverage(bucket, bucketCount, coveragePixels);
     }
 
     private void renderNightOverlay(World world, Graphics2D g2d, List<Entity> entities) {
@@ -499,7 +549,9 @@ public class RenderSystem {
                 String variant = e.getImageVariant();
                 
                 // Mùa đông đổi variant của cây
-                if (e instanceof model.plants.FruitTree && e.getWorld() != null && e.getWorld().getWinterProgress() > 0.5f) {
+                if (e instanceof model.plants.FruitTree
+                        && e.getWorld() != null
+                        && e.getWorld().getWinterProgress() >= config.WINTER_TREE_SPRITE_THRESHOLD) {
                     // Tree_1 đến Tree_6 dùng winter_1, còn lại dùng winter_2 cho đa dạng
                     if (variant.matches("(?i)Tree_[1-6]")) {
                         variant = "tree_winter_1";
@@ -669,6 +721,10 @@ public class RenderSystem {
         g.setColor(new Color(18, 24, 28, 215));
         g.fillRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
         g.drawImage(miniMapCache, x0, y0, null);
+        updateMiniMapSnowCache(world, mapW, mapH);
+        if (miniMapSnowCache != null) {
+            g.drawImage(miniMapSnowCache, x0, y0, null);
+        }
 
         // Draw entities on minimap
         if (showEntitiesOnMinimap) {
@@ -700,6 +756,30 @@ public class RenderSystem {
         g.setComposite(oldComposite);
         g.setColor(new Color(235, 245, 250, 220));
         g.drawRoundRect(x0 - 5, y0 - 5, mapW + 10, mapH + 10, 8, 8);
+        g.dispose();
+    }
+
+    private void updateMiniMapSnowCache(World world, int mapW, int mapH) {
+        updateSnowCoverageCache(world);
+        int bucket = snowCoverageBucket;
+        if (bucket == miniMapSnowBucket) return;
+        miniMapSnowBucket = bucket;
+
+        if (bucket == 0 || snowCoverageCache == null) {
+            miniMapSnowCache = null;
+            return;
+        }
+
+        if (miniMapSnowCache == null
+                || miniMapSnowCache.getWidth() != mapW
+                || miniMapSnowCache.getHeight() != mapH) {
+            miniMapSnowCache = new BufferedImage(mapW, mapH, BufferedImage.TYPE_INT_ARGB);
+        }
+        Graphics2D g = miniMapSnowCache.createGraphics();
+        g.setComposite(AlphaComposite.Src);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(snowCoverageCache, 0, 0, mapW, mapH, null);
         g.dispose();
     }
 
@@ -747,6 +827,10 @@ public class RenderSystem {
 
         g.dispose();
         miniMapCache = cache;
+        snowCoverageCache = null;
+        snowCoverageBucket = -1;
+        miniMapSnowCache = null;
+        miniMapSnowBucket = -1;
     }
 
     private void drawMiniMapCameraFrame(Graphics2D g, int x0, int y0, int mapW, int mapH,

@@ -51,7 +51,8 @@ public class TerrainNavigator {
         return true;
     }
 
-    public static Vector2 findNearestShorePoint(LivingBeing entity, World world, float searchRadius) {
+    public static Vector2 findNearestWaterApproachPoint(LivingBeing entity, World world,
+                                                        float searchRadius, float shoreStandoff) {
         if (entity == null || world == null || entity.getPosition() == null) return null;
 
         int maxRadius = Math.max(1, (int) Math.ceil(searchRadius / TILE_SIZE));
@@ -60,29 +61,28 @@ public class TerrainNavigator {
         Vector2 best = null;
         float bestDistSq = Float.MAX_VALUE;
 
-        for (int r = 1; r <= maxRadius; r++) {
-            for (int dx = -r; dx <= r; dx++) {
-                for (int dy = -r; dy <= r; dy++) {
-                    if (Math.max(Math.abs(dx), Math.abs(dy)) != r) continue;
+        int maxRadiusSq = maxRadius * maxRadius;
+        for (int dx = -maxRadius; dx <= maxRadius; dx++) {
+            for (int dy = -maxRadius; dy <= maxRadius; dy++) {
+                if (dx * dx + dy * dy > maxRadiusSq) continue;
 
-                    int waterX = startX + dx;
-                    int waterY = startY + dy;
-                    Vector2 waterCenter = tileCenter(waterX, waterY);
-                    if (!world.isPositionInWater(waterCenter.x, waterCenter.y)) continue;
+                int waterX = startX + dx;
+                int waterY = startY + dy;
+                Vector2 waterCenter = tileCenter(waterX, waterY);
+                if (!world.isPositionInWater(waterCenter.x, waterCenter.y)) continue;
 
-                    Vector2 shore = findAdjacentWalkableToWater(entity, world, waterX, waterY);
-                    if (shore == null) continue;
+                Vector2 shore = findWaterTileApproachPoint(
+                        entity, world, waterX, waterY, shoreStandoff);
+                if (shore == null) continue;
 
-                    float distSq = entity.getPosition().distanceSquared(shore);
-                    if (distSq < bestDistSq) {
-                        bestDistSq = distSq;
-                        best = shore;
-                    }
+                float distSq = entity.getPosition().distanceSquared(shore);
+                if (distSq < bestDistSq) {
+                    bestDistSq = distSq;
+                    best = shore;
                 }
             }
-            if (best != null) return best;
         }
-        return null;
+        return best;
     }
 
     public static List<Vector2> findPath(World world, LivingBeing entity, Vector2 target) {
@@ -173,21 +173,40 @@ public class TerrainNavigator {
         return Collections.emptyList();
     }
 
-    private static Vector2 findAdjacentWalkableToWater(LivingBeing entity, World world, int waterX, int waterY) {
+    private static Vector2 findWaterTileApproachPoint(LivingBeing entity, World world,
+                                                       int waterX, int waterY, float shoreStandoff) {
         Vector2 best = null;
         float bestDistSq = Float.MAX_VALUE;
+        float clearance = entity.getSize() / 2.0f + Math.max(0.0f, shoreStandoff);
+        float waterLeft = waterX * TILE_SIZE;
+        float waterTop = waterY * TILE_SIZE;
+        float waterRight = waterLeft + TILE_SIZE;
+        float waterBottom = waterTop + TILE_SIZE;
+        float waterCenterX = waterLeft + TILE_SIZE / 2.0f;
+        float waterCenterY = waterTop + TILE_SIZE / 2.0f;
 
         for (int[] step : DIRECTIONS_CARDINAL) {
             int sx = waterX + step[0];
             int sy = waterY + step[1];
-            Vector2 candidate = tileCenter(sx, sy);
+            Vector2 adjacentTileCenter = tileCenter(sx, sy);
+            if (world.isPositionInWater(adjacentTileCenter.x, adjacentTileCenter.y)) continue;
+
+            Vector2 candidate;
+            if (step[0] < 0) {
+                candidate = new Vector2(waterLeft - clearance, waterCenterY);
+            } else if (step[0] > 0) {
+                candidate = new Vector2(waterRight + clearance, waterCenterY);
+            } else if (step[1] < 0) {
+                candidate = new Vector2(waterCenterX, waterTop - clearance);
+            } else {
+                candidate = new Vector2(waterCenterX, waterBottom + clearance);
+            }
+
             if (!isWalkable(world, entity, candidate)) continue;
-            if (!world.isPositionInWater(candidate.x, candidate.y)) {
-                float distSq = entity.getPosition().distanceSquared(candidate);
-                if (distSq < bestDistSq) {
-                    bestDistSq = distSq;
-                    best = candidate;
-                }
+            float distSq = entity.getPosition().distanceSquared(candidate);
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                best = candidate;
             }
         }
 
