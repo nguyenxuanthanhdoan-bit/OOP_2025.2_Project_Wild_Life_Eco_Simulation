@@ -3,7 +3,7 @@ package view;
 import controller.GameLoop;
 import controller.Simulation;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;
@@ -152,7 +152,7 @@ public class Sidebar extends JPanel {
             spawnPos.x += (Math.random() * 60 - 30);
             spawnPos.y += (Math.random() * 60 - 30);
 
-            model.living_beings.Animal animal = null;
+            model.living_beings.animal.Animal animal = null;
             if ("Thỏ".equals(sp)) animal = new model.living_beings.Rabbit(spawnPos);
             else if ("Nai".equals(sp)) animal = new model.living_beings.Deer(spawnPos, 1);
             else if ("Voi".equals(sp)) animal = new model.living_beings.Elephant(spawnPos, 1);
@@ -265,8 +265,8 @@ public class Sidebar extends JPanel {
             Map<String, Integer> counts = new HashMap<>();
             int total = 0;
             for (model.entity.Entity e : simulation.getWorld().getEntities()) {
-                if (e instanceof model.living_beings.Animal && e.isAlive()) {
-                    String sp = ((model.living_beings.Animal)e).getSpeciesName();
+                if (e instanceof model.living_beings.animal.Animal && e.isAlive()) {
+                    String sp = ((model.living_beings.animal.Animal)e).getSpeciesName();
                     counts.put(sp, counts.getOrDefault(sp, 0) + 1);
                     total++;
                 }
@@ -281,8 +281,8 @@ public class Sidebar extends JPanel {
 
         model.entity.Entity selectedEntity = simulation.getRenderSystem().getSelectedEntity();
         if (selectedEntity != null && selectedEntity.isAlive()) {
-            if (selectedEntity instanceof model.living_beings.Animal) {
-                model.living_beings.Animal animal = (model.living_beings.Animal) selectedEntity;
+            if (selectedEntity instanceof model.living_beings.animal.Animal) {
+                model.living_beings.animal.Animal animal = (model.living_beings.animal.Animal) selectedEntity;
                 infoSpeciesLabel.setText("Loài: " + animal.getSpeciesName());
                 infoAgeLabel.setText(String.format("Tuổi: %.1f / %.1f (%s)", animal.getAge(), animal.getMaxAge(), animal.isAdult() ? "Trưởng thành" : "Trẻ con"));
                 infoHealthLabel.setText(String.format("Máu: %.1f%%", (animal.getHealth() / animal.getMaxHealth()) * 100.0));

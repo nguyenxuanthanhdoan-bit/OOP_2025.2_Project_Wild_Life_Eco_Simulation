@@ -6,7 +6,7 @@ import screen.GameScreen;
 import view.Sidebar;
 import view.SidebarToggleButton;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;

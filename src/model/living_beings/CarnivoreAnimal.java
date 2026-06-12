@@ -1,6 +1,7 @@
 package model.living_beings;
 
 import core.Vector2;
+import model.living_beings.animal.Animal;
 
 /**
  * Lớp cơ sở cho các loài động vật ăn thịt.

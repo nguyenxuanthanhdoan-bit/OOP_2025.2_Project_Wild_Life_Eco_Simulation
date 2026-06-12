@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.Vector2;
 
 public class Bluetang extends Fish {

@@ -3,7 +3,7 @@ package model.strategies;
 import core.Vector2;
 import core.GameConfig;
 import model.living_beings.LivingBeing;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.navigation.PathNavigator;
 import model.world.World;
 import model.world.WorldEventType;

@@ -3,7 +3,7 @@ package model.structures;
 import core.GameConfig;
 import core.Vector2;
 import model.entity.Structure;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 
 /**
  * Giếng nước trong village.
@@ -24,7 +24,7 @@ public class Well extends Structure {
     }
 
     public boolean drink(Animal animal) {
-        if (animal == null || !animal.isAliveState() || !isInDrinkRange(animal.getPosition())) {
+        if (animal == null || !animal.isAlive() || !isInDrinkRange(animal.getPosition())) {
             return false;
         }
         animal.setThirst(animal.getMaxThirst());

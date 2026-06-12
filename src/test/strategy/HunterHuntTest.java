@@ -2,7 +2,7 @@ package test.strategy;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Deer;
 import model.living_beings.Hunter;
 import model.living_beings.Rabbit;
@@ -12,7 +12,7 @@ import model.structures.Rock;
 import model.world.PopulationManager;
 import model.world.World;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;

@@ -2,7 +2,7 @@ package model.strategies;
 
 import core.Vector2;
 import model.living_beings.LivingBeing;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.FlockingMode;
 import model.navigation.PathNavigator;
 import model.world.World;
@@ -130,7 +130,7 @@ public class FlockingStrategy extends PassiveStrategy {
         for (Entity e : neighbors) {
             if (e instanceof Animal && e != owner) {
                 Animal other = (Animal) e;
-                if (other.isAliveState()
+                if (other.isAlive()
                         && other.canUseStrategy(HunterStrategy.class)
                         && owner.getEntityLevel() > other.getEntityLevel()) {
                     predators.add(other);

@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import model.entity.Entity;
 import model.plants.Plant;
 

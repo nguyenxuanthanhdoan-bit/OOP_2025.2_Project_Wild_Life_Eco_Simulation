@@ -3,7 +3,7 @@ package model.plants;
 import core.Vector2;
 import core.DisplayMode;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 
 public class Cactus extends Plant {
     private float damageRate = 5.0f; // 5 HP/s

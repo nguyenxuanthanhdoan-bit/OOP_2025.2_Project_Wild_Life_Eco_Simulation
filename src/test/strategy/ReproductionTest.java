@@ -4,7 +4,7 @@ import core.Vector2;
 import model.living_beings.Rabbit;
 import model.world.World;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;
@@ -81,7 +81,7 @@ public class ReproductionTest extends JPanel {
         
         // Đếm tổng số lượng thú
         long animalCount = world.getEntities().stream()
-                .filter(e -> e instanceof model.living_beings.Animal && e.isAlive())
+                .filter(e -> e instanceof model.living_beings.animal.Animal && e.isAlive())
                 .count();
         g2d.drawString("Tổng số thú hiện tại: " + animalCount, 20, 50);
 

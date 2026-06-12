@@ -1,7 +1,7 @@
 package model.world;
 
 import core.Vector2;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;
 import model.living_beings.Rabbit;

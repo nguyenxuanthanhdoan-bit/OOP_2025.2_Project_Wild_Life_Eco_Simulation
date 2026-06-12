@@ -1,6 +1,7 @@
 package model.living_beings;
 
 import core.Vector2;
+import model.living_beings.animal.Animal;
 import model.items.Carcass;
 
 public abstract class Fish extends Animal {
@@ -44,7 +45,7 @@ public abstract class Fish extends Animal {
     @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
-        this.thirst = this.maxThirst; // Ép khát luôn đầy vì ở trong nước
+        this.setThirst(this.getMaxThirst()); // Ép khát luôn đầy vì ở trong nước
         
         // Cập nhật imageVariant cơ bản
         this.imageVariant = this.speciesName + ".png"; 

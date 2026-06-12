@@ -9,7 +9,7 @@ import model.structures.Rock;
 import model.world.World;
 import model.strategies.HunterStrategy;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;

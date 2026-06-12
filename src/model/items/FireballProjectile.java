@@ -3,7 +3,7 @@ package model.items;
 import core.DisplayMode;
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 
 public class FireballProjectile extends Entity {
     private final Animal target;

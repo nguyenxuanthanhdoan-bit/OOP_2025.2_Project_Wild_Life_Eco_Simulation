@@ -4,7 +4,7 @@ import core.GameConfig;
 import core.Vector2;
 import model.entity.Entity;
 import model.items.FoodSource;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Human;
 import model.living_beings.LivingBeing;
 import model.navigation.PathNavigator;

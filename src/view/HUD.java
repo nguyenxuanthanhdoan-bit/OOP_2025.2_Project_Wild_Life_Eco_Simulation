@@ -24,7 +24,7 @@ public class HUD {
         List<Entity> list = new ArrayList<>(world.getEntities());
         for (Entity e : list) {
             if (e != null && e.isAlive()) {
-                if (e instanceof model.living_beings.Animal) {
+                if (e instanceof model.living_beings.animal.Animal) {
                     animalCount++;
                 } else if (e instanceof model.plants.Plant || e instanceof model.items.FoodSource) {
                     plantCount++;

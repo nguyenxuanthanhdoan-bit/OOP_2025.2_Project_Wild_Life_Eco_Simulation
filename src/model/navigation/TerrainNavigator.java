@@ -1,7 +1,7 @@
 package model.navigation;
 
 import core.Vector2;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.LivingBeing;
 import model.navigation.PathNavigator.MovementContext;
 import model.world.World;

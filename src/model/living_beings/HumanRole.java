@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 /**
  * Nghề nghiệp của Human. Chứa toàn bộ capability của role,
  * không để logic phân công rải rác trong các class khác.

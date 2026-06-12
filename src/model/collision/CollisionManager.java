@@ -3,7 +3,7 @@ package model.collision;
 import core.Vector2;
 import model.entity.Entity;
 import model.world.World;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.structures.Bush;
 
 import java.util.List;

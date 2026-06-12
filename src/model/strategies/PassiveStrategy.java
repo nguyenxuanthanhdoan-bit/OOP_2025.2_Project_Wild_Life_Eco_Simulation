@@ -46,8 +46,8 @@ public class PassiveStrategy implements IStrategy {
             }
         }
 
-        if (owner instanceof model.living_beings.Animal) {
-            model.living_beings.Animal animal = (model.living_beings.Animal) owner;
+        if (owner instanceof model.living_beings.animal.Animal) {
+            model.living_beings.animal.Animal animal = (model.living_beings.animal.Animal) owner;
             if (isIdling) {
                 animal.setActionState("idle");
                 animal.setSpeed(0);
@@ -57,8 +57,8 @@ public class PassiveStrategy implements IStrategy {
             }
         }
 
-        if (!isIdling && owner instanceof model.living_beings.Animal && wanderTarget != null && world != null) {
-            model.living_beings.Animal animal = (model.living_beings.Animal) owner;
+        if (!isIdling && owner instanceof model.living_beings.animal.Animal && wanderTarget != null && world != null) {
+            model.living_beings.animal.Animal animal = (model.living_beings.animal.Animal) owner;
             boolean reached = wanderNavigator.moveTo(animal, world, wanderTarget, deltaTime, 18.0f, 2.0f);
             if (reached || wanderNavigator.isBlocked()) {
                 stateTimer = 0;
@@ -73,8 +73,8 @@ public class PassiveStrategy implements IStrategy {
             finalDir.add(wanderDirection);
         }
 
-        if (owner instanceof model.living_beings.Animal) {
-            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce((model.living_beings.Animal) owner, world, finalDir);
+        if (owner instanceof model.living_beings.animal.Animal) {
+            Vector2 avoidance = AvoidanceStrategy.getAvoidanceForce((model.living_beings.animal.Animal) owner, world, finalDir);
             if (avoidance.lengthSquared() > 0) {
                 finalDir.add(avoidance);
             }

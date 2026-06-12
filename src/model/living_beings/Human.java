@@ -3,6 +3,7 @@ package model.living_beings;
 import core.DisplayMode;
 import core.GameConfig;
 import core.Vector2;
+import model.living_beings.animal.Animal;
 import model.items.Carcass;
 import model.items.FoodSource;
 import model.entity.Entity;
@@ -86,17 +87,17 @@ public class Human extends Animal {
         this.homeRadius = Math.max(80.0f, homeRadius);
         this.carryCapacity = Math.max(0.0f, carryCapacity);
         this.carriedFood = 0.0f;
-        this.maxHealth = 120.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 120.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.08f;
-        this.maxThirst = 120.0f;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.12f;
-        this.maxAge = 10000.0f;
-        this.visionRange = 260.0f;
-        this.adult = true;
+        this.setMaxHealth(120.0f);
+        this.setHealth(this.getMaxHealth());
+        this.setMaxHunger(120.0f);
+        this.setHunger(this.getMaxHunger());
+        this.setHungerDecayRate(0.08f);
+        this.setMaxThirst(120.0f);
+        this.setThirst(this.getMaxThirst());
+        this.setThirstDecayRate(0.12f);
+        this.setMaxAge(10000.0f);
+        this.setVisionRange(260.0f);
+        this.setAdult(true);
         this.profile = this.role.canHunt() ? HUNTER_PROFILE : CIVILIAN_PROFILE;
         setStrategy(new PassiveStrategy());
     }
@@ -238,20 +239,20 @@ public class Human extends Animal {
             return 0.0f;
         }
         float consumed = storage.consumeFood(amount);
-        this.hunger = Math.min(this.maxHunger, this.hunger + consumed);
+        this.setHunger(Math.min(this.getMaxHunger(), this.getHunger() + consumed));
         return consumed;
     }
 
     public void eatCarriedFood(float amount) {
         float consumed = consumeCarriedFood(amount);
         if (consumed > 0) {
-            this.hunger = Math.min(this.maxHunger, this.hunger + consumed);
+            this.setHunger(Math.min(this.getMaxHunger(), this.getHunger() + consumed));
         }
     }
 
     public boolean shouldHuntForVillage() {
         if (!role.canHunt() || carriedFood > 0.01f) return false;
-        if (hunger < maxHunger * 0.95) return true;
+        if (getHunger() < getMaxHunger() * 0.95) return true;
         FoodStorage storage = findHomeFoodStorage();
         return storage != null && storage.getStoredFood() < storage.getCapacity() * 0.35f;
     }
@@ -340,9 +341,9 @@ public class Human extends Animal {
     }
 
     private void applyHiddenInHouse(House house) {
-        this.hidden = true;
+        this.setHidden(true);
         this.hiddenInHouse = house;
-        this.isMoving = false;
+        this.setMoving(false);
         this.setSpeed(0);
         this.setActionState("idle");
         this.currentVelocity.set(0, 0);
@@ -354,7 +355,7 @@ public class Human extends Animal {
             hiddenInHouse.exit(this);
             hiddenInHouse = null;
         }
-        this.hidden = false;
+        this.setHidden(false);
         this.setSpeed(this.baseSpeed);
     }
 
@@ -448,7 +449,7 @@ public class Human extends Animal {
      * Kiểm tra Human có đang ngủ trong nhà hay không.
      */
     public boolean isSleeping() {
-        return hidden && hiddenInHouse != null;
+        return isHidden() && hiddenInHouse != null;
     }
 
     @Override

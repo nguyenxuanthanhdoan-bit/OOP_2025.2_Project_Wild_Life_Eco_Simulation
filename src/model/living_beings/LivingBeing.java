@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.Vector2;
 import model.entity.Entity;
 
@@ -124,6 +126,10 @@ public abstract class LivingBeing extends Entity {
 
     public Vector2 getCurrentVelocity() {
         return this.currentVelocity.copy();
+    }
+
+    public void resetVelocity() { 
+        this.currentVelocity.set(0, 0); 
     }
 
     public float getCurrentSpeedSquared() {

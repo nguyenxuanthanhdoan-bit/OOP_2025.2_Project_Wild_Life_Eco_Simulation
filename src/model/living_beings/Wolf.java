@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.Vector2;
 import core.GameConfig;
 import core.DisplayMode;
@@ -22,16 +24,16 @@ public class Wolf extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Sói";
-        this.maxHealth = 160.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 120.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.5f;
-        this.maxThirst = 100.0f;
-        this.visionRange = 450.0;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.6f;
-        this.maxAge = 450.0f;
+        this.setMaxHealth(160.0f);
+        this.setHealth(this.getMaxHealth());
+        this.setMaxHunger(120.0f);
+        this.setHunger(this.getMaxHunger());
+        this.setHungerDecayRate(0.5f);
+        this.setMaxThirst(100.0f);
+        this.setVisionRange(450.0);
+        this.setThirst(this.getMaxThirst());
+        this.setThirstDecayRate(0.6f);
+        this.setMaxAge(450.0f);
         this.profile = PROFILE;
 
         // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định

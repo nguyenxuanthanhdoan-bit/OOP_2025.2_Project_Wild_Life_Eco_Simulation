@@ -3,7 +3,7 @@ package model.strategies;
 import core.GameConfig;
 import core.Vector2;
 import model.living_beings.LivingBeing;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Human;
 import model.living_beings.Hunter;
 import model.items.Carcass;

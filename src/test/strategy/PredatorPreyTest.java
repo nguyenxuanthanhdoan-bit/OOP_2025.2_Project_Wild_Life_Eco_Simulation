@@ -2,14 +2,14 @@ package test.strategy;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Rabbit;
 import model.living_beings.Wolf;
 import model.structures.Rock;
 import model.world.World;
 import model.strategies.HunterStrategy;
 import view.systems.Camera;
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 
 import javax.swing.*;
 import java.awt.*;

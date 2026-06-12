@@ -7,7 +7,7 @@ import model.map.GameMap.MapPolygonObject;
 import model.plants.FruitTree;
 import model.plants.Grass;
 import model.plants.Mushroom;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;

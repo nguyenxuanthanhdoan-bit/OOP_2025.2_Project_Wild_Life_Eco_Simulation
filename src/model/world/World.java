@@ -3,7 +3,7 @@ package model.world;
 import model.entity.Entity;
 import model.entity.Structure;
 import core.GameConfig;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +32,8 @@ public class World {
     private float dayTimer = 0.0f;
     private int gameDay = 1;
     private Season currentSeason = Season.GROWING;
-    private int winterDays = 0; // Đếm số ngày của mùa đông
+    private int seasonDays = 0; // Đếm số ngày của mùa hiện tại
+    private int targetSeasonDays = 7; // Thời lượng ngẫu nhiên
     private float winterProgress = 0.0f; // 0.0 -> Sinh Trưởng, 1.0 -> Mùa đông hoàn toàn
     private Weather currentWeather = Weather.SUNNY;
     private float weatherTimer = 0.0f;
@@ -121,20 +122,18 @@ public class World {
             gameDay++;
             
             if (currentSeason == Season.GROWING) {
-                int animalCount = 0;
-                for (Entity e : getEntities()) {
-                    if (e instanceof model.living_beings.Animal && e.isAlive()) {
-                        animalCount++;
-                    }
-                }
-                if (animalCount >= core.GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT * 0.90f) {
+                seasonDays++;
+                if (seasonDays >= targetSeasonDays) {
                     setSeason(Season.WINTER);
-                    winterDays = 0;
+                    seasonDays = 0;
+                    targetSeasonDays = 4 + (int)(Math.random() * 2); // 4-5 ngày
                 }
             } else if (currentSeason == Season.WINTER) {
-                winterDays++;
-                if (winterDays >= 2) { // Kéo dài 2 ngày
+                seasonDays++;
+                if (seasonDays >= targetSeasonDays) {
                     setSeason(Season.GROWING);
+                    seasonDays = 0;
+                    targetSeasonDays = 7 + (int)(Math.random() * 2); // 7-8 ngày
                 }
             }
         }
@@ -157,8 +156,8 @@ public class World {
                 }
 
                 // Gán worldRef để StuckDetector có thể quét SpatialGrid
-                if (e instanceof model.living_beings.Animal) {
-                    ((model.living_beings.Animal) e).setWorldRef(this);
+                if (e instanceof model.living_beings.animal.Animal) {
+                    ((model.living_beings.animal.Animal) e).setWorldRef(this);
                 }
 
                 // Cập nhật logic (Thỏ chạy nhảy, chuyển sang tọa độ MỚI)
@@ -237,7 +236,7 @@ public class World {
     public int getAnimalCount() {
         int count = 0;
         for (Entity e : entities) {
-            if (e instanceof model.living_beings.Animal && e.isAlive()) {
+            if (e instanceof model.living_beings.animal.Animal && e.isAlive()) {
                 count++;
             }
         }
@@ -347,17 +346,17 @@ public class World {
     }
 
     private boolean isAnimalBlockedFromSettlement(model.living_beings.LivingBeing entity) {
-        if (entity instanceof model.living_beings.Animal) {
+        if (entity instanceof model.living_beings.animal.Animal) {
             model.living_beings.AnimalProfile.SettlementPolicy policy =
-                    ((model.living_beings.Animal) entity).getProfile().getSettlementPolicy();
+                    ((model.living_beings.animal.Animal) entity).getProfile().getSettlementPolicy();
             return policy == model.living_beings.AnimalProfile.SettlementPolicy.BLOCK;
         }
         return false;
     }
 
     private boolean isAnimalBlockedFromGarden(model.living_beings.LivingBeing entity) {
-        if (entity instanceof model.living_beings.Animal) {
-            return !((model.living_beings.Animal) entity).getProfile().canEnterGardens();
+        if (entity instanceof model.living_beings.animal.Animal) {
+            return !((model.living_beings.animal.Animal) entity).getProfile().canEnterGardens();
         }
         return false;
     }
@@ -459,6 +458,8 @@ public class World {
 
     public void setSeason(Season season) {
         this.currentSeason = season;
+        this.seasonDays = 0;
+        this.targetSeasonDays = season == Season.GROWING ? (7 + (int)(Math.random() * 2)) : (4 + (int)(Math.random() * 2));
         publishEvent(WorldEventType.SEASON_CHANGED, null, "manual_change");
     }
 

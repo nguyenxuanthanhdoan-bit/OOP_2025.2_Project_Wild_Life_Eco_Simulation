@@ -1,5 +1,6 @@
 package model.world;
 
+import model.living_beings.animal.Animal;
 import core.Vector2;
 import core.GameConfig;
 import model.entity.Entity;
@@ -24,7 +25,7 @@ public class PopulationManager {
         
         int currentPop = countSpecies(animal.getSpeciesName(), world);
         // Trừ đi 1 vì con hiện tại đang chết nhưng có thể chưa bị xóa khỏi list
-        if (animal.isAliveState()) { // Tuy nhiên die() gọi sau khi set alive = false
+        if (animal.isAlive()) { // Tuy nhiên die() gọi sau khi set alive = false
             // Nên không cần trừ, countSpecies đã kiểm tra isAliveState()
         }
 

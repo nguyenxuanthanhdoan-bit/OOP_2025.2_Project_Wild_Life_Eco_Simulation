@@ -2,7 +2,7 @@ package view.systems;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Rabbit;
 import model.living_beings.Deer;
 import model.living_beings.Elephant;

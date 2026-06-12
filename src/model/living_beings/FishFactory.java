@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.Vector2;
 import java.util.HashMap;
 import java.util.Map;

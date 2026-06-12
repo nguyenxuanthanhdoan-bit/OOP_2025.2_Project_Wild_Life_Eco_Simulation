@@ -2,7 +2,7 @@ package controller;
 
 import model.world.World;
 import model.map.GameMap; 
-import view.systems.RenderSystem;
+import view.systems.render.RenderSystem;
 import view.systems.Camera;
 import core.DisplayMode;
 import core.GameConfig;

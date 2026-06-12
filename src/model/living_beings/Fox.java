@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.Vector2;
 import core.DisplayMode;
 
@@ -22,16 +24,16 @@ public class Fox extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Fox";
-        this.maxHealth = 100.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 100.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.4f;
-        this.maxThirst = 80.0f;
-        this.visionRange = 399.0;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.5f;
-        this.maxAge = 400.0f;
+        this.setMaxHealth(100.0f);
+        this.setHealth(this.getMaxHealth());
+        this.setMaxHunger(100.0f);
+        this.setHunger(this.getMaxHunger());
+        this.setHungerDecayRate(0.4f);
+        this.setMaxThirst(80.0f);
+        this.setVisionRange(399.0);
+        this.setThirst(this.getMaxThirst());
+        this.setThirstDecayRate(0.5f);
+        this.setMaxAge(400.0f);
         this.profile = PROFILE;
     }
 

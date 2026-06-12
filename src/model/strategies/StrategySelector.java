@@ -1,13 +1,13 @@
 package model.strategies;
 
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.Human;
 
 public final class StrategySelector {
     private StrategySelector() {}
 
     public static IStrategy select(Animal animal) {
-        if (animal == null || !animal.isAliveState()) return null;
+        if (animal == null || !animal.isAlive()) return null;
 
         IStrategy current = animal.getCurrentStrategy();
         if (current != null && current.isInNonInterruptiblePhase()) {

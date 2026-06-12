@@ -2,7 +2,7 @@ package model.strategies;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.living_beings.DietType;
 import model.living_beings.LivingBeing;
 import model.navigation.PathNavigator;

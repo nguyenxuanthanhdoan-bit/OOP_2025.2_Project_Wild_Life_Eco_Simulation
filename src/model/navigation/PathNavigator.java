@@ -2,7 +2,7 @@ package model.navigation;
 
 import core.Vector2;
 import model.entity.Entity;
-import model.living_beings.Animal;
+import model.living_beings.animal.Animal;
 import model.strategies.AvoidanceStrategy;
 import model.world.World;
 
@@ -33,7 +33,7 @@ public class PathNavigator {
     public boolean moveTo(Animal animal, World world, Vector2 target, float deltaTime,
                           float reachDistance, float repathInterval, MovementContext context) {
         blocked = false;
-        if (animal == null || world == null || target == null || !animal.isAliveState()) return false;
+        if (animal == null || world == null || target == null || !animal.isAlive()) return false;
 
         float targetDist = animal.getPosition().distanceTo(target);
         if (targetDist <= reachDistance) {

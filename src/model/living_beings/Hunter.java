@@ -1,5 +1,7 @@
 package model.living_beings;
 
+import model.living_beings.animal.Animal;
+
 import core.GameConfig;
 import core.Vector2;
 
@@ -17,11 +19,11 @@ public class Hunter extends Human {
     public Hunter(Vector2 position, Vector2 homeCenter, float homeRadius) {
         super(position, SIZE, GameConfig.getInstance().HUNTER_BASE_SPEED, "Thợ săn", "human_hunter",
                 HumanRole.HUNTER, homeCenter, homeRadius, GameConfig.getInstance().HUNTER_CARRY_CAPACITY);
-        this.maxHealth = 160.0f;
-        this.health = this.maxHealth;
-        this.visionRange = 320.0f;
-        this.hungerDecayRate = 0.11f;
-        this.thirstDecayRate = 0.14f;
+        this.setMaxHealth(160.0f);
+        this.setHealth(this.getMaxHealth());
+        this.setVisionRange(320.0f);
+        this.setHungerDecayRate(0.11f);
+        this.setThirstDecayRate(0.14f);
         this.maxAmmo = GameConfig.getInstance().HUNTER_MAX_AMMO;
         this.ammo = this.maxAmmo;
     }

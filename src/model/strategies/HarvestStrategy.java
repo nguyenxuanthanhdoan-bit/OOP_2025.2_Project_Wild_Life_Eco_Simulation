@@ -93,7 +93,7 @@ public class HarvestStrategy implements IStrategy {
             harvesting = false;
             human.setActionState("walk");
             human.setSpeed(human.getBaseSpeed() * 0.5f);
-            navigator.moveTo((model.living_beings.Animal) owner, world, targetBed.getPosition(), deltaTime, 18.0f, 1.5f);
+            navigator.moveTo((model.living_beings.animal.Animal) owner, world, targetBed.getPosition(), deltaTime, 18.0f, 1.5f);
 
             if (navigator.isBlocked()) {
                 targetBed.releaseReservation(human);
