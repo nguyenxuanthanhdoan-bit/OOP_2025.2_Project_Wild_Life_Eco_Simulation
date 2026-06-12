@@ -17,7 +17,7 @@ public class Elephant extends HerbivoreAnimal {
     private static final double MAX_THIRST         = 250.0;
     private static final double THIRST_DECAY_RATE  = 0.6;
     private static final double MAX_AGE            = 3600.0;
-    private static final double VISION_RANGE       = 233.0;
+    private static final double VISION_RANGE       = 350.0;
     private static final AnimalProfile PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_APEX_ANIMAL)
             .ediblePlants(Grass.class, Fruit.class, Mushroom.class)

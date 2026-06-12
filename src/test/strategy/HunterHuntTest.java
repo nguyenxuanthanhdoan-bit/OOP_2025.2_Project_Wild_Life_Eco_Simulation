@@ -68,10 +68,6 @@ public class HunterHuntTest extends JPanel {
             elapsed += 0.016f;
             world.update(0.016f);
             repaint();
-
-            if (storage.getStoredFood() > 0) {
-                System.out.println("TEST PASSED: Hunter hunted/collected meat and deposited it to FoodStorage.");
-            }
         });
         timer.start();
     }

@@ -52,8 +52,8 @@ public class MultiPreyHuntTest extends JPanel {
         model.world.PopulationManager.setEnabled(false);
 
         // 1. TẠO BẦY CON MỒI (Prey)
-        // Rải 15 con Thỏ và 10 con Hươu khắp tâm bản đồ
-        for (int i = 0; i < 15; i++) {
+        // Rải 5 con Thỏ và 3 con Hươu khắp tâm bản đồ
+        for (int i = 0; i < 5; i++) {
             float rx = MAP_W/2f + (random.nextFloat() * 400 - 200);
             float ry = MAP_H/2f + (random.nextFloat() * 400 - 200);
             Rabbit rabbit = new Rabbit(new Vector2(rx, ry));
@@ -61,7 +61,7 @@ public class MultiPreyHuntTest extends JPanel {
             world.addEntity(rabbit);
         }
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 3; i++) {
             float rx = MAP_W/2f + (random.nextFloat() * 500 - 250);
             float ry = MAP_H/2f + (random.nextFloat() * 500 - 250);
             Deer deer = new Deer(new Vector2(rx, ry));
@@ -160,10 +160,10 @@ public class MultiPreyHuntTest extends JPanel {
         g2d.drawString("Predators: " + predatorCount, 20, 50);
         
         g2d.setColor(new Color(200, 200, 255));
-        g2d.drawString("Thỏ còn sống: " + rabbitCount + "/15", 220, 50);
+        g2d.drawString("Thỏ còn sống: " + rabbitCount + "/5", 220, 50);
         
         g2d.setColor(new Color(255, 230, 150));
-        g2d.drawString("Hươu còn sống: " + deerCount + "/10", 350, 50);
+        g2d.drawString("Hươu còn sống: " + deerCount + "/3", 350, 50);
         
         g2d.setColor(new Color(150, 255, 150));
         g2d.drawString("Dân làng: " + villagerCount + "/5", 20, 70);

@@ -95,7 +95,7 @@ public class Human extends Animal {
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 0.12f;
         this.maxAge = 10000.0f;
-        this.visionRange = 173.0f;
+        this.visionRange = 260.0f;
         this.adult = true;
         this.profile = this.role.canHunt() ? HUNTER_PROFILE : CIVILIAN_PROFILE;
         setStrategy(new PassiveStrategy());

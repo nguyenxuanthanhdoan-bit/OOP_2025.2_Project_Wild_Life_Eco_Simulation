@@ -17,7 +17,7 @@ public class Deer extends HerbivoreAnimal {
     private static final double MAX_THIRST        = 130.0;
     private static final double THIRST_DECAY_RATE = 0.5;
     private static final double MAX_AGE           = 900.0;
-    private static final double VISION_RANGE      = 186.0;
+    private static final double VISION_RANGE      = 279.0;
     private static final AnimalProfile PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_HERBIVORE)
             .ediblePlants(Grass.class, Fruit.class, Mushroom.class)

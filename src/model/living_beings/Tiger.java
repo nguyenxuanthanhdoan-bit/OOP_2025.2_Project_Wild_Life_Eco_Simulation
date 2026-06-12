@@ -28,7 +28,7 @@ public class Tiger extends CarnivoreAnimal {
         this.hunger = this.maxHunger;
         this.hungerDecayRate = 0.4f; 
         this.maxThirst = 150.0f;
-        this.visionRange = 300.0;
+        this.visionRange = 450.0;
         this.thirst = this.maxThirst;
         this.thirstDecayRate = 0.5f; 
         this.maxAge = 600.0f; 
