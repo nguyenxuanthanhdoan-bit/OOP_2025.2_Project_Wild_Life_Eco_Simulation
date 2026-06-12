@@ -22,16 +22,16 @@ public class Wolf extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Sói";
-        this.maxHealth = 160.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 120.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.5f;
-        this.maxThirst = 100.0f;
-        this.visionRange = 300.0;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.6f;
-        this.maxAge = 450.0f;
+        this.setMaxHealth(160.0f);
+        this.setHealth(160.0f);
+        this.setMaxHunger(120.0f);
+        this.setHunger(120.0f);
+        this.setHungerDecayRate(0.5f);
+        this.setMaxThirst(100.0f);
+        this.setVisionRange(360.0);
+        this.setThirst(100.0f);
+        this.setThirstDecayRate(0.6f);
+        this.setMaxAge(450.0f);
         this.profile = PROFILE;
 
         // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định

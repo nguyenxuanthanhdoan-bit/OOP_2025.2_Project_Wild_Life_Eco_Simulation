@@ -17,7 +17,7 @@ public class Elephant extends HerbivoreAnimal {
     private static final double MAX_THIRST         = 250.0;
     private static final double THIRST_DECAY_RATE  = 0.6;
     private static final double MAX_AGE            = 3600.0;
-    private static final double VISION_RANGE       = 233.0;
+    private static final double VISION_RANGE       = 279.6;
     private static final AnimalProfile PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_APEX_ANIMAL)
             .ediblePlants(Grass.class, Fruit.class, Mushroom.class)
@@ -34,16 +34,16 @@ public class Elephant extends HerbivoreAnimal {
     public Elephant(Vector2 position) {
         super(position, SIZE, BASE_SPEED);
         this.speciesName = "Voi";
-        this.maxHealth        = MAX_HEALTH;
-        this.health           = MAX_HEALTH;
-        this.maxHunger        = MAX_HUNGER;
-        this.hunger           = MAX_HUNGER;
-        this.hungerDecayRate  = HUNGER_DECAY_RATE;
-        this.maxThirst        = MAX_THIRST;
-        this.thirst           = MAX_THIRST;
-        this.thirstDecayRate  = THIRST_DECAY_RATE;
-        this.maxAge           = MAX_AGE;
-        this.visionRange      = VISION_RANGE;
+        this.setMaxHealth(MAX_HEALTH);
+        this.setHealth(MAX_HEALTH);
+        this.setMaxHunger(MAX_HUNGER);
+        this.setHunger(MAX_HUNGER);
+        this.setHungerDecayRate(HUNGER_DECAY_RATE);
+        this.setMaxThirst(MAX_THIRST);
+        this.setThirst(MAX_THIRST);
+        this.setThirstDecayRate(THIRST_DECAY_RATE);
+        this.setMaxAge(MAX_AGE);
+        this.setVisionRange(VISION_RANGE);
         this.profile          = PROFILE;
         // Không set cứng Strategy — để decideActiveStrategy tự quyết định
     }
@@ -56,7 +56,7 @@ public class Elephant extends HerbivoreAnimal {
     @Override
     public Animal reproduce() {
         Elephant baby = new Elephant(this.getPosition().copy());
-        baby.age = 0;
+        baby.setAge(0);
         baby.size = SIZE * 0.5f; // 50% kích thước
         baby.setAdult(false);
         // Không set cứng
@@ -84,7 +84,7 @@ public class Elephant extends HerbivoreAnimal {
         super.update(deltaTime);
         
         // Cập nhật kích thước khi trưởng thành, không reset strategy mỗi frame.
-        if (this.adult && this.age > 0) {
+        if (this.isAdult() && this.getAge() > 0) {
             this.size = SIZE;
         }
     }

@@ -55,85 +55,23 @@ public class HunterStrategy implements IStrategy {
         // Kiểm tra xem mục tiêu cũ còn hợp lệ không
         if (targetFood != null) {
             float dist = ownerAnimal.getPosition().distanceTo(targetFood.getPosition());
-            if (!targetFood.isAlive() || dist > ownerAnimal.getVisionRange()
-                    || ownerAnimal.isInDangerZone(targetFood.getPosition())
-                    || isFoodConcealedByBush(targetFood, world)) {
+            if (!HunterTargeting.isTargetStillValid(ownerAnimal, targetFood, world)) {
                 targetFood = null;
                 targetNavigator.clear();
                 ownerAnimal.setActionState("idle");
-            } else if (targetFood instanceof Animal) {
-                Animal prey = (Animal) targetFood;
-                if (prey.isHidden() || prey.getEntityLevel() >= ownerAnimal.getEntityLevel()) {
-                    targetFood = null;
-                    targetNavigator.clear();
-                    ownerAnimal.setActionState("idle");
-                } else if (reassessTimer > 1.0f) {
-                    // Định kỳ 1 giây đánh giá lại mục tiêu xem có con mồi nào ngon hơn/gần hơn không
-                    targetFood = null;
-                    targetNavigator.clear();
-                    reassessTimer = 0f;
-                }
+            } else if (targetFood instanceof Animal && reassessTimer > 1.0f) {
+                // Định kỳ 1 giây đánh giá lại mục tiêu
+                targetFood = null;
+                targetNavigator.clear();
+                reassessTimer = 0f;
             }
         }
 
         reassessTimer += deltaTime;
 
         // Quét tìm mục tiêu mới
-        if (targetFood == null && world != null && world.getSpatialGrid() != null) {
-            List<Entity> neighbors = world.getSpatialGrid().getNeighbors(ownerAnimal.getPosition(), (float) ownerAnimal.getVisionRange());
-            
-            float bestScore = -1.0f;
-            Entity bestTarget = null;
-            
-            boolean isVeryHungry = ownerAnimal.getHunger() < ownerAnimal.getMaxHunger() * 0.6;
-
-            for (Entity neighbor : neighbors) {
-                if (!neighbor.isAlive()) continue;
-                if (ownerAnimal.isInDangerZone(neighbor.getPosition())) continue;
-
-                float dist = ownerAnimal.getPosition().distanceTo(neighbor.getPosition());
-                float score = 0;
-
-                if (neighbor instanceof FoodSource) {
-                    FoodSource foodSource = (FoodSource) neighbor;
-                    if (!ownerAnimal.canEatFoodSource(foodSource)) continue;
-                    if (isFoodConcealedByBush(foodSource, world)) continue;
-                    
-                    // Điểm cơ bản cho nguồn thịt
-                    score = 1000.0f - dist;
-                    if (isVeryHungry) {
-                        score += 5000.0f; // Rất đói thì ưu tiên nguồn thịt nhất
-                    }
-                    
-                } else if (neighbor instanceof Animal && neighbor != ownerAnimal) {
-                    Animal other = (Animal) neighbor;
-                    
-                    if (!ownerAnimal.canHunt(other)) continue;
-
-                    // Hạn chế săn thú ăn thịt khác trừ khi cực kỳ đói
-                    if (other.canUseStrategy(HunterStrategy.class) && !isVeryHungry) {
-                        continue;
-                    }
-
-                    score = 500.0f - dist;
-                    if (other.canUseStrategy(HunterStrategy.class)) {
-                        score -= 300.0f; // Trừ điểm để ưu tiên săn thú ăn cỏ hơn nếu có cả hai
-                    }
-                    
-                    // Ưu tiên mồi yếu (yếu máu hoặc già)
-                    boolean isWeak = other.getHealth() < other.getMaxHealth() * 0.5 || other.getAge() > other.getMaxAge() * 0.8;
-                    if (isWeak) {
-                        score += 2000.0f;
-                    }
-                }
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestTarget = neighbor;
-                }
-            }
-            
-            targetFood = bestTarget;
+        if (targetFood == null) {
+            targetFood = HunterTargeting.findAnimalTarget(ownerAnimal, world);
         }
 
         // Nếu có mục tiêu
@@ -164,7 +102,7 @@ public class HunterStrategy implements IStrategy {
                 if (targetFood instanceof Carcass) {
                     // Đứng ăn xác
                     ownerAnimal.setActionState("eat"); // Hoặc idle nếu không có animation
-                    ownerAnimal.eatCarcass((Carcass) targetFood, deltaTime);
+                    HunterCombat.eatCarcass(ownerAnimal, (Carcass) targetFood, deltaTime);
                     
                     // Nếu ăn no hoặc xác biến mất
                     if (!targetFood.isAlive() || ownerAnimal.getHunger() >= ownerAnimal.getMaxHunger()) {
@@ -174,7 +112,7 @@ public class HunterStrategy implements IStrategy {
                     }
                 } else if (targetFood instanceof FoodSource) {
                     ownerAnimal.setActionState("eat");
-                    ownerAnimal.eatMeat((FoodSource) targetFood);
+                    HunterCombat.eatMeat(ownerAnimal, (FoodSource) targetFood);
 
                     if (!targetFood.isAlive() || ownerAnimal.getHunger() >= ownerAnimal.getMaxHunger()) {
                         targetFood = null;
@@ -187,16 +125,13 @@ public class HunterStrategy implements IStrategy {
                     
                     if (ownerAnimal instanceof model.living_beings.Fish) {
                         // CÁ SĂN MỒI NUỐT CHỬNG (Instant kill)
-                        float nutrition = (float) prey.getMaxHunger();
-                        ownerAnimal.setHunger(Math.min(ownerAnimal.getMaxHunger(), ownerAnimal.getHunger() + nutrition));
-                        
-                        prey.takeDamage(prey.getHealth() + 9999); // Giết ngay lập tức, gọi die() và biến mất (do createCarcass = null)
+                        HunterCombat.instantKillFish(ownerAnimal, prey);
                         targetFood = null;
                         targetNavigator.clear();
                         ownerAnimal.setActionState("idle");
                     } else {
                         // THÚ TRÊN CẠN TẤN CÔNG TỪ TỪ
-                        prey.takeDamage(ownerAnimal.getProfile().getAttackDamagePerSecond() * deltaTime);
+                        HunterCombat.attackAnimal(ownerAnimal, prey, deltaTime);
 
                         if (!prey.isAlive()) {
                             // Trả về null để lần sau quét trúng Carcass vừa rơi ra
@@ -241,21 +176,7 @@ public class HunterStrategy implements IStrategy {
         }
     }
 
-    private boolean isFoodConcealedByBush(Entity food, World world) {
-        if (!(food instanceof FoodSource) || world == null || world.getSpatialGrid() == null) {
-            return false;
-        }
 
-        List<Entity> nearby = world.getSpatialGrid().getNeighbors(
-                food.getPosition(), BUSH_CONCEALMENT_QUERY_RADIUS);
-        for (Entity entity : nearby) {
-            if (entity instanceof Bush && entity.isAlive()
-                    && ((Bush) entity).contains(food.getPosition())) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private void executeHumanHunter(Human hunter, World world, float deltaTime) {
         if (world == null || world.getSpatialGrid() == null || !hunter.canUseStrategy(HunterStrategy.class)) {
@@ -276,7 +197,7 @@ public class HunterStrategy implements IStrategy {
         if (rangedHunter != null && rangedHunter.needsAmmoReload()) {
             validateHumanHunterTarget(hunter);
             if (!(targetFood instanceof FoodSource)) {
-                targetFood = findHumanHunterFoodTarget(hunter, world);
+                targetFood = HunterTargeting.findHumanHunterFoodTarget(hunter, world);
                 targetNavigator.clear();
             }
             if (targetFood instanceof FoodSource) {
@@ -291,7 +212,7 @@ public class HunterStrategy implements IStrategy {
         validateHumanHunterTarget(hunter);
 
         if (targetFood == null || reassessTimer > 1.0f) {
-            Entity newTarget = findHumanHunterTarget(hunter, world);
+            Entity newTarget = HunterTargeting.findHumanHunterTarget(hunter, world);
             if (newTarget != null) {
                 targetFood = newTarget;
                 targetNavigator.clear();
@@ -368,75 +289,10 @@ public class HunterStrategy implements IStrategy {
     }
 
     private void validateHumanHunterTarget(Human hunter) {
-        if (targetFood == null) return;
-        float dist = hunter.getPosition().distanceTo(targetFood.getPosition());
-        if (!targetFood.isAlive() || dist > hunter.getVisionRange() * 1.5f) {
-            targetFood = null;
-            targetNavigator.clear();
-            return;
-        }
-        if (targetFood instanceof Animal && !hunter.canHunt((Animal) targetFood)) {
-            targetFood = null;
-            targetNavigator.clear();
-        } else if (targetFood instanceof FoodSource && !hunter.canEatFoodSource((FoodSource) targetFood)) {
+        if (!HunterTargeting.isHumanTargetStillValid(hunter, targetFood)) {
             targetFood = null;
             targetNavigator.clear();
         }
-    }
-
-    private Entity findHumanHunterTarget(Human hunter, World world) {
-        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(hunter.getPosition(), (float) hunter.getVisionRange());
-        Entity bestTarget = null;
-        float bestScore = -1.0f;
-
-        for (Entity neighbor : neighbors) {
-            if (neighbor == hunter || !neighbor.isAlive()) continue;
-            float dist = hunter.getPosition().distanceTo(neighbor.getPosition());
-            float score = 0.0f;
-
-            if (neighbor instanceof FoodSource) {
-                FoodSource food = (FoodSource) neighbor;
-                if (!hunter.canEatFoodSource(food)) continue;
-                score = 2400.0f - dist;
-                if (neighbor instanceof Carcass) score += 350.0f;
-            } else if (neighbor instanceof Animal) {
-                Animal prey = (Animal) neighbor;
-                if (!hunter.canHunt(prey)) continue;
-                score = 900.0f - dist;
-                if (prey.getHealth() < prey.getMaxHealth() * 0.5) score += 300.0f;
-                if (prey.getEntityLevel() >= hunter.getEntityLevel()) score -= 500.0f;
-            }
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestTarget = neighbor;
-            }
-        }
-
-        return bestTarget;
-    }
-
-    private Entity findHumanHunterFoodTarget(Human hunter, World world) {
-        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(hunter.getPosition(), (float) hunter.getVisionRange());
-        Entity bestTarget = null;
-        float bestScore = -1.0f;
-
-        for (Entity neighbor : neighbors) {
-            if (!(neighbor instanceof FoodSource) || !neighbor.isAlive()) continue;
-            FoodSource food = (FoodSource) neighbor;
-            if (!hunter.canEatFoodSource(food)) continue;
-
-            float dist = hunter.getPosition().distanceTo(neighbor.getPosition());
-            float score = 2400.0f - dist;
-            if (neighbor instanceof Carcass) score += 350.0f;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestTarget = neighbor;
-            }
-        }
-
-        return bestTarget;
     }
 
     private void moveToHumanHunterTarget(Human hunter, World world, float deltaTime) {
@@ -466,7 +322,7 @@ public class HunterStrategy implements IStrategy {
             } else if (targetFood instanceof Animal) {
                 hunter.setActionState("attack");
                 Animal prey = (Animal) targetFood;
-                prey.takeDamage(hunter.getProfile().getAttackDamagePerSecond() * deltaTime);
+                HunterCombat.attackAnimal(hunter, prey, deltaTime);
                 if (!prey.isAlive()) {
                     targetFood = null;
                     targetNavigator.clear();
@@ -511,7 +367,7 @@ public class HunterStrategy implements IStrategy {
             hunter.setActionState("attack");
             targetNavigator.clear();
             if (hunter.canShoot()) {
-                shootFireball(hunter, world, prey, dirToTarget);
+                HunterCombat.shootFireball(hunter, world, prey, dirToTarget);
                 hunter.consumeAmmo();
                 hunter.resetFireCooldown();
             }
@@ -535,19 +391,7 @@ public class HunterStrategy implements IStrategy {
         }
     }
 
-    private void shootFireball(Hunter hunter, World world, Animal prey, Vector2 direction) {
-        Vector2 shotDir = direction.copy();
-        if (shotDir.lengthSquared() <= Vector2.EPSILON) {
-            shotDir.set(hunter.isFacingRight() ? 1.0f : -1.0f, 0.0f);
-        } else {
-            shotDir.normalize();
-        }
 
-        Vector2 start = hunter.getPosition().copy()
-                .add(shotDir.copy().scale(hunter.getSize() / 2.0f + config.HUNTER_PROJECTILE_SIZE / 2.0f + 2.0f));
-        world.addEntity(new FireballProjectile(start, prey, config.HUNTER_PROJECTILE_SPEED,
-                config.HUNTER_PROJECTILE_DAMAGE, config.HUNTER_PROJECTILE_SIZE));
-    }
 
     private void roamForPrey(Human hunter, World world, float deltaTime) {
         if (hunterRoamTarget == null

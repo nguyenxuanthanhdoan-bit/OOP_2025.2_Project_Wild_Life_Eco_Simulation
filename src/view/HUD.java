@@ -39,9 +39,10 @@ public class HUD {
         FontMetrics fm = g2d.getFontMetrics();
         int lineHeight = fm.getHeight() + 4;
         
+        String timeStr = (world.getTimeOfDay() >= 6.0f && world.getTimeOfDay() < 18.0f) ? "Buổi sáng" : "Buổi tối";
         String[] texts = {
             "Ngày trong game: " + world.getGameDay(),
-            "Thời tiết: " + world.getCurrentWeather().getName(),
+            "Thời gian: " + timeStr,
             "FPS: " + fps,
             "Tổng số động vật: " + animalCount,
             "Số cây / mồi: " + plantCount
