@@ -39,6 +39,15 @@ public class GameScreen extends JPanel {
                 Camera camera = simulation.getCamera();
                 core.Vector2 worldClick = camera.screenToWorld(new core.Vector2(e.getX(), e.getY()));
 
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    String sp = simulation.getSelectedSpawnSpecies();
+                    model.entity.Entity entity = model.entity.EntityFactory.createEntity(sp, worldClick);
+                    if (entity != null) {
+                        simulation.getWorld().addEntity(entity);
+                    }
+                    return;
+                }
+
                 model.entity.Entity nearest = null;
                 float bestDist = Float.MAX_VALUE;
                 float selectRadius = 40.0f; // radius in world coordinates

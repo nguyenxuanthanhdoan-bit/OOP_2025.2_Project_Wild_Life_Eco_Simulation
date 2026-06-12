@@ -139,34 +139,20 @@ public class Sidebar extends JPanel {
         spawnPanel.setLayout(new BoxLayout(spawnPanel, BoxLayout.X_AXIS));
         spawnPanel.setBackground(new Color(38, 41, 45));
         spawnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JComboBox<String> speciesCombo = new JComboBox<>(new String[]{"Thỏ", "Nai", "Voi", "Sói", "Hổ"});
+        JComboBox<String> speciesCombo = new JComboBox<>(model.entity.EntityFactory.getAvailableEntities());
         speciesCombo.setFocusable(false);
         speciesCombo.setMaximumSize(new Dimension(140, 26));
-        JButton spawnBtn = createIconButton("Spawn", loadUiIcon("OK.png", 42, 18), new Dimension(112, 30));
-        spawnBtn.addActionListener(e -> {
-            String sp = (String) speciesCombo.getSelectedItem();
-            Camera camera = simulation.getCamera();
-            core.Vector2 camPos = camera.getPosition().copy();
-            float zoom = camera.getZoomLevel();
-            core.Vector2 spawnPos = new core.Vector2(camPos.x + (800f / zoom) / 2f, camPos.y + (600f / zoom) / 2f);
-            spawnPos.x += (Math.random() * 60 - 30);
-            spawnPos.y += (Math.random() * 60 - 30);
-
-            model.living_beings.Animal animal = null;
-            if ("Thỏ".equals(sp)) animal = new model.living_beings.Rabbit(spawnPos);
-            else if ("Nai".equals(sp)) animal = new model.living_beings.Deer(spawnPos, 1);
-            else if ("Voi".equals(sp)) animal = new model.living_beings.Elephant(spawnPos, 1);
-            else if ("Sói".equals(sp)) animal = new model.living_beings.Wolf(spawnPos);
-            else if ("Hổ".equals(sp)) animal = new model.living_beings.Tiger(spawnPos);
-
-            if (animal != null) {
-                simulation.getWorld().addEntity(animal);
-            }
-            requestFocus();
+        speciesCombo.addActionListener(e -> {
+            simulation.setSelectedSpawnSpecies((String) speciesCombo.getSelectedItem());
         });
+
+        JLabel hintLabel = new JLabel("(Chuột phải để Spawn)");
+        hintLabel.setForeground(new Color(150, 155, 160));
+        hintLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+
         spawnPanel.add(speciesCombo);
         spawnPanel.add(Box.createRigidArea(new Dimension(6, 0)));
-        spawnPanel.add(spawnBtn);
+        spawnPanel.add(hintLabel);
 
         JButton resetBtn = createIconButton("Reset Thế Giới", loadUiIcon("Replay.png", 20, 20), new Dimension(280, 34));
         resetBtn.addActionListener(e -> {

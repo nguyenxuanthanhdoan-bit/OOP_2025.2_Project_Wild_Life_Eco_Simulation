@@ -21,6 +21,8 @@ public class Simulation {
 
     private GameMap gameMap;
 
+    private String selectedSpawnSpecies = "Thỏ"; // Default spawn species
+
     public Simulation(Camera camera, World world, RenderSystem renderSystem) {
         this.camera = camera;
         this.world = world;
@@ -94,5 +96,13 @@ public class Simulation {
         pos.y += 300 / camera.getZoomLevel();
         model.items.Carcass carcass = new model.items.Carcass(pos, 30.0f, 100.0f, 120.0f, 100.0f, "Spawn");
         world.addEntity(carcass);
+    }
+
+    public String getSelectedSpawnSpecies() {
+        return selectedSpawnSpecies;
+    }
+
+    public void setSelectedSpawnSpecies(String selectedSpawnSpecies) {
+        this.selectedSpawnSpecies = selectedSpawnSpecies;
     }
 }
