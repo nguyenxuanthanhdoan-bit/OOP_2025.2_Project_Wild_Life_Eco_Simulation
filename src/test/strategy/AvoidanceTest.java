@@ -58,9 +58,9 @@ public class AvoidanceTest extends JPanel {
             if (x > 380 && x < 420 && y > 250 && y < 350) continue;
             
             if (rand.nextBoolean()) {
-                world.addEntity(new Bush(new Vector2(x, y)));
+                world.addEntity(new model.entity.Structure(new Vector2(x, y), 40.0f, "BUSH", "Bush_" + (rand.nextInt(2) + 1), true) {});
             } else {
-                world.addEntity(new Rock(new Vector2(x, y)));
+                world.addEntity(new model.entity.Structure(new Vector2(x, y), 60.0f, "ROCK", "Rock_" + (rand.nextInt(3) + 1), true) {});
             }
         }
         

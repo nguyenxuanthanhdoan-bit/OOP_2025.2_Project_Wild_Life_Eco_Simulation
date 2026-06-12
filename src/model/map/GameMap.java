@@ -250,6 +250,15 @@ public class GameMap {
         return layersGrid.size();
     }
 
+    public String getLayerName(int index) {
+        if (index < 0 || index >= layerNames.size()) return "";
+        return layerNames.get(index);
+    }
+
+    public int getWaterLayerIndex() {
+        return waterLayerIndex;
+    }
+
     public int getTileId(int layer, int x, int y) {
         if (layer < 0 || layer >= layersGrid.size()) return 0;
         if (x < 0 || x >= cols || y < 0 || y >= rows) return 0;
@@ -351,38 +360,8 @@ public class GameMap {
         return villagePolygons;
     }
 
-    /**
-     * Kiểm tra vị trí có phải là tile Cầu (Bridge) không.
-     * Nếu đúng thì động vật được phép đi qua dù xung quanh là nước.
-     */
     public boolean isBridgeTile(float worldX, float worldY) {
-        if (!bridgePolygons.isEmpty()) {
-            return isInsidePolygonList(bridgePolygons, worldX, worldY);
-        }
-
-        int col = (int) (worldX / 32);
-        int row = (int) (worldY / 32);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
-        
-        if (hasTileOnLayer(col, row, "bridge")) return true;
-
-        // Nếu map không có layer bridge, kiểm tra xem có Structure nào nằm trên Nước không (đó chính là cầu)
-        if (!layersGrid.isEmpty()) {
-            int rawId0 = layersGrid.get(0)[col][row];
-            int tileId0 = rawId0 & 0x0FFFFFFF;
-            boolean isWater0 = (tileId0 == 1 || (tileId0 >= 20 && tileId0 <= 37));
-            if (isWater0) {
-                for (int l = 1; l < layersGrid.size(); l++) {
-                    String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-                    if (lName.contains("structure")) {
-                        if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
+        return MapQueryHelper.isBridgeTile(this, worldX, worldY);
     }
 
     public boolean hasBridgePolygons() {
@@ -390,129 +369,23 @@ public class GameMap {
     }
 
     public boolean isGroundTile(float worldX, float worldY) {
-        int col = (int) (worldX / 32);
-        int row = (int) (worldY / 32);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
-        return hasTileOnLayer(col, row, "ground");
+        return MapQueryHelper.isGroundTile(this, worldX, worldY);
     }
 
     public boolean isValidGroundSpawnPosition(float worldX, float worldY, float margin) {
-        return isGroundTile(worldX, worldY) &&
-               isGroundTile(worldX - margin, worldY) &&
-               isGroundTile(worldX + margin, worldY) &&
-               isGroundTile(worldX, worldY - margin) &&
-               isGroundTile(worldX, worldY + margin) &&
-               isGroundTile(worldX - margin, worldY - margin) &&
-               isGroundTile(worldX + margin, worldY - margin) &&
-               isGroundTile(worldX - margin, worldY + margin) &&
-               isGroundTile(worldX + margin, worldY + margin) &&
-               !isPositionInWater(worldX, worldY) &&
-               !isPositionInWater(worldX - margin, worldY) &&
-               !isPositionInWater(worldX + margin, worldY) &&
-               !isPositionInWater(worldX, worldY - margin) &&
-               !isPositionInWater(worldX, worldY + margin) &&
-               !isPositionInWater(worldX - margin, worldY - margin) &&
-               !isPositionInWater(worldX + margin, worldY - margin) &&
-               !isPositionInWater(worldX - margin, worldY + margin) &&
-               !isPositionInWater(worldX + margin, worldY + margin);
-    }
-
-    private boolean hasTileOnLayer(int col, int row, String layerNamePart) {
-        for (int l = 0; l < layersGrid.size(); l++) {
-            String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-            if (lName.contains(layerNamePart)) {
-                if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return MapQueryHelper.isValidGroundSpawnPosition(this, worldX, worldY, margin);
     }
 
     public boolean isSandTile(float worldX, float worldY) {
-        int col = (int) (worldX / 32);
-        int row = (int) (worldY / 32);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return false;
-        return hasTileOnLayer(col, row, "sand");
+        return MapQueryHelper.isSandTile(this, worldX, worldY);
     }
 
-    /**
-     * Kiểm tra ô gạch tại vị trí thế giới có phải là nước hay không.
-     * Ưu tiên dùng layer có tên "Water" nếu tìm thấy.
-     * Nếu không có, fallback về cách kiểm tra tileId cũ (tương thích map.tmx).
-     */
     public boolean isWaterTile(float worldX, float worldY) {
-        int col = (int) (worldX / 32);
-        int row = (int) (worldY / 32);
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return true; // ngoài map là nước
-
-        // [MỚI] Nếu có layer Water rõ ràng -> quét từ trên xuống
-        if (waterLayerIndex >= 0 && waterLayerIndex < layersGrid.size()) {
-            int[][] waterLayer = layersGrid.get(waterLayerIndex);
-            boolean hasWaterTile = (waterLayer[col][row] & 0x0FFFFFFF) != 0;
-            if (!hasWaterTile) return false; // Ô đó không có gạch Water -> không phải nước
-
-            // Có gạch Water, nhưng kiểm tra xem layer Ground/Sand/Bridge có đè lên không
-            for (int l = 0; l < layersGrid.size(); l++) {
-                if (l == waterLayerIndex) continue;
-                String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-                // Nếu layer Ground hoặc Sand hoặc Bridge có tile ở đây -> đây là đất
-                if (lName.contains("ground") || lName.contains("sand") || lName.contains("bridge")) {
-                    if ((layersGrid.get(l)[col][row] & 0x0FFFFFFF) != 0) {
-                        if (lName.contains("bridge") && hasBridgePolygons()) {
-                            return !isBridgeTile(worldX, worldY);
-                        }
-                        return false;
-                    }
-                }
-            }
-            return true; // Có nước, không có gì đè -> là nước
-        }
-
-        // Fallback: cách cũ cho map.tmx (dùng tileId cứng)
-        int rawId0 = layersGrid.get(0)[col][row];
-        int tileId0 = rawId0 & 0x0FFFFFFF;
-        boolean isWater = (tileId0 == 1 || (tileId0 >= 20 && tileId0 <= 37));
-        if (isWater) {
-            for (int l = 1; l < layersGrid.size(); l++) {
-                // Bỏ qua layer Decorate vì nó chỉ là bóng/trang trí mặt nước, không thể đứng lên
-                String lName = (l < layerNames.size()) ? layerNames.get(l).toLowerCase() : "";
-                if (lName.contains("decorate")) {
-                    continue;
-                }
-                
-                int rawId = layersGrid.get(l)[col][row];
-                if (rawId != 0) {
-                    int tileId = rawId & 0x0FFFFFFF;
-                    if ((tileId >= 2 && tileId <= 19) || (tileId >= 38 && tileId < 294)) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return isWater;
-    }
-
-    private boolean isInsidePolygonList(List<MapPolygonObject> polygons, float worldX, float worldY) {
-        for (MapPolygonObject poly : polygons) {
-            if (poly != null && poly.polygonPath != null && poly.polygonPath.contains(worldX, worldY)) {
-                return true;
-            }
-        }
-        return false;
+        return MapQueryHelper.isWaterTile(this, worldX, worldY);
     }
 
     public boolean isPositionInWater(float worldX, float worldY) {
-        // 1. Kiểm tra qua Polygon Biome (LAKE, OCEAN)
-        for (MapPolygonObject poly : biomePolygons) {
-            if ("OCEAN".equalsIgnoreCase(poly.type) || "LAKE".equalsIgnoreCase(poly.type)) {
-                if (poly.polygonPath.contains(worldX, worldY)) {
-                    return true;
-                }
-            }
-        }
-        // 2. Kiểm tra qua Tile Nước
-        return isWaterTile(worldX, worldY);
+        return MapQueryHelper.isPositionInWater(this, worldX, worldY);
     }
 
     public List<Tileset> getTilesets() {

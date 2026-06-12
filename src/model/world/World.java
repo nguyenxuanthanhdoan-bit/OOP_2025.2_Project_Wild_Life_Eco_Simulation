@@ -16,7 +16,7 @@ import core.Vector2;
 public class World {
 
     public enum Season {
-        GROWING("Sinh Trưởng"), WINTER("Khắc Nghiệt");
+        GROWING("Mùa Hè"), WINTER("Mùa Đông");
         private final String name;
         Season(String name) { this.name = name; }
         public String getName() { return name; }
@@ -29,13 +29,7 @@ public class World {
         public String getName() { return name; }
     }
 
-    private float dayTimer = 0.0f;
-    private int gameDay = 1;
-    private Season currentSeason = Season.GROWING;
-    private int winterDays = 0; // Đếm số ngày của mùa đông
-    private float winterProgress = 0.0f; // 0.0 -> Sinh Trưởng, 1.0 -> Mùa đông hoàn toàn
-    private Weather currentWeather = Weather.SUNNY;
-    private float weatherTimer = 0.0f;
+    private final TimeWeatherSystem timeWeatherSystem = new TimeWeatherSystem(this);
 
     private List<Entity> entities; // Danh sách các thực thể (Thỏ, Cây, Cỏ...)
     private Biome currentBiome;    // Địa hình hiện tại (Trong Phase 1 là Grassland)
@@ -43,11 +37,6 @@ public class World {
     // Kích thước của thế giới
     private float width;
     private float height;
-
-    // Thời gian trong ngày (0.0 đến 24.0)
-    private float timeOfDay = 6.0f; // Bắt đầu từ 6 giờ sáng
-    // 1 ngày game = 120s thực tế => 24h = 120s => 1h = 5s => tốc độ = 0.2
-    private float timeScale = 0.2f;
 
     // [MỚI] Quản lý lưới không gian
     private SpatialGrid spatialGrid;
@@ -114,36 +103,7 @@ public class World {
      * Cập nhật toàn bộ logic của thế giới.
      */
     public void update(float deltaTime) {
-        // Progress day/season/weather
-        dayTimer += deltaTime;
-        if (dayTimer >= 60.0f) { // 60 seconds per day
-            dayTimer = 0.0f;
-            gameDay++;
-            
-            if (currentSeason == Season.GROWING) {
-                int animalCount = 0;
-                for (Entity e : getEntities()) {
-                    if (e instanceof model.living_beings.Animal && e.isAlive()) {
-                        animalCount++;
-                    }
-                }
-                if (animalCount >= core.GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT * 0.90f) {
-                    setSeason(Season.WINTER);
-                    winterDays = 0;
-                }
-            } else if (currentSeason == Season.WINTER) {
-                winterDays++;
-                if (winterDays >= 2) { // Kéo dài 2 ngày
-                    setSeason(Season.GROWING);
-                }
-            }
-        }
-
-        weatherTimer += deltaTime;
-        if (weatherTimer >= 30.0f) { // Change weather every 30 seconds
-            weatherTimer = 0.0f;
-            changeRandomWeather();
-        }
+        timeWeatherSystem.update(deltaTime);
 
         // [MỚI] Dùng vòng lặp ngược hoặc quản lý chỉ số cẩn thận khi có thể xóa phần tử
         for (int i = 0; i < entities.size(); i++) {
@@ -184,25 +144,7 @@ public class World {
 
         fishPopulationManager.update(deltaTime);
 
-        // Cập nhật thời gian trong ngày
-        timeOfDay += deltaTime * timeScale;
-        if (timeOfDay >= 24.0f) {
-            timeOfDay -= 24.0f;
-        }
 
-        // Cập nhật tiến trình mùa đông
-        float winterTransitionRate = 1.0f / GameConfig.getInstance().WINTER_TRANSITION_SECONDS;
-        if (currentSeason == Season.WINTER) {
-            if (winterProgress < 1.0f) {
-                winterProgress += deltaTime * winterTransitionRate;
-                if (winterProgress > 1.0f) winterProgress = 1.0f;
-            }
-        } else {
-            if (winterProgress > 0.0f) {
-                winterProgress -= deltaTime * winterTransitionRate;
-                if (winterProgress < 0.0f) winterProgress = 0.0f;
-            }
-        }
 
         // Trong Phase 1, Biome chưa cần cập nhật logic
         currentBiome.update(deltaTime);
@@ -434,11 +376,11 @@ public class World {
     }
 
     public float getTimeOfDay() {
-        return timeOfDay;
+        return timeWeatherSystem.getTimeOfDay();
     }
 
     public void setTimeOfDay(float timeOfDay) {
-        this.timeOfDay = timeOfDay;
+        timeWeatherSystem.setTimeOfDay(timeOfDay);
     }
 
     public void setWidth(float width) {
@@ -452,36 +394,19 @@ public class World {
     }
 
     public void nextSeason() {
-        Season[] seasons = Season.values();
-        int nextIdx = (currentSeason.ordinal() + 1) % seasons.length;
-        setSeason(seasons[nextIdx]);
+        timeWeatherSystem.nextSeason();
     }
 
     public void setSeason(Season season) {
-        this.currentSeason = season;
-        publishEvent(WorldEventType.SEASON_CHANGED, null, "manual_change");
+        timeWeatherSystem.setSeason(season);
     }
 
     public void changeRandomWeather() {
-        Weather[] weathers = Weather.values();
-        java.util.Random rand = new java.util.Random();
-        if (currentSeason == Season.WINTER) {
-            int r = rand.nextInt(10);
-            if (r < 6) this.currentWeather = Weather.SNOWY;
-            else if (r < 8) this.currentWeather = Weather.STORMY;
-            else this.currentWeather = Weather.RAINY;
-        } else if (currentSeason == Season.GROWING) {
-            int r = rand.nextInt(10);
-            if (r < 7) this.currentWeather = Weather.SUNNY;
-            else if (r < 9) this.currentWeather = Weather.STORMY;
-            else this.currentWeather = Weather.RAINY;
-        } else {
-            this.currentWeather = weathers[rand.nextInt(weathers.length)];
-        }
+        timeWeatherSystem.changeRandomWeather();
     }
 
     public void setWeather(Weather weather) {
-        this.currentWeather = weather;
+        timeWeatherSystem.setWeather(weather);
     }
 
     public void reset() {
@@ -493,19 +418,14 @@ public class World {
         this.coastalManager.clear();
         this.cropManager.clear();
 
-        this.gameDay = 1;
-        this.dayTimer = 0.0f;
-        this.currentSeason = Season.GROWING;
-        this.winterProgress = 0.0f;
-        this.currentWeather = Weather.SUNNY;
-        this.weatherTimer = 0.0f;
+        timeWeatherSystem.reset();
     }
 
-    public float getDayTimer() { return dayTimer; }
-    public int getGameDay() { return gameDay; }
-    public Season getCurrentSeason() { return currentSeason; }
-    public float getWinterProgress() { return winterProgress; }
-    public Weather getCurrentWeather() { return currentWeather; }
+    public float getDayTimer() { return timeWeatherSystem.getDayTimer(); }
+    public int getGameDay() { return timeWeatherSystem.getGameDay(); }
+    public Season getCurrentSeason() { return timeWeatherSystem.getCurrentSeason(); }
+    public float getWinterProgress() { return timeWeatherSystem.getWinterProgress(); }
+    public Weather getCurrentWeather() { return timeWeatherSystem.getCurrentWeather(); }
 
     // --- VALUE NOISE METHODS FOR SNOW ---
     private float hash(int x, int y) {
@@ -585,7 +505,7 @@ public class World {
      * @return Giá trị từ 0.0 (không có tuyết) đến 1.0 (tuyết dày đặc)
      */
     public float getSnowDensity(Vector2 pos) {
-        if (winterProgress <= 0.0f || pos == null || snowActivationMap == null
+        if (timeWeatherSystem.getWinterProgress() <= 0.0f || pos == null || snowActivationMap == null
                 || gameMap == null) {
             return 0.0f;
         }
@@ -599,7 +519,7 @@ public class World {
         int x = Math.min(snowCacheWidth - 1, (int) (pos.x / worldWidth * snowCacheWidth));
         int y = Math.min(snowCacheHeight - 1, (int) (pos.y / worldHeight * snowCacheHeight));
         int encodedActivation = Byte.toUnsignedInt(snowActivationMap[y * snowCacheWidth + x]);
-        return getSnowDensityFromActivation(encodedActivation, winterProgress);
+        return getSnowDensityFromActivation(encodedActivation, timeWeatherSystem.getWinterProgress());
     }
 
     public int getSnowCacheWidth() {

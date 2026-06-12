@@ -69,7 +69,7 @@ public abstract class HerbivoreAnimal extends Animal {
      */
     public void eatGrass(Grass grass) {
         if (!alive || grass == null || !grass.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + grass.getNutritionValue());
+        this.setHunger(this.getHunger() + grass.getNutritionValue());
         grass.setAlive(false);
     }
 
@@ -82,13 +82,13 @@ public abstract class HerbivoreAnimal extends Animal {
      */
     public void eatFruit(Fruit fruit) {
         if (!alive || fruit == null || !fruit.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + fruit.getNutritionValue());
+        this.setHunger(this.getHunger() + fruit.getNutritionValue());
         fruit.setAlive(false);
     }
 
     protected void eatPlant(Plant plant) {
         if (!alive || plant == null || !plant.isAlive()) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + plant.getNutritionValue());
+        this.setHunger(this.getHunger() + plant.getNutritionValue());
         plant.setAlive(false);
     }
 }

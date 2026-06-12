@@ -22,16 +22,16 @@ public class Tiger extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Hổ";
-        this.maxHealth = 260.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 200.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.4f; 
-        this.maxThirst = 150.0f;
-        this.visionRange = 300.0;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.5f; 
-        this.maxAge = 600.0f; 
+        this.setMaxHealth(260.0f);
+        this.setHealth(260.0f);
+        this.setMaxHunger(200.0f);
+        this.setHunger(200.0f);
+        this.setHungerDecayRate(0.4f); 
+        this.setMaxThirst(150.0f);
+        this.setVisionRange(360.0);
+        this.setThirst(150.0f);
+        this.setThirstDecayRate(0.5f); 
+        this.setMaxAge(600.0f); 
         this.profile = PROFILE;
 
         // Không set strategy cứng — decideActiveStrategy() sẽ tự quyết định

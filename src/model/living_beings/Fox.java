@@ -22,16 +22,16 @@ public class Fox extends CarnivoreAnimal {
         super(position, SIZE, BASE_SPEED);
 
         this.speciesName = "Fox";
-        this.maxHealth = 100.0f;
-        this.health = this.maxHealth;
-        this.maxHunger = 100.0f;
-        this.hunger = this.maxHunger;
-        this.hungerDecayRate = 0.4f;
-        this.maxThirst = 80.0f;
-        this.visionRange = 266.0;
-        this.thirst = this.maxThirst;
-        this.thirstDecayRate = 0.5f;
-        this.maxAge = 400.0f;
+        this.setMaxHealth(100.0f);
+        this.setHealth(100.0f);
+        this.setMaxHunger(100.0f);
+        this.setHunger(100.0f);
+        this.setHungerDecayRate(0.4f);
+        this.setMaxThirst(80.0f);
+        this.setVisionRange(319.2);
+        this.setThirst(80.0f);
+        this.setThirstDecayRate(0.5f);
+        this.setMaxAge(400.0f);
         this.profile = PROFILE;
     }
 

@@ -33,27 +33,12 @@ public abstract class Animal extends LivingBeing {
 
     protected String speciesName;
 
-    // Sức khỏe
-    protected double health;
-    protected double maxHealth;
-
-    // Đói
-    protected double hunger;
-    protected double maxHunger;
-    protected double hungerDecayRate;
-
-    // Khát
-    protected double thirst;
-    protected double maxThirst;
-    protected double thirstDecayRate;
-
-    // Tuổi
-    protected double age;
-    protected double maxAge;
+    // Sức khỏe, Đói, Khát, Tuổi
+    protected AnimalBiology biology = new AnimalBiology();
+    protected AnimalMemory memory = new AnimalMemory();
 
     // Giác quan & trạng thái
     protected double visionRange;
-    protected boolean adult;
     protected boolean alive;
     protected DietType dietType;
     protected boolean isMoving;
@@ -61,9 +46,7 @@ public abstract class Animal extends LivingBeing {
     protected model.structures.Bush hiddenInBush = null;
     protected String actionState = "idle";
     protected AnimalProfile profile;
-    private final Map<UUID, Float> unsafeFoodMemory = new HashMap<>();
     private float reproductionCooldown = 0.0f;
-    protected float damageBlinkTimer = 0.0f;
 
     // Caching for threats
     protected float radarCooldown = 0f;
@@ -106,19 +89,19 @@ public abstract class Animal extends LivingBeing {
     ) {
         super(position, size, baseSpeed);
         this.speciesName = speciesName;
-        this.maxHealth = maxHealth;
-        this.health = maxHealth;
-        this.maxHunger = maxHunger;
-        this.hunger = maxHunger;
-        this.hungerDecayRate = hungerDecayRate;
-        this.maxThirst = maxThirst;
-        this.thirst = maxThirst;
-        this.thirstDecayRate = thirstDecayRate;
-        this.age = 0.0;
-        this.maxAge = maxAge;
+        biology.setMaxHealth(maxHealth);
+        biology.setHealth(maxHealth);
+        biology.setMaxHunger(maxHunger);
+        biology.setHunger(maxHunger);
+        biology.setHungerDecayRate(hungerDecayRate);
+        biology.setMaxThirst(maxThirst);
+        biology.setThirst(maxThirst);
+        biology.setThirstDecayRate(thirstDecayRate);
+        biology.setAge(0.0);
+        biology.setMaxAge(maxAge);
         this.visionRange = visionRange;
         this.dietType = dietType;
-        this.adult = false;
+        biology.setAdult(false);
         this.alive = true;
         this.profile = AnimalProfile.defaultFor(dietType);
     }
@@ -127,7 +110,7 @@ public abstract class Animal extends LivingBeing {
     protected Animal(Vector2 position, float size, float baseSpeed, DietType dietType) {
         super(position, size, baseSpeed);
         this.dietType = dietType;
-        this.age = 0.0;
+        biology.setAge(0.0);
         this.alive = true;
         this.profile = AnimalProfile.defaultFor(dietType);
     }
@@ -138,21 +121,17 @@ public abstract class Animal extends LivingBeing {
 
     @Override
     public void update(float deltaTime) {
-        if (!alive) return;
+        // Cập nhật trí nhớ / vùng nguy hiểm
+        memory.updateDangerZones(deltaTime);
+        memory.updateUnsafeFoodMemory(deltaTime);
 
-        updateDangerZones(deltaTime);
-        updateUnsafeFoodMemory(deltaTime);
-        reproductionCooldown = Math.max(0.0f, reproductionCooldown - deltaTime);
-        if (radarCooldown > 0) {
-            radarCooldown -= deltaTime;
-        }
-        if (gardenThreatCooldown > 0) {
-            gardenThreatCooldown -= deltaTime;
-        }
-        if (damageBlinkTimer > 0) {
-            damageBlinkTimer -= deltaTime;
+        if (reproductionCooldown > 0) {
+            reproductionCooldown -= deltaTime;
         }
 
+        growOlder(deltaTime);
+
+        biology.decreaseDamageBlinkTimer(deltaTime);
         boolean isNight = (worldRef != null) && (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
         boolean isFish = this.getProfile() != null && this.getProfile().isAquatic();
 
@@ -162,12 +141,11 @@ public abstract class Animal extends LivingBeing {
         if (stuckDetector.isEscaping()) {
             stuckDetector.doEmergencyEscape(this, deltaTime);
             // Vẫn cập nhật sinh học bình thường
-            this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * 1.5f * deltaTime * 0.25f));
-            this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * 1.5f * deltaTime * 0.25f));
+            biology.updateNeeds(deltaTime, 1.5f);
             growOlder(deltaTime);
-            this.adult = (this.age >= this.maxAge * 0.2);
-            if (this.hunger <= 0) takeDamage(5.0f * deltaTime);
-            if (this.thirst <= 0) takeDamage(10.0f * deltaTime);
+            biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
+            if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
+            if (biology.getThirst() <= 0) biology.takeDamage(10.0f * deltaTime);
             return;
         }
 
@@ -218,16 +196,13 @@ public abstract class Animal extends LivingBeing {
         }
 
         // Suy giảm sinh học (× 0.25 để thanh đói/khát tụt chậm hơn 4 lần)
-        this.hunger = Math.max(0, this.hunger - (this.hungerDecayRate * decayMultiplier * deltaTime * 0.25f));
-        this.thirst = Math.max(0, this.thirst - (this.thirstDecayRate * decayMultiplier * deltaTime * 0.25f));
+        biology.updateNeeds(deltaTime, decayMultiplier);
 
-        growOlder(deltaTime);
-
-        this.adult = (this.age >= this.maxAge * 0.2);
+        biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
 
         // Hậu quả đói/khát
-        if (this.hunger <= 0) takeDamage(5.0f * deltaTime);
-        if (this.thirst <= 0) takeDamage(10.0f * deltaTime);
+        if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
+        if (biology.getThirst() <= 0) biology.takeDamage(10.0f * deltaTime);
     }
 
     /** Lấy World hiện tại — override ở subclass nếu cần (mặc định null-safe). */
@@ -324,42 +299,12 @@ public abstract class Animal extends LivingBeing {
     // =========================================================
     // VÙNG NGUY HIỂM (DANGER ZONE MEMORY)
     // =========================================================
-    public static class DangerZone {
-        public Vector2 position;
-        public float radius;
-        public float timer;
-        public DangerZone(Vector2 position, float radius, float timer) {
-            this.position = position;
-            this.radius = radius;
-            this.timer = timer;
-        }
-    }
-    private final Map<UUID, DangerZone> dangerZones = new HashMap<>();
-
     public void markDangerZone(Entity predator, float radius, float duration) {
-        dangerZones.put(predator.getId(), new DangerZone(predator.getPosition().copy(), radius, duration));
+        memory.markDangerZone(predator, radius, duration);
     }
 
     public boolean isInDangerZone(Vector2 pos) {
-        if (dangerZones.isEmpty()) return false;
-        for (DangerZone dz : dangerZones.values()) {
-            if (pos.distanceTo(dz.position) <= dz.radius) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void updateDangerZones(float deltaTime) {
-        if (dangerZones.isEmpty()) return;
-        Iterator<Map.Entry<UUID, DangerZone>> it = dangerZones.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<UUID, DangerZone> entry = it.next();
-            entry.getValue().timer -= deltaTime;
-            if (entry.getValue().timer <= 0) {
-                it.remove();
-            }
-        }
+        return memory.isInDangerZone(pos);
     }
 
     // =========================================================
@@ -376,7 +321,7 @@ public abstract class Animal extends LivingBeing {
     public void eat(Plant food) {
         if (!alive || food == null || !food.isAlive()) return;
         if (!canEatPlant(food)) return;
-        this.hunger = Math.min(this.maxHunger, this.hunger + food.getNutritionValue());
+        biology.setHunger(biology.getHunger() + food.getNutritionValue());
         food.setAlive(false);
     }
 
@@ -435,8 +380,8 @@ public abstract class Animal extends LivingBeing {
     /** Ăn thịt (FoodSource chung) — dành cho động vật ăn thịt. */
     public void eatMeat(model.items.FoodSource food) {
         if (!alive || food == null || !food.isAlive()) return;
-        float nutrition = food.consume((float) this.maxHunger); // Dùng cho Meat cũ (tiêu thụ 1 lần)
-        this.hunger = Math.min(this.maxHunger, this.hunger + nutrition);
+        float nutrition = food.consume((float) biology.getMaxHunger()); // Dùng cho Meat cũ (tiêu thụ 1 lần)
+        biology.setHunger(biology.getHunger() + nutrition);
     }
     
     /** Đứng ăn dần Carcass theo thời gian. */
@@ -445,14 +390,14 @@ public abstract class Animal extends LivingBeing {
         // Tốc độ cắn: ví dụ 15 khối lượng mỗi giây
         float biteSize = 15.0f * deltaTime;
         float actualNutrition = carcass.consume(biteSize);
-        this.hunger = Math.min(this.maxHunger, this.hunger + actualNutrition);
+        biology.setHunger(biology.getHunger() + actualNutrition);
     }
 
     /** Uống nước — hồi đầy điểm khát (phải đứng gần nguồn nước). */
     public void drink() {
         if (!alive) return;
         if (isNearWater()) {
-            this.thirst = this.maxThirst;
+            biology.setThirst(biology.getMaxThirst());
         }
     }
 
@@ -464,8 +409,8 @@ public abstract class Animal extends LivingBeing {
 
     /** Tăng tuổi — chết già khi vượt maxAge. */
     public void growOlder(double deltaTime) {
-        this.age += deltaTime;
-        if (this.age >= this.maxAge) {
+        biology.growOlder(deltaTime);
+        if (biology.getAge() >= biology.getMaxAge()) {
             die("Già");
         }
     }
@@ -496,18 +441,17 @@ public abstract class Animal extends LivingBeing {
 
     public void takeDamage(double amount) {
         if (!alive) return;
-        this.health = Math.max(0, this.health - amount);
-        this.damageBlinkTimer = 0.15f; // Chớp đỏ trong 0.15 giây
-        if (this.health <= 0) die("Kiệt sức (hết máu)");
+        biology.takeDamage(amount);
+        if (biology.getHealth() <= 0) die("Kiệt sức (hết máu)");
     }
 
     public float getDamageBlinkTimer() {
-        return damageBlinkTimer;
+        return biology.getDamageBlinkTimer();
     }
 
     public void heal(double amount) {
         if (!alive) return;
-        this.health = Math.min(this.maxHealth, this.health + amount);
+        biology.heal(amount);
     }
 
     /** Kiểm tra con vật có đứng gần nguồn nước không. */
@@ -524,10 +468,10 @@ public abstract class Animal extends LivingBeing {
 
     /** Kiểm tra điều kiện đủ để sinh sản. */
     public boolean canReproduce() {
-        if (!alive || !adult) return false;
+        if (!alive || !biology.isAdult()) return false;
         if (reproductionCooldown > 0.0f) return false;
-        if (age < maxAge * 0.2 || age > maxAge * 0.8) return false;
-        if (hunger < maxHunger * 0.7 || thirst < maxThirst * 0.7) return false;
+        if (biology.getAge() < biology.getMaxAge() * 0.2 || biology.getAge() > biology.getMaxAge() * 0.8) return false;
+        if (biology.getHunger() < biology.getMaxHunger() * 0.7 || biology.getThirst() < biology.getMaxThirst() * 0.7) return false;
 
         // Giới hạn dân số toàn map
         if (worldRef != null && worldRef.getAnimalCount() >= core.GameConfig.getInstance().MAX_ANIMAL_POPULATION) return false;
@@ -599,28 +543,11 @@ public abstract class Animal extends LivingBeing {
     }
 
     public void markFoodUnsafe(model.entity.Entity food, float duration) {
-        if (food == null || duration <= 0) return;
-        unsafeFoodMemory.put(food.getId(), Math.max(duration, unsafeFoodMemory.getOrDefault(food.getId(), 0.0f)));
+        memory.rememberUnsafeFood(food, duration);
     }
 
     public boolean isFoodMarkedUnsafe(model.entity.Entity food) {
-        if (food == null) return false;
-        Float timer = unsafeFoodMemory.get(food.getId());
-        return timer != null && timer > 0;
-    }
-
-    private void updateUnsafeFoodMemory(float deltaTime) {
-        if (unsafeFoodMemory.isEmpty()) return;
-        Iterator<Map.Entry<UUID, Float>> iterator = unsafeFoodMemory.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, Float> entry = iterator.next();
-            float remaining = entry.getValue() - deltaTime;
-            if (remaining <= 0) {
-                iterator.remove();
-            } else {
-                entry.setValue(remaining);
-            }
-        }
+        return memory.isFoodUnsafe(food);
     }
 
     public void hideInBush(model.structures.Bush bush) {
@@ -657,38 +584,38 @@ public abstract class Animal extends LivingBeing {
     public String getSpeciesName() { return speciesName; }
     public void setSpeciesName(String speciesName) { this.speciesName = speciesName; }
 
-    public double getHealth() { return health; }
+    public double getHealth() { return biology.getHealth(); }
     public void setHealth(double health) {
-        this.health = Math.max(0, Math.min(maxHealth, health));
-        if (this.health <= 0) die("Hết máu");
+        biology.setHealth(health);
+        if (biology.getHealth() <= 0) die("Hết máu");
     }
-    public double getMaxHealth() { return maxHealth; }
-    public void setMaxHealth(double maxHealth) { this.maxHealth = maxHealth; }
+    public double getMaxHealth() { return biology.getMaxHealth(); }
+    public void setMaxHealth(double maxHealth) { biology.setMaxHealth(maxHealth); }
 
-    public double getHunger() { return hunger; }
-    public void setHunger(double hunger) { this.hunger = Math.max(0, Math.min(maxHunger, hunger)); }
-    public double getMaxHunger() { return maxHunger; }
-    public void setMaxHunger(double maxHunger) { this.maxHunger = maxHunger; }
-    public double getHungerDecayRate() { return hungerDecayRate; }
-    public void setHungerDecayRate(double hungerDecayRate) { this.hungerDecayRate = hungerDecayRate; }
+    public double getHunger() { return biology.getHunger(); }
+    public void setHunger(double hunger) { biology.setHunger(hunger); }
+    public double getMaxHunger() { return biology.getMaxHunger(); }
+    public void setMaxHunger(double maxHunger) { biology.setMaxHunger(maxHunger); }
+    public double getHungerDecayRate() { return biology.getHungerDecayRate(); }
+    public void setHungerDecayRate(double hungerDecayRate) { biology.setHungerDecayRate(hungerDecayRate); }
 
-    public double getThirst() { return thirst; }
-    public void setThirst(double thirst) { this.thirst = Math.max(0, Math.min(maxThirst, thirst)); }
-    public double getMaxThirst() { return maxThirst; }
-    public void setMaxThirst(double maxThirst) { this.maxThirst = maxThirst; }
-    public double getThirstDecayRate() { return thirstDecayRate; }
-    public void setThirstDecayRate(double thirstDecayRate) { this.thirstDecayRate = thirstDecayRate; }
+    public double getThirst() { return biology.getThirst(); }
+    public void setThirst(double thirst) { biology.setThirst(thirst); }
+    public double getMaxThirst() { return biology.getMaxThirst(); }
+    public void setMaxThirst(double maxThirst) { biology.setMaxThirst(maxThirst); }
+    public double getThirstDecayRate() { return biology.getThirstDecayRate(); }
+    public void setThirstDecayRate(double thirstDecayRate) { biology.setThirstDecayRate(thirstDecayRate); }
 
-    public double getAge() { return age; }
-    public void setAge(double age) { this.age = age; }
-    public double getMaxAge() { return maxAge; }
-    public void setMaxAge(double maxAge) { this.maxAge = maxAge; }
+    public double getAge() { return biology.getAge(); }
+    public void setAge(double age) { biology.setAge(age); }
+    public double getMaxAge() { return biology.getMaxAge(); }
+    public void setMaxAge(double maxAge) { biology.setMaxAge(maxAge); }
 
     public double getVisionRange() { return visionRange; }
     public void setVisionRange(double visionRange) { this.visionRange = visionRange; }
 
-    public boolean isAdult() { return adult; }
-    public void setAdult(boolean adult) { this.adult = adult; }
+    public boolean isAdult() { return biology.isAdult(); }
+    public void setAdult(boolean adult) { biology.setAdult(adult); }
     public boolean isAliveState() { return alive; }
 
     public DietType getDietType() { return dietType; }
@@ -722,7 +649,7 @@ public abstract class Animal extends LivingBeing {
     public String toString() {
         return String.format(
                 "%s[id=%s | hp=%.1f/%.1f | hunger=%.1f/%.1f | thirst=%.1f/%.1f | age=%.1f/%.1f | adult=%b | alive=%b]",
-                speciesName, id, health, maxHealth, hunger, maxHunger, thirst, maxThirst, age, maxAge, adult, alive
+                speciesName, id, biology.getHealth(), biology.getMaxHealth(), biology.getHunger(), biology.getMaxHunger(), biology.getThirst(), biology.getMaxThirst(), biology.getAge(), biology.getMaxAge(), biology.isAdult(), alive
         );
     }
 }

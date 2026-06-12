@@ -17,7 +17,7 @@ public class Deer extends HerbivoreAnimal {
     private static final double MAX_THIRST        = 130.0;
     private static final double THIRST_DECAY_RATE = 0.5;
     private static final double MAX_AGE           = 900.0;
-    private static final double VISION_RANGE      = 186.0;
+    private static final double VISION_RANGE      = 223.2;
     private static final AnimalProfile PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_HERBIVORE)
             .ediblePlants(Grass.class, Fruit.class, Mushroom.class)
@@ -37,16 +37,16 @@ public class Deer extends HerbivoreAnimal {
     public Deer(Vector2 position) {
         super(position, SIZE, BASE_SPEED);
         this.speciesName = "Hươu";
-        this.maxHealth        = MAX_HEALTH;
-        this.health           = MAX_HEALTH;
-        this.maxHunger        = MAX_HUNGER;
-        this.hunger           = MAX_HUNGER;
-        this.hungerDecayRate  = HUNGER_DECAY_RATE;
-        this.maxThirst        = MAX_THIRST;
-        this.thirst           = MAX_THIRST;
-        this.thirstDecayRate  = THIRST_DECAY_RATE;
-        this.maxAge           = MAX_AGE;
-        this.visionRange      = VISION_RANGE;
+        this.setMaxHealth(MAX_HEALTH);
+        this.setHealth(MAX_HEALTH);
+        this.setMaxHunger(MAX_HUNGER);
+        this.setHunger(MAX_HUNGER);
+        this.setHungerDecayRate(HUNGER_DECAY_RATE);
+        this.setMaxThirst(MAX_THIRST);
+        this.setThirst(MAX_THIRST);
+        this.setThirstDecayRate(THIRST_DECAY_RATE);
+        this.setMaxAge(MAX_AGE);
+        this.setVisionRange(VISION_RANGE);
         this.profile          = PROFILE;
         // Không set cứng Strategy — để decideActiveStrategy tự quyết định
     }
@@ -54,7 +54,7 @@ public class Deer extends HerbivoreAnimal {
     @Override
     public Animal reproduce() {
         Deer baby = new Deer(this.getPosition().copy());
-        baby.age = 0;
+        baby.setAge(0);
         baby.size = SIZE * 0.5f; // 50% kích thước
         baby.setAdult(false);
         // Không set cứng
@@ -82,7 +82,7 @@ public class Deer extends HerbivoreAnimal {
         super.update(deltaTime);
         
         // Cập nhật kích thước khi trưởng thành, không reset strategy mỗi frame.
-        if (this.adult && this.age > 0) {
+        if (this.isAdult() && this.getAge() > 0) {
             this.size = SIZE;
         }
     }
