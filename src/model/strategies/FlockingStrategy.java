@@ -23,7 +23,7 @@ public class FlockingStrategy extends PassiveStrategy {
         Animal ownerAnimal = (Animal) owner;
         if (world == null || world.getSpatialGrid() == null) return;
 
-        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(ownerAnimal.getPosition(), (float) ownerAnimal.getVisionRange());
+        List<Entity> neighbors = world.getSpatialGrid().getNeighbors(ownerAnimal.getPosition(), 150.0f);
         
         // Let subclass handle predators first
         if (handlePredators(ownerAnimal, neighbors, world, deltaTime)) {

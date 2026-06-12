@@ -7,6 +7,7 @@ import view.Sidebar;
 import view.SidebarToggleButton;
 import view.systems.Camera;
 import view.systems.RenderSystem;
+import audio.SoundManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +24,9 @@ public class Main {
         Simulation simulation = new Simulation(camera, world, renderSystem);
         camera.pan(800, 800);
 
+        // Khởi tạo SoundManager (nhạc nền sẽ phát khi vào game)
+        SoundManager soundManager = new SoundManager();
+
         JFrame frame = new JFrame("Wild-Life Eco Simulation - SOICT HUST");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1150, 750); // Wider frame to fit right sidebar
@@ -38,6 +42,10 @@ public class Main {
 
         GameLoop gameLoop = new GameLoop(simulation);
         gameLoop.setBeforeUpdate(input::updateCameraMovement);
+
+        // Kết nối SoundManager vào GameScreen (tiếng click) và GameLoop (tiếng ambient)
+        gameScreen.setSoundManager(soundManager);
+        gameLoop.setSoundManager(soundManager, camera, world);
 
         // Khởi tạo Sidebar
         Sidebar sidebar = new Sidebar(simulation, gameLoop, gameScreen::requestFocusInWindow);
@@ -60,6 +68,8 @@ public class Main {
             cardLayout.show(rootPanel, "GAME");
             gameScreen.requestFocusInWindow();
             gameLoop.start();
+            // Bắt đầu phát nhạc nền khi vào game
+            soundManager.playBGM();
         });
 
         rootPanel.add(menuPanel, "MENU");
@@ -70,6 +80,8 @@ public class Main {
             @Override
             public void windowClosing(WindowEvent e) {
                 gameLoop.stop();
+                // Giải phóng tài nguyên âm thanh khi đóng game
+                soundManager.dispose();
             }
         });
         frame.setVisible(true);

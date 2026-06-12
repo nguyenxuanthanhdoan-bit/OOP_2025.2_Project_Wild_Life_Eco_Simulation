@@ -12,6 +12,7 @@ src/test/strategy/PredatorPreyTest.java
 src/controller/Simulation.java
 src/controller/InputProcessor.java
 src/controller/GameLoop.java
+src/audio/SoundManager.java
 src/map/TileMapRenderer.java
 src/screen/GameScreen.java
 src/screen/MenuScreen.java

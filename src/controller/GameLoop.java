@@ -1,6 +1,15 @@
 package controller;
 
+import audio.SoundManager;
 import core.GameConfig;
+import model.entity.Entity;
+import model.living_beings.Animal;
+import model.world.World;
+import view.systems.Camera;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -18,6 +27,11 @@ public class GameLoop implements Runnable {
     private Thread thread;
     private Consumer<Float> beforeUpdate = deltaTime -> {};
     private Runnable afterUpdate = () -> {};
+
+    // Sound
+    private SoundManager soundManager = null;
+    private Camera camera = null;
+    private World world = null;
 
     public GameLoop(Simulation simulation) {
         this.simulation = simulation;
@@ -88,6 +102,7 @@ public class GameLoop implements Runnable {
             if (!paused) {
                 beforeUpdate.accept(cappedDeltaTime);
                 simulation.update(cappedDeltaTime * timeScale);
+                updateAmbientSound(cappedDeltaTime);
             }
             afterUpdate.run();
 
@@ -100,4 +115,80 @@ public class GameLoop implements Runnable {
             }
         }
     }
+
+    /**
+     * Gọi mỗi frame khi game đang chạy.
+     * Quét các động vật trong viewport và ra lệnh phát tiếng ambient nếu đủ điều kiện.
+     */
+    private void updateAmbientSound(float deltaTime) {
+        if (soundManager == null || camera == null || world == null) return;
+
+        float zoom = camera.getZoomLevel();
+
+        // Chỉ quét khi zoom đủ gần
+        if (zoom < SoundManager.MIN_ZOOM_FOR_AMBIENT) {
+            soundManager.update(deltaTime, zoom, null);
+            return;
+        }
+
+        // Đếm số động vật trong viewport và tìm loài chiếm đa số
+        java.awt.Rectangle viewport = getViewportBounds();
+        Map<String, Integer> speciesCount = new HashMap<>();
+        int totalAnimals = 0;
+
+        List<Entity> entities;
+        try {
+            entities = new java.util.ArrayList<>(world.getEntities());
+        } catch (Exception e) {
+            return;
+        }
+
+        for (Entity e : entities) {
+            if (!(e instanceof Animal) || !e.isAlive()) continue;
+            Animal animal = (Animal) e;
+
+            // Kiểm tra vị trí animal có trong viewport không
+            core.Vector2 screenPos = camera.worldToScreen(animal.getPosition());
+            if (viewport != null && !viewport.contains((int) screenPos.x, (int) screenPos.y)) continue;
+
+            totalAnimals++;
+            String species = animal.getSpeciesName().toLowerCase();
+            speciesCount.put(species, speciesCount.getOrDefault(species, 0) + 1);
+        }
+
+        // Chỉ phát khi viewport có <= MAX_ANIMALS_FOR_AMBIENT con
+        if (totalAnimals == 0 || totalAnimals > SoundManager.MAX_ANIMALS_FOR_AMBIENT) {
+            soundManager.update(deltaTime, zoom, null);
+            return;
+        }
+
+        // Lấy loài có nhiều con nhất trong viewport
+        String dominantSpecies = null;
+        int maxCount = 0;
+        for (Map.Entry<String, Integer> entry : speciesCount.entrySet()) {
+            if (entry.getValue() > maxCount) {
+                maxCount = entry.getValue();
+                dominantSpecies = entry.getKey();
+            }
+        }
+
+        soundManager.update(deltaTime, zoom, dominantSpecies);
+    }
+
+    /**
+     * Lấy bộ phận không gian màn hình hiện tại tính theo pixel.
+     * Dùng clip bounds của panel làm xấp xỉ.
+     */
+    private java.awt.Rectangle getViewportBounds() {
+        // Ước lượng kích thước viewport từ config (có thể tùy chỉnh sau)
+        return new java.awt.Rectangle(0, 0, 1150, 750);
+    }
+
+    /** Cung cấp SoundManager và các tham số cần thiết để quét ambient sound. */
+    public void setSoundManager(SoundManager soundManager, Camera camera, World world) {
+        this.soundManager = soundManager;
+        this.camera = camera;
+        this.world = world;
+    }
 }
+

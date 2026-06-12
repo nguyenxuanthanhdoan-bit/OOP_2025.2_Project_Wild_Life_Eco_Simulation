@@ -1,5 +1,6 @@
 package screen;
 
+import audio.SoundManager;
 import controller.Simulation;
 import view.HUD;
 import view.systems.Camera;
@@ -16,6 +17,7 @@ import java.util.List;
 public class GameScreen extends JPanel {
     private final Simulation simulation;
     private final HUD hud;
+    private SoundManager soundManager;
     
     // FPS Counter
     private int fps = 0;
@@ -25,6 +27,7 @@ public class GameScreen extends JPanel {
     public GameScreen(Simulation simulation) {
         this.simulation = simulation;
         this.hud = new HUD();
+        this.soundManager = null; // Được set sau qua setSoundManager()
         
         this.setFocusable(true);
         this.setLayout(null); // Absolute positioning cho các component UI con (như ToggleButton)
@@ -53,9 +56,21 @@ public class GameScreen extends JPanel {
                 }
 
                 simulation.getRenderSystem().setSelectedEntity(nearest);
+
+                // Phát tiếng con vật khi click chọn
+                if (soundManager != null && nearest instanceof model.living_beings.Animal) {
+                    model.living_beings.Animal animal = (model.living_beings.Animal) nearest;
+                    soundManager.playAnimalSoundOnClick(animal.getSpeciesName());
+                }
+
                 GameScreen.this.requestFocusInWindow();
             }
         });
+    }
+
+    /** Gọi từ Main.java sau khi tạo SoundManager. */
+    public void setSoundManager(SoundManager soundManager) {
+        this.soundManager = soundManager;
     }
 
     public void addToggleButton(JButton toggleButton) {
