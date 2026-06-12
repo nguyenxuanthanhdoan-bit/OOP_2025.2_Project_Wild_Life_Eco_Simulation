@@ -78,6 +78,7 @@ public class PredatorPreyTest extends JPanel {
         float trackRadius = (innerRadius + outerRadius) / 2.0f;
         prey = new Rabbit(new Vector2(centerX + trackRadius, centerY));
         prey.setHunger(prey.getMaxHunger()); // Thỏ no, chỉ tập trung chạy trốn
+        prey.setVisionRange(1000.0f); // Tăng tầm nhìn để Thỏ thấy Sói ngay lập tức
         world.addEntity(prey);
 
         // 3. Thả Sói vào đường đua, đuổi theo phía sau Thỏ (góc 180 độ, bên trái)

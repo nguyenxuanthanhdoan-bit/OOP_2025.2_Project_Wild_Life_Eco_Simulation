@@ -54,6 +54,7 @@ public class HunterHuntTest extends JPanel {
         hunter = new Hunter(new Vector2(210, MAP_H / 2.0f), villageCenter, 260.0f);
         hunter.setHunger(hunter.getMaxHunger() * 0.45);
         hunter.setThirst(hunter.getMaxThirst());
+        hunter.setVisionRange(1000.0f); // Tăng tầm nhìn để thợ săn thấy được thỏ ngay lập tức
         world.addEntity(hunter);
 
         spawnPrey();
