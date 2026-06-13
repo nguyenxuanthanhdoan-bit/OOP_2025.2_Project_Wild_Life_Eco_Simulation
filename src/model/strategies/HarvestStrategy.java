@@ -85,8 +85,7 @@ public class HarvestStrategy implements IStrategy {
                 human.addCarriedFood(targetBed.harvest(human));
                 harvested = true;
                 harvesting = false;
-                targetStorage = human.getHomeSettlement() == null ? null
-                        : human.getHomeSettlement().findNearestFoodStorage(human.getPosition(), false);
+                targetStorage = findNearestHomeFoodStorage(human, world);
                 navigator.clear();
             }
         } else {
@@ -130,6 +129,27 @@ public class HarvestStrategy implements IStrategy {
     public boolean shouldInterrupt(LivingBeing owner, World world) {
         // shouldInterrupt không có side effect — chỉ quan sát trạng thái
         return finished;
+    }
+
+    private FoodStorage findNearestHomeFoodStorage(Human human, World world) {
+        if (human.getHomeSettlement() != null) {
+            return human.getHomeSettlement().findNearestFoodStorage(human.getPosition(), false);
+        }
+        Iterable<model.entity.Entity> candidates = world.getSpatialGrid() != null
+                ? world.getSpatialGrid().getNeighbors(human.getHomeCenter(), human.getHomeRadius())
+                : world.getEntities();
+        FoodStorage best = null;
+        float bestDist = Float.MAX_VALUE;
+        for (model.entity.Entity entity : candidates) {
+            if (!(entity instanceof FoodStorage) || !entity.isAlive()) continue;
+            if (!human.isInHomeArea(entity.getPosition())) continue;
+            float dist = human.getPosition().distanceTo(entity.getPosition());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = (FoodStorage) entity;
+            }
+        }
+        return best;
     }
 
     @Override public int getPriority() { return 70; }

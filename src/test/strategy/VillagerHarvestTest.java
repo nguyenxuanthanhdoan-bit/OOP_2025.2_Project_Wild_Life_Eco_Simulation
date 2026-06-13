@@ -4,6 +4,7 @@ import core.Vector2;
 import model.entity.Entity;
 import model.living_beings.Human;
 import model.living_beings.HumanRole;
+import model.structures.FoodStorage;
 import model.structures.GardenBed;
 import model.structures.Rock;
 import model.world.World;
@@ -32,6 +33,7 @@ public class VillagerHarvestTest extends JPanel {
     private final Timer timer;
     private boolean isRunning = true;
     private float elapsed = 0f;
+    private final FoodStorage storage;
 
     private final Camera camera;
     private final RenderSystem renderSystem;
@@ -76,12 +78,15 @@ public class VillagerHarvestTest extends JPanel {
             world.addEntity(new Rock(new Vector2(750, 250 + i * 50)));
         }
 
-        // 3. TẠO LÀNG NÔNG DÂN (50 Villagers)
+        // 3. TẠO LÀNG NÔNG DÂN (50 Villagers) & KHO LƯƠNG THỰC
+        storage = new FoodStorage(new Vector2(1000, 500));
+        world.addEntity(storage);
+
         // Spawn phía bên phải bản đồ
         for (int i = 0; i < 50; i++) {
             float vx = 900 + random.nextFloat() * 200;
             float vy = 300 + random.nextFloat() * 400;
-            Human villager = new Human(new Vector2(vx, vy), Human.Variant.MALE, HumanRole.VILLAGER, new Vector2(vx, vy), 200.0f);
+            Human villager = new Human(new Vector2(vx, vy), Human.Variant.MALE, HumanRole.VILLAGER, new Vector2(1000, 500), 800.0f);
             villager.setHunger(villager.getMaxHunger() * 0.5f); // Đói nhẹ để đi thu hoạch hoặc mang đồ về kho
             world.addEntity(villager);
         }
@@ -128,7 +133,7 @@ public class VillagerHarvestTest extends JPanel {
 
         // HUD thông tin
         g2d.setColor(new Color(0, 0, 0, 150));
-        g2d.fillRoundRect(10, 10, 450, 70, 10, 10);
+        g2d.fillRoundRect(10, 10, 450, 90, 10, 10);
 
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -147,6 +152,9 @@ public class VillagerHarvestTest extends JPanel {
 
         g2d.setColor(Color.WHITE);
         g2d.drawString(String.format("Thời gian: %.1fs", elapsed), 20, 70);
+        
+        g2d.setColor(new Color(255, 230, 150));
+        g2d.drawString(String.format("Kho lương thực: %.1f / %.1f", storage.getStoredFood(), storage.getCapacity()), 250, 70);
     }
 
     public static void main(String[] args) {
