@@ -38,6 +38,7 @@ public class ScaredStrategy implements IStrategy {
     private final PathNavigator fleeNavigator = new PathNavigator();
     private final List<Vector2> failedFleeDirections = new ArrayList<>();
     private final Vector2 lastFleePosition = new Vector2();
+    private final IStrategy wanderDelegate = new PassiveStrategy();
 
     private Vector2 fleeTarget;
     private boolean hasLastFleePosition;
@@ -108,6 +109,7 @@ public class ScaredStrategy implements IStrategy {
             clearFleeRoute();
             ownerAnimal.setSpeed(ownerAnimal.getBaseSpeed());
             ownerAnimal.setActionState("walk");
+            wanderDelegate.execute(owner, world, deltaTime);
             return;
         }
 

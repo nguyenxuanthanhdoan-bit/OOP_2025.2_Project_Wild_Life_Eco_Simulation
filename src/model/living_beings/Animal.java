@@ -26,6 +26,7 @@ public abstract class Animal extends LivingBeing {
     public static final double HUNGER_WARNING_THRESHOLD   = 0.50;
     public static final double THIRST_WARNING_THRESHOLD   = 0.50;
     public static final double CRITICAL_SURVIVAL_THRESHOLD = 0.05; // Ngưỡng nguy hiểm tính mạng (5%)
+    private static final double JUVENILE_HEALTH_RATIO = 0.5;
 
     // =========================================================
     // THUỘC TÍNH
@@ -47,6 +48,7 @@ public abstract class Animal extends LivingBeing {
     protected String actionState = "idle";
     protected AnimalProfile profile;
     private float reproductionCooldown = 0.0f;
+    private double adultMaxHealth;
 
     // Caching for threats
     protected float radarCooldown = 0f;
@@ -89,8 +91,9 @@ public abstract class Animal extends LivingBeing {
     ) {
         super(position, size, baseSpeed);
         this.speciesName = speciesName;
-        biology.setMaxHealth(maxHealth);
-        biology.setHealth(maxHealth);
+        this.adultMaxHealth = maxHealth;
+        biology.setMaxHealth(maxHealth * JUVENILE_HEALTH_RATIO);
+        biology.setHealth(biology.getMaxHealth());
         biology.setMaxHunger(maxHunger);
         biology.setHunger(maxHunger);
         biology.setHungerDecayRate(hungerDecayRate);
@@ -153,7 +156,7 @@ public abstract class Animal extends LivingBeing {
                 // Vẫn cập nhật sinh học bình thường
                 biology.updateNeeds(deltaTime, 1.5f);
                 growOlder(deltaTime);
-                biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
+                setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
                 if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
                 if (biology.getThirst() <= 0) biology.takeDamage(10.0f * deltaTime);
                 return;
@@ -209,7 +212,7 @@ public abstract class Animal extends LivingBeing {
         // Suy giảm sinh học (× 0.25 để thanh đói/khát tụt chậm hơn 4 lần)
         biology.updateNeeds(deltaTime, decayMultiplier);
 
-        biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
+        setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
 
         // Hậu quả đói/khát
         if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
@@ -623,7 +626,17 @@ public abstract class Animal extends LivingBeing {
         if (biology.getHealth() <= 0) die("Hết máu");
     }
     public double getMaxHealth() { return biology.getMaxHealth(); }
-    public void setMaxHealth(double maxHealth) { biology.setMaxHealth(maxHealth); }
+    public void setMaxHealth(double maxHealth) {
+        adultMaxHealth = Math.max(0.0, maxHealth);
+        double healthRatio = biology.getMaxHealth() > 0.0
+                ? biology.getHealth() / biology.getMaxHealth()
+                : 1.0;
+        double currentStageMaxHealth = biology.isAdult()
+                ? adultMaxHealth
+                : adultMaxHealth * JUVENILE_HEALTH_RATIO;
+        biology.setMaxHealth(currentStageMaxHealth);
+        biology.setHealth(currentStageMaxHealth * healthRatio);
+    }
 
     public double getHunger() { return biology.getHunger(); }
     public void setHunger(double hunger) { biology.setHunger(hunger); }
@@ -648,7 +661,21 @@ public abstract class Animal extends LivingBeing {
     public void setVisionRange(double visionRange) { this.visionRange = visionRange; }
 
     public boolean isAdult() { return biology.isAdult(); }
-    public void setAdult(boolean adult) { biology.setAdult(adult); }
+    public void setAdult(boolean adult) {
+        if (biology.isAdult() == adult) return;
+
+        double oldMaxHealth = biology.getMaxHealth();
+        double healthRatio = oldMaxHealth > 0.0
+                ? biology.getHealth() / oldMaxHealth
+                : 1.0;
+
+        biology.setAdult(adult);
+        double newMaxHealth = adult
+                ? adultMaxHealth
+                : adultMaxHealth * JUVENILE_HEALTH_RATIO;
+        biology.setMaxHealth(newMaxHealth);
+        biology.setHealth(newMaxHealth * healthRatio);
+    }
     public boolean isAliveState() { return alive; }
 
     public DietType getDietType() { return dietType; }

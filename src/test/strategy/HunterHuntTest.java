@@ -30,6 +30,10 @@ import java.awt.event.WindowEvent;
 public class HunterHuntTest extends JPanel {
     private static final int MAP_W = 1100;
     private static final int MAP_H = 760;
+    
+    // Tối ưu hóa: Khởi tạo Font 1 lần duy nhất (Sửa lỗi tạo Font liên tục gây lag)
+    private static final Font TITLE_FONT = new Font("SansSerif", Font.BOLD, 14);
+    private static final Font TEXT_FONT = new Font("SansSerif", Font.PLAIN, 12);
 
     private final World world;
     private final Hunter hunter;
@@ -71,6 +75,8 @@ public class HunterHuntTest extends JPanel {
 
             if (storage.getStoredFood() > 0) {
                 System.out.println("TEST PASSED: Hunter hunted/collected meat and deposited it to FoodStorage.");
+                isRunning = false;
+                ((Timer)e.getSource()).stop();
             }
         });
         timer.start();
@@ -129,11 +135,11 @@ public class HunterHuntTest extends JPanel {
         g2d.setColor(new Color(0, 0, 0, 165));
         g2d.fillRoundRect(12, 12, 430, 100, 10, 10);
 
-        g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2d.setFont(TITLE_FONT);
         g2d.setColor(Color.WHITE);
         g2d.drawString("Hunter Hunt Test", 24, 34);
 
-        g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2d.setFont(TEXT_FONT);
         g2d.drawString(String.format("Time: %.1fs", elapsed), 24, 54);
         g2d.drawString(String.format("Hunter carried food: %.1f / %.1f",
                 hunter.getCarriedFood(), hunter.getCarryCapacity()), 24, 72);

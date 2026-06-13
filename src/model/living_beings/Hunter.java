@@ -19,7 +19,7 @@ public class Hunter extends Human {
                 HumanRole.HUNTER, homeCenter, homeRadius, GameConfig.getInstance().HUNTER_CARRY_CAPACITY);
         this.setMaxHealth(160.0f);
         this.setHealth(160.0f);
-        this.setVisionRange(255.6f);
+        this.setVisionRange(306.72f);
         this.setHungerDecayRate(0.11f);
         this.setThirstDecayRate(0.14f);
         this.maxAmmo = GameConfig.getInstance().HUNTER_MAX_AMMO;

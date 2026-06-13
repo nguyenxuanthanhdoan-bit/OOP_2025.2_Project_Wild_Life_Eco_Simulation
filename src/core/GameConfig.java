@@ -80,7 +80,7 @@ public class GameConfig {
     public final float HUMAN_CARRY_CAPACITY = 45.0f;
     public final float HUNTER_CARRY_CAPACITY = 180.0f;
     public final float VILLAGE_HOME_RADIUS_PADDING = 80.0f;
-    public final int MAX_INITIAL_ANIMAL_COUNT = 200; // Giới hạn tổng số lượng spawn động vật ban đầu trên toàn bản đồ
+    public final int MAX_INITIAL_ANIMAL_COUNT = 300; // Giới hạn tổng số lượng spawn động vật ban đầu trên toàn bản đồ
     public final int SPAWN_ATTEMPTS_PER_POINT = 180;
     public final int SUPPLEMENTAL_SPAWN_ATTEMPT_MULTIPLIER = 30;
     public final double INITIAL_SPAWN_MIN_AGE_RATIO = 0.25;
@@ -142,7 +142,7 @@ public class GameConfig {
     // ==========================================
     public final int MIN_SPECIES_POPULATION = 15;
     public final int MAX_SPECIES_POPULATION = 100;
-    public final int MAX_ANIMAL_POPULATION = 200;
+    public final int MAX_ANIMAL_POPULATION = 600;
     public final int POPULATION_RESPAWN_ATTEMPTS = 30;
     public final float POPULATION_SAFE_SPAWN_PREDATOR_RADIUS = 500.0f;
     public final float MATING_DURATION_SECONDS = 2.0f;

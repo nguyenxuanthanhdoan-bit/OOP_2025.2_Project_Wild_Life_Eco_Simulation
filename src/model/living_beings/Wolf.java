@@ -28,7 +28,7 @@ public class Wolf extends CarnivoreAnimal {
         this.setHunger(120.0f);
         this.setHungerDecayRate(0.5f);
         this.setMaxThirst(100.0f);
-        this.setVisionRange(360.0);
+        this.setVisionRange(432.0);
         this.setThirst(100.0f);
         this.setThirstDecayRate(0.6f);
         this.setMaxAge(450.0f);

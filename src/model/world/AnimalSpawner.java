@@ -18,22 +18,22 @@ public class AnimalSpawner {
 
     public static void spawnAnimals(World world, GameMap gameMap, List<MapPolygonObject> plain,
                                      List<MapPolygonObject> forest, List<MapPolygonObject> excludedZones, Random rand) {
-        spawnSpecies(world, gameMap, plain, excludedZones, 45, 3, rand, (pos, index) -> new Rabbit(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 25, 2, rand, (pos, index) -> new Rabbit(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 100, 5, rand, (pos, index) -> new Rabbit(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 50, 3, rand, (pos, index) -> new Rabbit(pos));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 25, 3, rand, (pos, index) -> new Deer(pos, 1 + index / 16));
-        spawnSpecies(world, gameMap, forest, excludedZones, 15, 2, rand, (pos, index) -> new Deer(pos, 3 + index / 12));
+        spawnSpecies(world, gameMap, plain, excludedZones, 40, 4, rand, (pos, index) -> new Deer(pos, 1 + index / 16));
+        spawnSpecies(world, gameMap, forest, excludedZones, 30, 3, rand, (pos, index) -> new Deer(pos, 3 + index / 12));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 1, 1, rand, (pos, index) -> new Elephant(pos, 1));
-        spawnSpecies(world, gameMap, forest, excludedZones, 1, 1, rand, (pos, index) -> new Elephant(pos, 2 + index / 6));
+        spawnSpecies(world, gameMap, plain, excludedZones, 10, 1, rand, (pos, index) -> new Elephant(pos, 1));
+        spawnSpecies(world, gameMap, forest, excludedZones, 10, 2, rand, (pos, index) -> new Elephant(pos, 2 + index / 6));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 1, 0, rand, (pos, index) -> new Tiger(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 1, 1, rand, (pos, index) -> new Tiger(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 5, 1, rand, (pos, index) -> new Tiger(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 10, 1, rand, (pos, index) -> new Tiger(pos));
 
-        spawnSpecies(world, gameMap, plain, excludedZones, 6, 1, rand, (pos, index) -> new Wolf(pos));
-        spawnSpecies(world, gameMap, forest, excludedZones, 8, 2, rand, (pos, index) -> new Wolf(pos));
+        spawnSpecies(world, gameMap, plain, excludedZones, 10, 2, rand, (pos, index) -> new Wolf(pos));
+        spawnSpecies(world, gameMap, forest, excludedZones, 15, 3, rand, (pos, index) -> new Wolf(pos));
 
-        int foxCountToSpawn = 3 + rand.nextInt(3);
+        int foxCountToSpawn = 10 + rand.nextInt(6);
         int foxesSpawned = 0;
         int maxAttempts = 1500;
         while (foxesSpawned < foxCountToSpawn && maxAttempts > 0) {
@@ -54,7 +54,8 @@ public class AnimalSpawner {
             foxesSpawned++;
         }
 
-        spawnMapWideWildlife(world, gameMap, excludedZones, rand, GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT);
+        // Loại bỏ hoàn toàn cơ chế sinh lấp đầy ngẫu nhiên theo yêu cầu
+        // spawnMapWideWildlife(world, gameMap, excludedZones, rand, GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT);
     }
 
     private static void spawnSpecies(World world, GameMap gameMap, List<MapPolygonObject> zones,

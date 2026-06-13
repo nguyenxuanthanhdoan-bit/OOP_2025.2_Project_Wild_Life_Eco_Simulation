@@ -33,6 +33,10 @@ import java.util.Random;
  */
 public class MultiPreyHuntTest extends JPanel {
 
+    // Tối ưu hóa: Khởi tạo Font 1 lần duy nhất
+    private static final Font TITLE_FONT = new Font("SansSerif", Font.BOLD, 14);
+    private static final Font TEXT_FONT = new Font("SansSerif", Font.PLAIN, 12);
+
     private final World world;
     private final Timer timer;
     private boolean isRunning = true;
@@ -147,15 +151,23 @@ public class MultiPreyHuntTest extends JPanel {
         g2d.fillRoundRect(10, 10, 400, 70, 10, 10);
 
         g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2d.setFont(TITLE_FONT);
         g2d.drawString("Kịch Bản: Săn Mồi Trong Bầy Lớn", 20, 30);
         
-        long rabbitCount = world.getEntities().stream().filter(e -> e instanceof Rabbit && e.isAlive()).count();
-        long deerCount = world.getEntities().stream().filter(e -> e instanceof Deer && e.isAlive()).count();
-        long predatorCount = world.getEntities().stream().filter(e -> (e instanceof Tiger || e instanceof Wolf) && e.isAlive()).count();
-        long villagerCount = world.getEntities().stream().filter(e -> e instanceof Human && e.isAlive()).count();
+        long rabbitCount = 0;
+        long deerCount = 0;
+        long predatorCount = 0;
+        long villagerCount = 0;
+        
+        for (Entity e : world.getEntities()) {
+            if (!e.isAlive()) continue;
+            if (e instanceof Rabbit) rabbitCount++;
+            else if (e instanceof Deer) deerCount++;
+            else if (e instanceof Tiger || e instanceof Wolf) predatorCount++;
+            else if (e instanceof Human) villagerCount++;
+        }
 
-        g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2d.setFont(TEXT_FONT);
         g2d.setColor(new Color(255, 100, 100));
         g2d.drawString("Predators: " + predatorCount, 20, 50);
         
@@ -169,7 +181,7 @@ public class MultiPreyHuntTest extends JPanel {
         g2d.drawString("Dân làng: " + villagerCount + "/5", 20, 70);
         
         g2d.setColor(Color.WHITE);
-        g2d.drawString(String.format("Thời gian: %.1fs", elapsed), 120, 70);
+        g2d.drawString("Thời gian: " + (Math.round(elapsed * 10) / 10.0) + "s", 120, 70);
     }
 
     public static void main(String[] args) {

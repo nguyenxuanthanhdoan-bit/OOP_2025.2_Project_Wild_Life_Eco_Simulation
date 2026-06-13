@@ -16,7 +16,7 @@ public class Rabbit extends HerbivoreAnimal {
     private static final double MAX_THIRST        = 100.0;
     private static final double THIRST_DECAY_RATE = 0.8;
     private static final double MAX_AGE           = 900.0; // 20% = 180s = 3 phút để trưởng thành
-    private static final double VISION_RANGE      = 159.6;
+    private static final double VISION_RANGE      = 191.52;
     private static final AnimalProfile PROFILE = AnimalProfile.builder()
             .entityLevel(LEVEL_HERBIVORE)
             .ediblePlants(Grass.class)
