@@ -65,6 +65,9 @@ public class Main {
 
         // Menu panel transition
         screen.MenuScreen menuPanel = new screen.MenuScreen(e -> {
+            // [SỬA Ở ĐÂY] Chờ người dùng lưu Setting xong và bấm Play mới bắt đầu sinh hệ sinh thái!
+            simulation.startSimulation();
+            
             cardLayout.show(rootPanel, "GAME");
             gameScreen.requestFocusInWindow();
             gameLoop.start();

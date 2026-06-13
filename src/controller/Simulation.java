@@ -28,7 +28,9 @@ public class Simulation {
         this.world = world;
         this.renderSystem = renderSystem;
         this.currentDisplayMode = DisplayMode.REALISTIC;
+    }
 
+    public void startSimulation() {
         initMap();
         spawnInitialEntities();
     }

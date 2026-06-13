@@ -11,7 +11,20 @@ import model.living_beings.Wolf;
 import model.plants.Grass;
 import model.plants.FruitTree;
 import model.items.FireballProjectile;
-
+import model.items.Meat;
+import model.items.Carcass;
+import model.living_beings.Fox;
+import model.living_beings.Fish;
+import model.living_beings.Human;
+import model.living_beings.Hunter;
+import model.plants.Mushroom;
+import model.plants.Fruit;
+import model.structures.Bush;
+import model.structures.Rock;
+import model.structures.House;
+import model.structures.Well;
+import model.structures.FoodStorage;
+import model.structures.Boat;
 import java.awt.*;
 
 /**
@@ -99,6 +112,67 @@ public class MinimalRenderer {
                     (int) screenPos.y + size / 2
             };
             g2d.fillPolygon(xPoints, yPoints, 3);
+        }
+        else if (e instanceof Fox) {
+            g2d.setColor(new Color(205, 133, 63)); // Nâu da cáo
+            int[] xPoints = { (int) screenPos.x, (int) screenPos.x - size / 2, (int) screenPos.x + size / 2 };
+            int[] yPoints = { (int) screenPos.y + size / 2, (int) screenPos.y - size / 2, (int) screenPos.y - size / 2 };
+            g2d.fillPolygon(xPoints, yPoints, 3);
+        }
+        else if (e instanceof Fish) {
+            g2d.setColor(new Color(0, 206, 209)); // Xanh ngọc
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 4, size, size / 2);
+        }
+        else if (e instanceof Hunter) {
+            g2d.setColor(new Color(139, 69, 19)); // Nâu đậm thợ săn
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Human) {
+            g2d.setColor(new Color(255, 222, 173)); // Màu da người
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Bush) {
+            g2d.setColor(new Color(0, 100, 0)); // Xanh rêu tối
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Rock) {
+            g2d.setColor(new Color(169, 169, 169)); // Xám đá
+            g2d.fillRoundRect((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size, 5, 5);
+        }
+        else if (e instanceof House) {
+            g2d.setColor(new Color(160, 82, 45)); // Nâu gỗ sienna
+            g2d.fillRect((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Well) {
+            g2d.setColor(new Color(70, 130, 180)); // Xanh thép
+            g2d.drawOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+            g2d.fillOval((int) screenPos.x - size / 4, (int) screenPos.y - size / 4, size / 2, size / 2);
+        }
+        else if (e instanceof FoodStorage) {
+            g2d.setColor(new Color(218, 165, 32)); // Vàng nhạt
+            g2d.fillRect((int) screenPos.x - size / 2, (int) screenPos.y - size / 2, size, size);
+        }
+        else if (e instanceof Mushroom) {
+            g2d.setColor(new Color(255, 69, 0)); // Đỏ cam nấm
+            int dotSize = Math.max(3, size / 2);
+            g2d.fillOval((int) screenPos.x - dotSize / 2, (int) screenPos.y - dotSize / 2, dotSize, dotSize);
+        }
+        else if (e instanceof Fruit) {
+            g2d.setColor(new Color(220, 20, 60)); // Đỏ thẫm
+            int dotSize = Math.max(2, size / 3);
+            g2d.fillOval((int) screenPos.x - dotSize / 2, (int) screenPos.y - dotSize / 2, dotSize, dotSize);
+        }
+        else if (e instanceof Meat) {
+            g2d.setColor(new Color(255, 105, 180)); // Hồng nhạt thịt tươi
+            g2d.fillRect((int) screenPos.x - size / 4, (int) screenPos.y - size / 4, size / 2, size / 2);
+        }
+        else if (e instanceof Carcass) {
+            g2d.setColor(new Color(139, 0, 0)); // Đỏ máu khô
+            g2d.fillOval((int) screenPos.x - size / 2, (int) screenPos.y - size / 4, size, size / 2);
+        }
+        else if (e instanceof Boat) {
+            g2d.setColor(new Color(139, 69, 19)); // Nâu gỗ thuyền
+            g2d.fillArc((int) screenPos.x - size / 2, (int) screenPos.y - size / 4, size, size / 2, 180, 180);
         }
 
         // Vẽ ID hoặc trạng thái (Dành cho việc Debug trong Phase 1)

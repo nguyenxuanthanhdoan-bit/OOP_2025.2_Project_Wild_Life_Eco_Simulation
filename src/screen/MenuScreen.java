@@ -136,19 +136,64 @@ public class MenuScreen extends JPanel {
     }
 
     private void showSettingDialog() {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Cài Đặt", true);
-        dialog.setSize(400, 300);
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Cài Đặt Hệ Sinh Thái", true);
+        dialog.setSize(550, 380);
         dialog.setLocationRelativeTo(this);
         
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new GridLayout(4, 1, 15, 15));
         panel.setBackground(new Color(30, 33, 36));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
         
-        JLabel msg = new JLabel("Bảng Cài Đặt (Đang phát triển)");
-        msg.setForeground(Color.WHITE);
-        msg.setHorizontalAlignment(SwingConstants.CENTER);
-        msg.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        // 1. Quần thể
+        JPanel popPanel = new JPanel(new BorderLayout());
+        popPanel.setOpaque(false);
+        JLabel popLabel = new JLabel("Số lượng động vật tối đa ban đầu (Mặc định: 300):");
+        popLabel.setForeground(Color.WHITE);
+        popLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         
-        panel.add(msg, BorderLayout.CENTER);
+        JSlider popSlider = new JSlider(100, 1000, core.GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT);
+        popSlider.setMajorTickSpacing(200);
+        popSlider.setMinorTickSpacing(50);
+        popSlider.setPaintTicks(true);
+        popSlider.setPaintLabels(true);
+        popSlider.setOpaque(false);
+        popSlider.setForeground(Color.WHITE);
+        
+        popPanel.add(popLabel, BorderLayout.NORTH);
+        popPanel.add(popSlider, BorderLayout.CENTER);
+        
+        // 2. Làng mạc
+        JPanel villagePanel = new JPanel(new BorderLayout());
+        villagePanel.setOpaque(false);
+        JCheckBox villageCheck = new JCheckBox("Bật Làng Mạc (Sinh ra Dân làng & Thợ săn)", core.GameConfig.getInstance().ENABLE_VILLAGES);
+        villageCheck.setOpaque(false);
+        villageCheck.setForeground(Color.WHITE);
+        villageCheck.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        villageCheck.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        villagePanel.add(villageCheck, BorderLayout.CENTER);
+        
+        // Nút Lưu
+        JButton saveBtn = new JButton("Lưu Cài Đặt");
+        saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        saveBtn.setBackground(new Color(76, 175, 80));
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFocusPainted(false);
+        
+        saveBtn.addActionListener(ev -> {
+            core.GameConfig.getInstance().MAX_INITIAL_ANIMAL_COUNT = popSlider.getValue();
+            core.GameConfig.getInstance().ENABLE_VILLAGES = villageCheck.isSelected();
+            dialog.dispose();
+            JOptionPane.showMessageDialog(this, "Đã lưu cấu hình. Hãy ấn [Bắt Đầu Mô Phỏng] để xem thay đổi!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        });
+        
+        JLabel titleLabel = new JLabel("<html><h2 style='color:#FFC107;margin:0;text-align:center;'>Tùy Chỉnh Tiền Mô Phỏng</h2></html>");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        panel.add(titleLabel);
+        panel.add(popPanel);
+        panel.add(villagePanel);
+        panel.add(saveBtn);
         
         dialog.setContentPane(panel);
         dialog.setVisible(true);

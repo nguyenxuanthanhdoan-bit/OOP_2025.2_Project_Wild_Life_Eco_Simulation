@@ -42,6 +42,11 @@ public class BiomeGenerator {
         if (plainPolygons.isEmpty()) plainPolygons = createFallbackZone(world, ZoneType.GRASSLAND_ZONE);
         if (forestPolygons.isEmpty()) forestPolygons = createFallbackZone(world, ZoneType.FOREST_ZONE);
 
+        // NẾU TẮT LÀNG MẠC: Xóa sạch các vùng làng mạc để game không spawn công trình và người
+        if (!GameConfig.getInstance().ENABLE_VILLAGES) {
+            villagePolygons.clear();
+        }
+
         AnimalSpawner.spawnAnimals(world, gameMap, plainPolygons, forestPolygons, villagePolygons, rand);
         
         VegetationSpawner.spawnVegetation(world, gameMap, plainPolygons, forestPolygons, villagePolygons, rand);
