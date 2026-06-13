@@ -35,4 +35,10 @@ public interface IStrategy {
      * (VD: Fisherman đang trên thuyền ngoài biển)
      */
     default boolean isInNonInterruptiblePhase() { return false; }
+
+    /**
+     * Strategy tự quản lý việc đổi đường khi bị chặn.
+     * Khi true, StuckDetector chung không chen ngang hướng di chuyển.
+     */
+    default boolean handlesStuckRecovery() { return false; }
 }

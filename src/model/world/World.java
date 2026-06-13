@@ -1,7 +1,6 @@
 package model.world;
 
 import model.entity.Entity;
-import model.entity.Structure;
 import core.GameConfig;
 import model.living_beings.Animal;
 
@@ -241,7 +240,7 @@ public class World {
             return false;
         }
 
-        if (collidesWithSolidStructure(entity, pos)) {
+        if (collidesWithSolidEntity(entity, pos)) {
             return false;
         }
 
@@ -304,7 +303,7 @@ public class World {
         return false;
     }
 
-    private boolean collidesWithSolidStructure(model.living_beings.LivingBeing entity, Vector2 pos) {
+    private boolean collidesWithSolidEntity(model.living_beings.LivingBeing entity, Vector2 pos) {
         if (entity == null || pos == null || spatialGrid == null) return false;
 
         float entityRadius = entity.getCollider() != null
@@ -313,7 +312,7 @@ public class World {
         float searchRadius = entityRadius + 80.0f;
 
         return spatialGrid.hasEntityMatching(pos, searchRadius, other -> {
-            if (other == entity || !(other instanceof Structure) || !other.isSolid() || !other.isAlive()) {
+            if (other == entity || !other.isSolid() || !other.isAlive()) {
                 return false;
             }
             float otherRadius = other.getCollider() != null

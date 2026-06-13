@@ -128,6 +128,12 @@ public abstract class Animal extends LivingBeing {
         if (reproductionCooldown > 0) {
             reproductionCooldown -= deltaTime;
         }
+        if (radarCooldown > 0) {
+            radarCooldown -= deltaTime;
+        }
+        if (gardenThreatCooldown > 0) {
+            gardenThreatCooldown -= deltaTime;
+        }
 
         growOlder(deltaTime);
 
@@ -135,18 +141,23 @@ public abstract class Animal extends LivingBeing {
         boolean isNight = (worldRef != null) && (worldRef.getTimeOfDay() >= 18.0f || worldRef.getTimeOfDay() <= 5.0f);
         boolean isFish = this.getProfile() != null && this.getProfile().isAquatic();
 
-        // --- STUCK DETECTOR ---
-        stuckDetector.update(this, deltaTime);
-        // Nếu đang trong chế độ thoát khẩn cấp → bỏ qua strategy thường
-        if (stuckDetector.isEscaping()) {
-            stuckDetector.doEmergencyEscape(this, deltaTime);
-            // Vẫn cập nhật sinh học bình thường
-            biology.updateNeeds(deltaTime, 1.5f);
-            growOlder(deltaTime);
-            biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
-            if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
-            if (biology.getThirst() <= 0) biology.takeDamage(10.0f * deltaTime);
-            return;
+        boolean strategyHandlesStuckRecovery =
+                currentStrategy != null && currentStrategy.handlesStuckRecovery();
+        if (strategyHandlesStuckRecovery) {
+            stuckDetector.reset();
+        } else {
+            stuckDetector.update(this, deltaTime);
+            // Nếu đang trong chế độ thoát khẩn cấp → bỏ qua strategy thường
+            if (stuckDetector.isEscaping()) {
+                stuckDetector.doEmergencyEscape(this, deltaTime);
+                // Vẫn cập nhật sinh học bình thường
+                biology.updateNeeds(deltaTime, 1.5f);
+                growOlder(deltaTime);
+                biology.setAdult(biology.getAge() >= biology.getMaxAge() * 0.2);
+                if (biology.getHunger() <= 0) biology.takeDamage(5.0f * deltaTime);
+                if (biology.getThirst() <= 0) biology.takeDamage(10.0f * deltaTime);
+                return;
+            }
         }
 
         decideActiveStrategy();
@@ -252,8 +263,9 @@ public abstract class Animal extends LivingBeing {
 
         if (worldRef == null || worldRef.getSpatialGrid() == null) return false;
 
+        float scanRange = getThreatScanRange();
         java.util.List<model.entity.Entity> neighbors =
-            worldRef.getSpatialGrid().getNeighbors(this.position, (float) this.visionRange);
+            worldRef.getSpatialGrid().getNeighbors(this.position, scanRange);
 
         for (model.entity.Entity e : neighbors) {
             if (!(e instanceof Animal) || e == this || !e.isAlive()) continue;
@@ -263,11 +275,8 @@ public abstract class Animal extends LivingBeing {
                 if (otherStrategy instanceof model.strategies.SleepStrategy) {
                     continue; // Đang ngủ -> Bỏ qua
                 }
-                boolean isHunting = otherStrategy instanceof model.strategies.HunterStrategy;
                 float distSq = this.position.distanceSquared(other.getPosition());
-                float maxDist = this instanceof Human
-                        ? core.GameConfig.getInstance().THREAT_RADIUS
-                        : isHunting ? (float) this.visionRange : (float) this.visionRange * 0.5f;
+                float maxDist = getThreatDetectionRange(other);
                 
                 if (distSq <= maxDist * maxDist) {
                     cachedThreat = true;
@@ -277,6 +286,30 @@ public abstract class Animal extends LivingBeing {
         }
         cachedThreat = false;
         return false;
+    }
+
+    public float getThreatDetectionRange(Animal other) {
+        boolean isHunting = other != null
+                && other.getCurrentStrategy() instanceof model.strategies.HunterStrategy;
+        float range = this instanceof Human
+                ? core.GameConfig.getInstance().THREAT_RADIUS
+                : isHunting ? (float) visionRange : (float) visionRange * 0.5f;
+
+        if (currentStrategy instanceof model.strategies.ScaredStrategy) {
+            range *= 1.25f;
+        }
+        return range;
+    }
+
+    public float getThreatScanRange() {
+        float range = (float) visionRange;
+        if (this instanceof Human) {
+            range = Math.max(range, core.GameConfig.getInstance().THREAT_RADIUS);
+        }
+        if (currentStrategy instanceof model.strategies.ScaredStrategy) {
+            range *= 1.25f;
+        }
+        return range;
     }
 
     public boolean hasDangerousThreats() {
